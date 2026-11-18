@@ -37,7 +37,9 @@ Segue `padrao/dependencias-novas.md`. **Nada foi instalado.** Cada dependência 
 | pip-audit, bandit | não medido | segurança | **dev/CI** | Adotar |
 | Redis, Celery | - | fila/cache | - | **Não adotar** (sem dor medida) |
 
-## 3. Frontend (versões **não medidas** nesta pré-triagem; fixar por lockfile no PR 1.2)
+## 3. Frontend
+**Atualização (PR 1.2, 2026-11-18):** versões, datas e licenças medidas no registro do npm e fixadas em `frontend/package.json` + `package-lock.json` (283 pacotes; `npm audit`: 0 vulnerabilidades; único script de instalação: `fsevents`, opcional e só macOS). Escolhas que divergem da lista abaixo: **TypeScript 6.0.3** (o `typescript-eslint` 8.73 declara `typescript <6.1.0`, então a 7.0.2 não é suportada), `@radix-ui/react-slot` avulso em vez do pacote `radix-ui` (55 dependências), e `lucide-react`/`tw-animate-css` adiados até algum componente usá-los. A tabela abaixo é a pré-triagem original.
+
 | Pacote | Uso | Veredito |
 |---|---|---|
 | react, react-dom, typescript, vite | base exigida pelo prompt | Adotar |
