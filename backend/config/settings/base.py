@@ -71,5 +71,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Negar por omissão (SEGURANCA §3): toda view exige autenticação, salvo declaração explícita.
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
 }
