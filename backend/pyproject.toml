@@ -30,5 +30,10 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 check_untyped_defs = true
 
+[[tool.mypy.overrides]]
+# django-allauth não publica tipos (sem py.typed); o plugin do django-stubs importa os models dele.
+module = ["allauth.*"]
+ignore_missing_imports = true
+
 [tool.django-stubs]
 django_settings_module = "config.settings.test"
