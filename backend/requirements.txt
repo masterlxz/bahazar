@@ -4,3 +4,6 @@ Django==5.2.19
 djangorestframework==3.18.3
 # psycopg é LGPL-3.0: compatível com o AGPL-3.0 do projeto (biblioteca ligada dinamicamente).
 psycopg[binary]==3.3.9
+# Autenticação (adaptar, não escrever do zero: AGENTS.md §4). MIT. O extra `headless` traz o
+# PyJWT[crypto] (e, por ele, `cryptography`, código nativo). Medido no PyPI em 2026-11-18.
+django-allauth[headless]==65.22.1

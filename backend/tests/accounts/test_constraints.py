@@ -5,7 +5,7 @@ import uuid
 import pytest
 from django.conf import settings
 from django.core.management import call_command
-from django.db import IntegrityError, transaction
+from django.db import DataError, IntegrityError, transaction
 
 from .conftest import SENHA_FORTE, User, criar_usuario
 
@@ -21,7 +21,8 @@ def test_usuario_usa_uuid_como_chave_primaria() -> None:
 
 @pytest.mark.parametrize("username", ["ab", "x" * 21, "A!", "Ana_01", "com espaco", "a-b"])
 def test_banco_recusa_username_fora_do_padrao(username: str) -> None:
-    with pytest.raises(IntegrityError), transaction.atomic():
+    # 21 caracteres estoura o varchar(20) (DataError); os demais violam o CHECK (IntegrityError).
+    with pytest.raises((IntegrityError, DataError)), transaction.atomic():
         User.objects.create_user(username=username, email="x@exemplo.com", password=SENHA_FORTE)
 
 
@@ -34,4 +35,4 @@ def test_banco_recusa_email_duplicado_sem_distinguir_maiusculas() -> None:
 
 def test_nao_ha_migracao_pendente() -> None:
     # Falha se alguém mudar um model e esquecer de gerar a migração.
-    call_command("makemigrations", "--check", "--dry-run")
+    call_command("makemigrations", "--check", "--dry-run", verbosity=3)

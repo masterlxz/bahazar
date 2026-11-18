@@ -11,7 +11,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "rest_framework",
+    "allauth",
+    "allauth.account",
+    "allauth.headless",
     "apps.core",
+    "apps.accounts",
 ]
 
 MIDDLEWARE = [
@@ -22,6 +26,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -57,7 +62,10 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -69,7 +77,57 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# --- Autenticação (ADR 0008; SEGURANCA §4) ---------------------------------------------------
+AUTH_USER_MODEL = "accounts.User"
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# Sessão por cookie HttpOnly (JavaScript não lê) + CSRF. O cookie de CSRF, ao contrário, precisa
+# ser legível pelo frontend para ele devolver o token no cabeçalho `X-CSRFToken`.
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 14 dias
+CSRF_COOKIE_HTTPONLY = False
+
+# allauth, modo headless (só API JSON, cliente "browser"). Sem telas HTML do allauth.
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
+ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*"]
+# "optional" por enquanto (ainda não há provedor de e-mail); passa a "mandatory" antes do deploy.
+ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_PRESERVE_USERNAME_CASING = False  # grava em minúsculas
+ACCOUNT_USERNAME_MIN_LENGTH = 3
+ACCOUNT_USERNAME_BLACKLIST = [
+    "admin",
+    "administrator",
+    "root",
+    "system",
+    "sistema",
+    "support",
+    "suporte",
+    "staff",
+    "moderator",
+    "mod",
+    "bahazar",
+    "api",
+    "null",
+]
+HEADLESS_ONLY = True
+HEADLESS_CLIENTS = ("browser",)
+
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+HEADLESS_FRONTEND_URLS = {
+    "account_confirm_email": FRONTEND_URL + "/account/verify-email/{key}",
+    "account_reset_password": FRONTEND_URL + "/account/password/reset",
+    "account_reset_password_from_key": FRONTEND_URL + "/account/password/reset/key/{key}",
+    "account_signup": FRONTEND_URL + "/account/signup",
+}
+
 # Negar por omissão (SEGURANCA §3): toda view exige autenticação, salvo declaração explícita.
+# Só sessão (com CSRF): nada de BasicAuthentication nem token em cabeçalho.
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
 }
