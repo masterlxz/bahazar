@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 
 import { SESSION_KEY, useSession } from "../../features/auth/useSession";
 import { ME_KEY } from "../../features/profile/useMe";
@@ -8,16 +8,16 @@ import { Button } from "../ui/button";
 
 export default function Header() {
   const { status } = useSession();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   async function sair() {
     await logout();
-    // Navega ANTES de invalidar: com a sessão já invalidada, o RequireAuth redirecionaria
-    // para /entrar e o jogador não voltaria ao início.
-    navigate("/");
-    queryClient.removeQueries({ queryKey: ME_KEY });
+    // Sem navigate() aqui, de propósito: a sessão é a única fonte de verdade. Ao ficar anônima,
+    // o RequireAuth leva ao login se a página for protegida; numa página pública não muda nada.
+    // (Um navigate("/") explícito disputaria com esse redirecionamento e o último venceria.)
     await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+    // O perfil do usuário que saiu não pode sobrar em cache para o próximo que entrar.
+    queryClient.removeQueries({ queryKey: ME_KEY });
   }
 
   return (

@@ -81,7 +81,7 @@ describe("ProfilePage", () => {
     );
   });
 
-  it("Sair faz DELETE da sessão e volta para o início", async () => {
+  it("Sair faz DELETE da sessão e, numa página protegida, leva ao login", async () => {
     const m = simularLogado();
     renderApp("/perfil");
     await screen.findByRole("heading", { name: "Seu perfil" });
@@ -89,6 +89,18 @@ describe("ProfilePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sair" }));
 
     await waitFor(() => expect(m.callsTo(LOGOUT)).toHaveLength(1));
-    expect(await screen.findByRole("heading", { level: 1, name: "bahazar" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Entrar" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Seu perfil" })).not.toBeInTheDocument();
+  });
+
+  it("depois de sair, o perfil do usuário anterior não sobra em cache", async () => {
+    simularLogado();
+    renderApp("/perfil");
+    await screen.findByText("ana@exemplo.com");
+
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+
+    await screen.findByRole("heading", { name: "Entrar" });
+    expect(screen.queryByText("ana@exemplo.com")).not.toBeInTheDocument();
   });
 });
