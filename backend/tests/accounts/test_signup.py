@@ -69,9 +69,10 @@ def test_nome_de_usuario_invalido_ou_reservado_e_recusado(username: str) -> None
     assert User.objects.count() == 0
 
 
-@pytest.mark.parametrize("senha", ["12345678", "senha12345", "Abc1234!x"])
+@pytest.mark.parametrize("senha", ["12345678", "password123", "Abc1234!x"])
 def test_senha_fraca_e_recusada(senha: str) -> None:
-    # 12345678 = só números; senha12345 = comum; Abc1234!x = 9 caracteres (mínimo é 10).
+    # 12345678 = só números; password123 = na lista de senhas comuns do Django (que é em inglês:
+    # senhas fracas em português NÃO são barradas); Abc1234!x = 9 caracteres (mínimo é 10).
     client = APIClient(enforce_csrf_checks=True)
 
     status = _cadastrar(client, password=senha)
