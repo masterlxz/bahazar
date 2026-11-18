@@ -34,7 +34,7 @@ def client() -> APIClient:
     return APIClient(enforce_csrf_checks=True)
 
 
-def csrf_headers(client: APIClient) -> dict[str, str]:
+def csrf_headers(client: APIClient) -> dict[str, Any]:
     """Obtém o token CSRF como o frontend faria (cookie `csrftoken`) e devolve o cabeçalho."""
     client.get(CONFIG_URL)
     return {"HTTP_X_CSRFTOKEN": client.cookies["csrftoken"].value}
