@@ -1,48 +1,30 @@
-import { Button } from "./components/ui/button";
+import { Navigate, Route, Routes } from "react-router";
 
-// Classes completas e estáticas: o Tailwind só gera o que enxerga literalmente no código.
-const RARIDADES = [
-  { nome: "Consumer", classe: "bg-rarity-consumer" },
-  { nome: "Industrial", classe: "bg-rarity-industrial" },
-  { nome: "Mil-Spec", classe: "bg-rarity-milspec" },
-  { nome: "Restricted", classe: "bg-rarity-restricted" },
-  { nome: "Classified", classe: "bg-rarity-classified" },
-  { nome: "Covert", classe: "bg-rarity-covert" },
-  { nome: "Contraband", classe: "bg-rarity-contraband" },
-] as const;
+import Header from "./components/layout/Header";
+import LoginPage from "./features/auth/LoginPage";
+import RequireAuth from "./features/auth/RequireAuth";
+import SignupPage from "./features/auth/SignupPage";
+import HomePage from "./features/home/HomePage";
+import ProfilePage from "./features/profile/ProfilePage";
 
 export default function App() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-4 py-12">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-4xl font-bold tracking-tight">bahazar</h1>
-        <p className="text-muted-foreground">
-          Economia, coleção e negociação de skins. Em construção.
-        </p>
-      </header>
-
-      <section className="flex flex-col gap-3 rounded-lg border border-border bg-card p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Raridades
-        </h2>
-        <ul className="flex flex-wrap gap-2">
-          {RARIDADES.map(({ nome, classe }) => (
-            <li
-              key={nome}
-              data-testid="rarity-chip"
-              className="flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm"
-            >
-              <span className={`size-2.5 rounded-full ${classe}`} aria-hidden="true" />
-              {nome}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <div className="flex gap-3">
-        <Button>Entrar</Button>
-        <Button variant="outline">Saiba mais</Button>
-      </div>
-    </main>
+    <>
+      <Header />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/entrar" element={<LoginPage />} />
+        <Route path="/cadastrar" element={<SignupPage />} />
+        <Route
+          path="/perfil"
+          element={
+            <RequireAuth>
+              <ProfilePage />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
