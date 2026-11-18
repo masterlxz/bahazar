@@ -73,6 +73,7 @@ Serializers DRF com tipos estritos; limites explícitos (`price` entre mínimo e
 - Nenhum segredo no repo: `.env` ignorado; `.env.example` sem valores; produção usa variáveis do provedor. Chave secreta do Django, credenciais do banco e e-mail só no servidor.
 - CORS restrito à origem do frontend; `SECURE_*`, HSTS, `DEBUG=False` em produção; `ALLOWED_HOSTS` explícito.
 - CI (ver PLANO etapa 1): guard de segredos do workspace, `ruff`, `mypy`/`pyright`, `pip-audit`, `npm audit`, testes com Postgres real, `bandit`.
+- **Ruleset da `main`** (`.github/ruleset-protect-main.json`, aplicado pela API): PR obrigatório, sem force push, sem apagar, e três checks obrigatórios (`guard`, `Python (lint, types and tests)`, `Frontend (lint, types, tests and build)`). Os nomes são o `name:` dos jobs do `ci.yml`: **renomear um job sem atualizar o JSON e o ruleset trava todo merge** (o check nunca reporta). Para reaplicar: `gh api -X PUT repos/masterlxz/bahazar/rulesets/27571902 --input .github/ruleset-protect-main.json`.
 - Logs sem senha, token, código de convite ou `Idempotency-Key` completa. Monitoramento de erros (decisão de ferramenta pendente).
 - Backup do Postgres com **teste de restauração** documentado.
 
