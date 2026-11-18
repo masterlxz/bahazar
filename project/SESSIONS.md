@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-18 — Sessão 5 (ruleset exige os checks de CI)
+
+- **Pedido**: exigir no ruleset da `main` os dois checks de CI (hoje só o `guard`).
+- **Decisão do dono**: "faz a PR do ruleset primeiro".
+- **Feito** (branch `ruleset-exige-checks-de-ci`, PR #5): o ruleset passa a ser versionado em `.github/ruleset-protect-main.json` (3 checks: `guard`, `Python (lint, types and tests)`, `Frontend (lint, types, tests and build)`). O PR sozinho **não** altera o ruleset (ele vive na API do GitHub): depois do merge, o JSON é aplicado com `gh api -X PUT repos/masterlxz/bahazar/rulesets/27571902 --input .github/ruleset-protect-main.json` e lido de volta.
+- **CI**: ver o PR #5.
+- **Não verificado**: o efeito do ruleset novo num PR real (o primeiro PR depois dele é o teste).
+- **Fica**: aplicar o JSON na API após o merge; só então considerar auto-merge (ADR 0012); PR 1.4.
+
 ### 2026-11-18 — Sessão 4 (etapa 1.3: autenticação e perfil)
 
 - **Pedido**: PR 1.3 (cadastro, login, perfil). Sem domínio próprio, o dono **adiou o D3** e escolheu: e-mail opcional agora e obrigatório antes do deploy; login por usuário ou e-mail; avatar por chave de lista fixa. Plano aprovado antes de codar (toca autenticação, AGENTS.md §4).
