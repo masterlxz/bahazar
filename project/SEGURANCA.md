@@ -39,10 +39,14 @@ Camadas, da mais externa à mais interna:
 **Opção de reforço (decisão D4):** habilitar RLS do Postgres também, com `SET LOCAL app.user_id` por requisição. Dá defesa real contra o "filtro esquecido", mas aumenta complexidade, atrapalha pool de conexões em modo transação e exige disciplina nas migrations. Recomendação: **não agora**; avaliar antes de abrir ao público.
 
 ## 4. Autenticação
-- Não escrever auth: usar biblioteca madura (candidata: django-allauth em modo *headless*; ver DEPENDENCIAS). Senhas com Argon2 (`argon2-cffi`) ou o hasher padrão do Django; nunca guardar senha em claro.
-- Sessão por **cookie HttpOnly + Secure + SameSite=Lax** com CSRF, **se** frontend e API ficarem sob o mesmo domínio registrável (ex.: `app.exemplo.com` e `api.exemplo.com`). Se ficarem em domínios distintos (ex.: `*.vercel.app` + API própria), cookie vira cross-site e a alternativa é token (JWT curto + refresh rotativo). Decisão D3, recomendação: mesmo domínio registrável.
-- Verificação de e-mail, redefinição de senha e *rate limit* em login. 2FA fica para depois.
-- Nome de usuário único, validado (ver modelo).
+**Implementado na PR 1.3 (ADR 0008).**
+- Não escrever auth: **django-allauth em modo headless** (só API JSON, cliente `browser`, sem telas HTML). Senha com o hasher padrão do Django (PBKDF2-SHA256), mínimo de 10 caracteres, validadores do Django. **Limite conhecido:** a lista de senhas comuns do Django é em inglês, então senhas fracas em português (ex.: `senha12345`) passam.
+- Sessão por **cookie `HttpOnly` + `SameSite=Lax`** (+ `Secure` em produção) com **CSRF** (cookie `csrftoken` legível pelo frontend, que devolve o token no cabeçalho `X-CSRFToken`). O DRF aceita **só `SessionAuthentication`**: sem `BasicAuthentication`, sem token em cabeçalho. **Mesma origem exigida** (em dev, proxy do Vite). **D3 adiada**: o desenho de produção (proxy da Vercel + cookie, domínio próprio ou JWT) é decidido no deploy; sem domínio, cookie cross-site não funciona (`vercel.app` está na lista pública de sufixos).
+- Login por **usuário ou e-mail**. Nome de usuário: `^[a-z0-9_]{3,20}$`, gravado em minúsculas, lista de nomes reservados (`admin`, `system`, `root`, `bahazar`...), imutável por enquanto. E-mail único sem distinguir maiúsculas (inclusive no banco).
+- **Limite de tentativas de login** pelo allauth (`login_failed`), que usa o cache do Django: em produção, **cache em banco** (`DatabaseCache`), porque `LocMemCache` conta por processo. Exige `python manage.py createcachetable` antes do primeiro deploy.
+- E-mail: verificação **opcional** por enquanto (sem provedor). **Bloqueio de deploy:** passar para `mandatory` e configurar provedor antes de qualquer produção; hoje em dev o e-mail sai no console.
+- `ACCOUNT_PREVENT_ENUMERATION` (padrão do allauth) protege o e-mail; o nome de usuário "já existe" é enumerável por natureza (é público no jogo).
+- Fora desta etapa: 2FA, login social, troca de e-mail/usuário, exclusão de conta (LGPD).
 
 ## 5. Convites
 1. Gerar com `secrets.token_urlsafe(16)` (128 bits). Exibir **uma vez**; gravar só `sha256(código)`.
