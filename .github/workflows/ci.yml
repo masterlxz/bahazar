@@ -1,0 +1,74 @@
+name: CI
+
+# Baseado em padrao/workflows/ci-python.yml do workspace (ADR 0009: testes rodam só no CI).
+# Sem filtro de caminho, de propósito: o check abaixo pode ser obrigatório na main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    # O nome é o contexto do check no ruleset da main: não renomear sem atualizar o ruleset.
+    name: Python (lint, types and tests)
+    runs-on: ubuntu-24.04
+    # Postgres real: testes de concorrência (SELECT ... FOR UPDATE) não valem em SQLite.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DB_NAME: app_test
+      DB_USER: app
+      DB_PASSWORD: app
+      DB_HOST: localhost
+      DB_PORT: "5432"
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install
+        run: pip install -r requirements-dev.txt
+
+      - name: Ruff (lint)
+        run: ruff check .
+
+      - name: Ruff (format)
+        run: ruff format --check .
+
+      - name: Types
+        run: mypy .
+
+      - name: Audit (dependencies)
+        run: pip-audit -r requirements.txt
+
+      - name: Tests
+        run: pytest
