@@ -5,7 +5,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 ## Aguardando o dono
 - [ ] Aprovar (ou pedir mudanças em) a arquitetura desta entrega.
 - [ ] Responder D2, D3, D7, D8 (bloqueiam a etapa 1 e 4).
-- [ ] Confirmar o nome `bazaar` (D9) e onde criar o repo no GitHub (D10).
+- [x] Nome (D9): **bahazar**, confirmado pelo dono em 2026-11-18. Repo (D10): `masterlxz/bahazar`, público, AGPL-3.0.
 
 ## ADRs gravados em `project/adr/` (2026-11-18, status: propostos até a aprovação da arquitetura)
 0001 Django + DRF no lugar de Supabase · 0002 Regras econômicas em services · 0003 Ledger de partida dobrada · 0004 Autorização no código (sem RLS) · 0005 Polling primeiro, SSE depois · 0006 Monólito modular · 0007 Dinheiro em centavos.

@@ -1,4 +1,4 @@
-# bazaar: visão geral
+# bahazar: visão geral
 
 ## O que é
 Jogo de navegador de **economia virtual, patrimônio, colecionismo e negociação** com skins de CS2. Cada jogador entra em **salas**; cada sala é uma economia independente (dinheiro, itens e mercado próprios). Não é um simulador de caixas: o centro é mercado, inventário e patrimônio.

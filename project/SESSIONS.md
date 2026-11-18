@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-18 — Sessão 2 (etapa 1.1 e renomeação)
+
+- **Pedido**: aprovar a arquitetura, começar a etapa 1 e trocar o nome do projeto para `bahazar`.
+- **Decisão do dono**: arquitetura aprovada; nome final **bahazar** (o nome de trabalho era `bazaar`; as entradas abaixo e o histórico do git mantêm o nome antigo de propósito, como registro).
+- **Feito**: PR #1 (etapa 1.1: esqueleto Django + CI, 7 testes, mutação deliberada confirmada), mesclado como `f71e978`. Repo renomeado no GitHub para `masterlxz/bahazar` (o nome antigo redireciona). Este PR troca o nome nos docs, no `README` e nos valores padrão do banco (`DB_NAME`/`DB_USER`).
+- **CI**: PR #1 com `Python (lint, types and tests)` e `guard` verdes (visto com `gh pr view`).
+- **Não verificado**: lockfile das transitivas não existe; `prod.py` só testado por import.
+- **Fica**: PR 1.2 (frontend), PR 1.3 (auth: pede confirmação explícita, AGENTS.md §4; depende de D3), PR 1.4 (OpenAPI → tipos). Exigir o check `Python (lint, types and tests)` no ruleset (já reportou verde na `main`).
+
 ### 2026-11-18 — Sessão 1 (arquitetura inicial)
 
 - **Pedido**: abrir o projeto e entregar só a documentação de arquitetura do jogo (sem implementar).
