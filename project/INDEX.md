@@ -1,4 +1,4 @@
-# bazaar: índice do projeto
+# bahazar: índice do projeto
 
 ## Como Usar Este Arquivo
 Mapa dos documentos de `project/`. Leia nesta ordem para revisar a primeira entrega (arquitetura, sem código).

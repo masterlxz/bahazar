@@ -1,4 +1,4 @@
-# bazaar
+# bahazar
 
 Jogo web multiplayer de economia, coleção e negociação de skins inspirado no Counter-Strike 2. Dinheiro e itens são **virtuais**: não há dinheiro real, depósito, saque nem itens reais da Steam.
 

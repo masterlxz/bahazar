@@ -16,7 +16,7 @@ flowchart LR
 
 ## 2. Estrutura do repositório (monorepo)
 ```
-bazaar/
+bahazar/
   backend/
     config/                 # settings, urls, asgi
     apps/
