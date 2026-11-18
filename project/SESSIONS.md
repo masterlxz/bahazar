@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-18 — Sessão 6 (etapa 1.4: telas de autenticação)
+
+- **Pedido**: PR 1.4. Plano aprovado antes de codar. O dono escolheu **tipos escritos à mão agora e geração na Etapa 2** (ADR 0009), contrariando o PLANO 1.4 e a ARQUITETURA §6 quanto ao "quando".
+- **Feito** (branch `etapa-1-4-telas-de-autenticacao`, PR #6): cliente HTTP com CSRF (`services/http.ts`), serviços de auth e perfil, `useSession` (TanStack Query), telas Entrar, Cadastrar e Perfil (avatar), `RequireAuth`, `Header`, proxy do Vite, `react-router` 8.5.1 e `@tanstack/react-query` 5.107.0, README com como rodar. Auto-merge **não** ligado neste PR (toca sessão/CSRF no cliente).
+- **Desvios do plano**: (1) **Sair** não navega mais para `/`: um `navigate("/")` explícito disputava com o redirecionamento do `RequireAuth` (transição de baixa prioridade contra atualização urgente do cache) e o último vencia; agora a sessão decide (de uma página protegida vai ao login). (2) O proxy do Vite tem o alvo fixo `localhost:8000` (ler variável de ambiente exigiria `@types/node`).
+- **Testes**: 30 no frontend (era 8). 3 mutações válidas (token CSRF não enviado: `5 failed`; login sempre `username`: `1 failed`; `RequireAuth` invertido: `7 failed`). **Duas das cinco tentativas iniciais eram inválidas** (deixaram código sem uso e falharam no lint antes dos testes); foram refeitas.
+- **CI**: ver o PR #6.
+- **Não verificado**: **nada foi visto num navegador** e o fluxo real com backend + frontend (proxy, `Origin`/`Host`, cookie) nunca rodou; o formato dos erros do allauth veio da especificação, não de um teste real.
+- **Fica**: o dono validar no navegador (README); PR da Etapa 2 (salas, convites, carteiras) e, com ela, geração de tipos.
+
 ### 2026-11-18 — Sessão 5 (ruleset exige os checks de CI)
 
 - **Pedido**: exigir no ruleset da `main` os dois checks de CI (hoje só o `guard`).

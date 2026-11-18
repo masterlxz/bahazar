@@ -16,7 +16,7 @@ Mapa dos documentos de `project/`. Leia nesta ordem para revisar a primeira entr
 | - | [GUIDELINES.md](GUIDELINES.md) | Regras de código do projeto (rascunho) |
 | - | [SESSIONS.md](SESSIONS.md) | Registro de sessões (mais recente no topo) |
 
-ADRs ficam em `project/adr/` (0001 a 0008, lista em [PENDING.md](PENDING.md)).
+ADRs ficam em `project/adr/` (0001 a 0009, lista em [PENDING.md](PENDING.md)).
 
 ## Normas do workspace que valem aqui
 `AGENTS.md` (fluxo), `padrao/arquitetura.md` (simplicidade primeiro), `padrao/modularidade.md` (núcleo + módulos), `padrao/dependencias-novas.md` (procurar pronto e avaliar dependência), ADR 0009 do workspace (build e teste só no CI).
