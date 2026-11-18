@@ -16,7 +16,7 @@ PostgreSQL é a fonte da verdade. As garantias de integridade (FK, CHECK, UNIQUE
 ## 2. Diagrama (visão geral)
 ```mermaid
 erDiagram
-  profiles ||--o{ room_members : "participa"
+  users ||--o{ room_members : "participa"
   rooms ||--o{ room_members : ""
   rooms ||--o{ room_invites : ""
   rooms ||--o{ wallets : ""
@@ -41,8 +41,8 @@ erDiagram
 ### 3.1 Identidade e salas
 | Tabela | Campos principais | Constraints e índices |
 |---|---|---|
-| `profiles` | `id` (= `auth_user.id`, 1:1), `username` (citext), `avatar_url`, `xp`, `level` | `UNIQUE(username)` case-insensitive; CHECK formato do username (`^[a-z0-9_]{3,20}$`); `xp >= 0` |
-| `rooms` | `id`, `name`, `owner_id` → profiles, `visibility` (`private`\|`public`), `starting_balance`, `market_fee_bps`, `max_members`, `season_id` null, `archived_at` | `starting_balance >= 0`; `market_fee_bps BETWEEN 0 AND 5000`; `visibility='private'` por padrão (público só no futuro) |
+| `users` (`accounts.User`, **implementado na PR 1.3**) | `id` uuid, `username` varchar(20), `email`, `avatar` (chave de lista fixa), mais os campos padrão do `AbstractUser` (`password`, `is_active`, `is_staff`...) | `UNIQUE(username)`; **CHECK** `username ~ '^[a-z0-9_]{3,20}$'` (`user_username_format`); **UNIQUE** `lower(email)` onde `email <> ''` (`user_email_unique_ci`). **Substitui a tabela `profiles` prevista antes** (ADR 0008): o perfil hoje é só o avatar, então não há tabela 1:1. `xp` e `level` migram para o módulo `progression` (o núcleo não importa módulo) |
+| `rooms` | `id`, `name`, `owner_id` → users, `visibility` (`private`\|`public`), `starting_balance`, `market_fee_bps`, `max_members`, `season_id` null, `archived_at` | `starting_balance >= 0`; `market_fee_bps BETWEEN 0 AND 5000`; `visibility='private'` por padrão (público só no futuro) |
 | `room_members` | `id`, `room_id`, `user_id`, `role` (`owner`\|`admin`\|`member`), `joined_at`, `status` (`active`\|`left`\|`banned`) | `UNIQUE(room_id, user_id)`; índice `(user_id, room_id)` (consulta "minhas salas" e checagem de pertencimento); **exatamente um `owner` ativo por sala** (índice único parcial `WHERE role='owner' AND status='active'`) |
 | `room_invites` | `id`, `room_id`, `created_by`, `code_hash` (bytea), `expires_at`, `max_uses`, `uses`, `revoked_at` | `UNIQUE(code_hash)`; `uses <= max_uses`; o código em claro **nunca** é gravado (ver SEGURANCA §5) |
 

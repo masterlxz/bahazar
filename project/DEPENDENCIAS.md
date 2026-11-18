@@ -37,6 +37,8 @@ Segue `padrao/dependencias-novas.md`. **Nada foi instalado.** Cada dependência 
 | pip-audit, bandit | não medido | segurança | **dev/CI** | Adotar |
 | Redis, Celery | - | fila/cache | - | **Não adotar** (sem dor medida) |
 
+**Atualização (PR 1.3, 2026-11-18):** adicionado `django-allauth[headless]==65.22.1` (MIT, publicado em 2026-11-13, 25 releases nos últimos 12 meses; dependências diretas: Django e asgiref; o extra `headless` traz `PyJWT[crypto]` e, por ele, `cryptography`, de código nativo). Veredito: **adotar com ressalva** (superfície grande: só `account` e `headless` ligados; sem `socialaccount`, `mfa`). Não adotado: `argon2-cffi` (hasher padrão do Django basta), dj-rest-auth, simplejwt. O allauth não publica tipos: `mypy` ignora imports sem tipo só de `allauth.*`. `pip-audit` no CI: sem vulnerabilidades conhecidas.
+
 ## 3. Frontend
 **Atualização (PR 1.2, 2026-11-18):** versões, datas e licenças medidas no registro do npm e fixadas em `frontend/package.json` + `package-lock.json` (283 pacotes; `npm audit`: 0 vulnerabilidades; único script de instalação: `fsevents`, opcional e só macOS). Escolhas que divergem da lista abaixo: **TypeScript 6.0.3** (o `typescript-eslint` 8.73 declara `typescript <6.1.0`, então a 7.0.2 não é suportada), `@radix-ui/react-slot` avulso em vez do pacote `radix-ui` (55 dependências), e `lucide-react`/`tw-animate-css` adiados até algum componente usá-los. A tabela abaixo é a pré-triagem original.
 

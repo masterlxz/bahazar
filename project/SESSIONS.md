@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-18 — Sessão 4 (etapa 1.3: autenticação e perfil)
+
+- **Pedido**: PR 1.3 (cadastro, login, perfil). Sem domínio próprio, o dono **adiou o D3** e escolheu: e-mail opcional agora e obrigatório antes do deploy; login por usuário ou e-mail; avatar por chave de lista fixa. Plano aprovado antes de codar (toca autenticação, AGENTS.md §4).
+- **Feito** (branch `etapa-1-3-autenticacao`, PR #4): allauth headless (sessão + CSRF), `accounts.User` com UUID e constraints no banco, `/api/v1/me/` (GET/PATCH só do avatar), cache em banco em produção, ADR 0008, `profiles` fundido no `User` no modelo de dados.
+- **Testes**: 43 novos (50 no backend). Rodada vermelha só com testes: `41 failed, 9 passed`. 3 mutações deliberadas (CSRF desligado, `fields="__all__"`, regex frouxa) derrubaram os testes certos em branches descartáveis (`workflow_dispatch`).
+- **CI**: visto com `gh run`: `Python`, `Frontend` e `guard` verdes.
+- **Não verificado**: nada num navegador; e-mail real nunca enviado; CSRF testado só com o cliente de teste do DRF (o fluxo `browser` do allauth não foi lido na doc, foi provado por teste); limite de tentativas só com `LocMemCache`, o `DatabaseCache` de produção nunca rodou; migração escrita à mão (validada pelo `makemigrations --check`).
+- **Fica**: PR 1.4 (OpenAPI → tipos TS, telas de login e perfil, proxy do Vite); bloqueios de deploy em `PENDING.md`; exigir os checks `Python` e `Frontend` no ruleset.
+
 ### 2026-11-18 — Sessão 3 (etapa 1.2: esqueleto do frontend)
 
 - **Pedido**: começar a PR 1.2 (Vite, React, TypeScript, Tailwind, shadcn/ui, tema escuro).

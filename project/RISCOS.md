@@ -5,7 +5,7 @@
 |---|---|---|---|---|
 | D1 | **Imagens das skins** (propriedade da Valve) | hotlink do CDN da Steam; placeholders próprios; pacote próprio | Já decidido por você: **pendente**. O modelo tem `image_url` + `image_source`. Decidir antes da etapa 3 | PR 3.1 |
 | D2 | **Onde hospedar backend e Postgres** | Fly.io, Railway, Render, VPS próprio com Postgres gerenciado (Neon/RDS) | Escolher após a etapa 2; compare custo, backup, região (latência BR) e lock-in. **Não medi preços nem limites atuais** | Etapa 6 (staging na 2) |
-| D3 | **Domínio e modelo de sessão** | (a) frontend e API sob o mesmo domínio registrável + cookie de sessão; (b) domínios distintos + token JWT | (a): cookie HttpOnly + CSRF é mais seguro que token no navegador | PR 1.3 |
+| D3 | **Domínio e modelo de sessão** (2026-11-18: **adiada**; a PR 1.3 implementou sessão por cookie na mesma origem; sem domínio, cookie cross-site não funciona porque `vercel.app` está na lista pública de sufixos; opções vivas: proxy da Vercel + cookie, domínio próprio, JWT) | (a) frontend e API sob o mesmo domínio registrável + cookie de sessão; (b) domínios distintos + token JWT | (a): cookie HttpOnly + CSRF é mais seguro que token no navegador | PR 1.3 |
 | D4 | **RLS do Postgres além da autorização no código** | não agora; ou desde já com `SET LOCAL` | Não agora; reavaliar antes de abrir ao público | - |
 | D5 | **RNG verificável (commit-reveal)** | só snapshot+roll; ou commit-reveal | Snapshot+roll agora; commit-reveal se abrir ao público | PR 5.1 |
 | D6 | **Negociação direta (oferta/troca 1:1)** além do marketplace | só marketplace; ou incluir trocas | Só marketplace na v1. O prompt cita "negociações" mas só especifica o mercado | Escopo |
