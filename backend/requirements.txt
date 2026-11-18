@@ -1,0 +1,6 @@
+# Dependências de runtime, versão exata (sem flutuante). Avaliação em project/DEPENDENCIAS.md.
+# Medido no PyPI em 2026-11-18. Django: linha LTS 5.2 (decisão D8, recomendação do plano).
+Django==5.2.19
+djangorestframework==3.18.3
+# psycopg é LGPL-3.0: compatível com o AGPL-3.0 do projeto (biblioteca ligada dinamicamente).
+psycopg[binary]==3.3.9
