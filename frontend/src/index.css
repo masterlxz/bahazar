@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/*
+ * Tema escuro único (direção visual do produto): preto e grafite, vermelho de destaque.
+ * Tokens semânticos em :root; o Tailwind os expõe como utilitários via @theme inline.
+ */
+:root {
+  color-scheme: dark;
+  --background: #0a0a0b;
+  --foreground: #ececee;
+  --card: #141417;
+  --secondary: #1d1d22;
+  --secondary-foreground: #ececee;
+  --muted-foreground: #8b8b94;
+  --border: #2a2a31;
+  --primary: #e5262e;
+  --primary-foreground: #ffffff;
+  --ring: #e5262e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+}
+
+/* Cores de raridade do CS2 (usadas nos cards de skin). */
+@theme {
+  --color-rarity-consumer: #b0c3d9;
+  --color-rarity-industrial: #5e98d9;
+  --color-rarity-milspec: #4b69ff;
+  --color-rarity-restricted: #8847ff;
+  --color-rarity-classified: #d32ce6;
+  --color-rarity-covert: #eb4b4b;
+  --color-rarity-contraband: #e4ae39;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, sans-serif;
+}
