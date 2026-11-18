@@ -15,7 +15,11 @@ extend-exclude = ["**/migrations/*"]
 select = ["E", "F", "I", "B", "UP", "S", "DJ"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]  # assert é o idioma do pytest
+"tests/**" = [
+  "S101",  # assert é o idioma do pytest
+  "S105",  # senhas literais em testes são dado de teste, não segredo
+  "S106",
+]
 
 [tool.mypy]
 python_version = "3.13"
