@@ -13,3 +13,8 @@ Começa como jogo privado para um grupo de amigos (salas privadas, cada sala com
 
 ## Documentos
 Comece por [`project/INDEX.md`](project/INDEX.md).
+
+## Licença
+[GNU AGPL-3.0](LICENSE). Quem hospedar uma versão modificada como serviço de rede deve oferecer o código-fonte aos usuários.
+
+Este projeto é independente e **não é afiliado à Valve**. Counter-Strike e os nomes e imagens de skins pertencem aos seus donos; este repositório não distribui imagens deles.
