@@ -4,7 +4,7 @@ from typing import Any
 
 from django.conf import settings
 
-# `Any` porque os stubs do Django não conhecem as chaves do allauth nem o formato livre dos validadores.
+# `Any`: os stubs do Django não conhecem as chaves do allauth nem o formato dos validadores.
 cfg: Any = settings
 
 
