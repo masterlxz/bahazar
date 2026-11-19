@@ -98,7 +98,7 @@ def post_entries(
         for entrada in entries:
             carteira = carteiras[entrada.wallet_id]
             novo_saldo = carteira.balance + entrada.amount
-            if carteira.kind == WalletKind.PLAYER and novo_saldo < 0:
+            if carteira.kind == WalletKind.PLAYER and novo_saldo <= 0:
                 raise InsufficientFunds
             carteira.balance = novo_saldo
             linhas.append(
