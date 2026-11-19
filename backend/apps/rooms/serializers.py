@@ -1,0 +1,18 @@
+from rest_framework import serializers
+
+from .models import Room
+
+
+class RoomSerializer(serializers.ModelSerializer):
+    """Sala vista por um membro. Só `name` é editável.
+
+    `fields` é explícito (nunca `__all__`): `owner`, `visibility` e `max_members` não podem ser
+    alterados pelo corpo da requisição (mass assignment). `role` é o papel de quem pergunta.
+    """
+
+    role = serializers.CharField(source="my_role", read_only=True)
+
+    class Meta:
+        model = Room
+        fields = ("id", "name", "visibility", "max_members", "role", "created_at")
+        read_only_fields = ("id", "visibility", "max_members", "created_at")
