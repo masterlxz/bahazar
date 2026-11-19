@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-19 — Sessão 9 (Etapa 2, PR 2.1: salas)
+
+- **Pedido**: começar a Etapa 2. Plano aprovado em plan mode, com 3 decisões do dono: (1) **ordem das PRs trocada** (2.1 salas, 2.2 economy, 2.3 convites, 2.4 telas), porque o resgate de convite cria a carteira; (2) imutabilidade do ledger por **trigger agora e REVOKE só no deploy**; (3) tipos OpenAPI reavaliados na PR 2.4. Na PR 2.1, o dono decidiu que `starting_balance` e `market_fee_bps` entram na 2.2 (D7 aberta) e que o limite é **5 salas como dono**.
+- **Feito** (branch `etapa-2-1-salas`, PR #10): app `rooms` com `Room` e `RoomMember`, seletor escopado `rooms_for_user` (papel em `my_role`), permissões `IsRoomMember`/`IsRoomAdmin`, endpoints `GET/POST /api/v1/rooms/`, `GET/PATCH /rooms/{id}/`, `POST /rooms/{id}/leave/`. Banco: um dono ativo por sala (índice único parcial), `UNIQUE(room, user)`, `CHECK`s de papel, status e visibilidade.
+- **Testes**: 28 novos (23 API, 4 banco, 1 arquitetura), 78 no total, todos verdes no CI. O commit só de testes **não** pôde mostrar "falha por comportamento": o CI roda `mypy` antes do `pytest` e `apps.rooms` não existia, então a prova de valor veio de **4 mutações** em branch descartável (PR #11, fechado): limite `<=` (falhou `test_limite_de_cinco_salas`), vazamento de salas (listagem e IDOR deram 403 no lugar de 404), dono que sai (falhou `test_dono_nao_pode_sair`) e membro como admin (falhou `test_membro_comum_nao_renomeia`). A M3 só ficou provada **isolada**: junto da M2 o teste quebrava por efeito colateral. Uma primeira rodada foi **inválida** (a mutação não passava no `ruff format` e os testes nem rodaram).
+- **Lição**: o `ruff` local classifica `apps` ao contrário do CI na ordem de imports (o CI vale); uma correção local quebrou o lint no CI.
+- **Não verificado**: nada foi visto no navegador (não há tela de salas até a PR 2.4); concorrência real do limite de 5 salas (a trava `select_for_update` no usuário não tem teste concorrente); PATCH com `admin` (o papel existe, mas nada o atribui ainda).
+- **Fica**: PR 2.2 (`economy`: carteira, ledger, trigger de imutabilidade, campos econômicos da sala); 2.3 (convites); 2.4 (telas e tipos OpenAPI). REVOKE dos papéis de banco no deploy.
+
 ### 2026-11-19 — Sessão 8 (validação no navegador)
 
 - **Pedido**: validar o fluxo de autenticação (PR 1.3 e 1.4) num navegador real. Foram instalados nesta máquina, via `winget`, Python 3.13.17 e PostgreSQL 17.12 (mesma versão major do CI); banco e usuário `bahazar` criados, `migrate` OK, backend em `:8000` e Vite em `:5173`.

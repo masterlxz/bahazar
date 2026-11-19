@@ -25,6 +25,12 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 ## ADRs gravados em `project/adr/` (gravados em 2026-11-18, **aceitos** em 2026-11-19)
 0001 Django + DRF no lugar de Supabase · 0002 Regras econômicas em services · 0003 Ledger de partida dobrada · 0004 Autorização no código (sem RLS) · 0005 Polling primeiro, SSE depois · 0006 Monólito modular · 0007 Dinheiro em centavos · 0008 Autenticação com allauth headless e usuário UUID · 0009 Tipos da API escritos à mão até a Etapa 2.
 
+## Etapa 2 (aberta pela PR 2.1)
+- [ ] PR 2.2 `economy` (carteira, ledger, trigger de imutabilidade, `starting_balance` e `market_fee_bps` na sala; pede o valor provisório do saldo inicial), 2.3 convites, 2.4 telas e novo ADR de tipos OpenAPI.
+- [ ] `REVOKE UPDATE/DELETE` do ledger com dois papéis de banco (dono das migrations x aplicação): fica para o deploy; até lá só o trigger protege.
+- [ ] Teste concorrente do limite de 5 salas (`create_room` trava o usuário, mas nenhum teste o exercita em paralelo).
+- [ ] Teste de que `PATCH` por `admin` (não só `owner`) funciona, quando existir forma de promover alguém a `admin`.
+
 ## Verificações pendentes (antes da etapa 1)
 - Licença do repo-fonte do catálogo de skins e termos das imagens.
 - Licenças, datas de release e avisos de segurança das dependências (pré-triagem em DEPENDENCIAS).
