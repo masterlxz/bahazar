@@ -8,7 +8,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [x] Nome (D9): **bahazar**, confirmado pelo dono em 2026-11-18. Repo (D10): `masterlxz/bahazar`, público, AGPL-3.0.
 
 ## Pendências do frontend (criadas pela PR 1.4)
-- [ ] **Validar no navegador** (só você pode: esta máquina não sobe o backend): cadastro, entrar (com usuário e com e-mail), trocar avatar, sair. Passo a passo no `README.md`.
+- [x] **Validado no navegador** em 2026-11-19 (backend + Postgres 17 + Vite nesta máquina): cadastro, entrar, avatar, sair, `/perfil` deslogado, senha errada em sequência, cadastro duplicado. Ver `SESSIONS.md` (Sessão 8) para o que o log provou e o que foi só relato.
 - [ ] Redefinição de senha e confirmação de e-mail (rotas `/account/...` que o backend já aponta), quando houver provedor de e-mail.
 - [ ] Gerar tipos a partir do OpenAPI na Etapa 2 (gatilho do ADR 0009: entrada do app `rooms`).
 - [ ] Mensagem própria para "muitas tentativas de login" (hoje o limite aparece como "Usuário ou senha incorretos").
