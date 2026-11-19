@@ -8,6 +8,8 @@ export class ApiError extends Error {
   readonly fieldErrors: Record<string, string[]>;
   /** Mensagens do servidor que não se referem a um campo. */
   readonly nonFieldErrors: string[];
+  /** `code` de cada erro do servidor (estável, ao contrário do texto de `message`). */
+  readonly codes: string[];
 
   constructor(status: number, body: unknown) {
     super(`Erro ${status} da API`);
@@ -15,8 +17,10 @@ export class ApiError extends Error {
     this.status = status;
     this.fieldErrors = {};
     this.nonFieldErrors = [];
+    this.codes = [];
 
     for (const erro of (body as AllauthErrorBody | null)?.errors ?? []) {
+      this.codes.push(erro.code);
       if (erro.param) {
         (this.fieldErrors[erro.param] ??= []).push(erro.message);
       } else {

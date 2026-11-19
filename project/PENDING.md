@@ -11,7 +11,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [ ] **Validar no navegador** (só você pode: esta máquina não sobe o backend): cadastro, entrar (com usuário e com e-mail), trocar avatar, sair. Passo a passo no `README.md`.
 - [ ] Redefinição de senha e confirmação de e-mail (rotas `/account/...` que o backend já aponta), quando houver provedor de e-mail.
 - [ ] Gerar tipos a partir do OpenAPI na Etapa 2 (gatilho do ADR 0009: entrada do app `rooms`).
-- [ ] Mensagem própria para "muitas tentativas de login" (hoje o limite aparece como "Usuário ou senha incorretos").
+- [x] Mensagem própria para "muitas tentativas de login": feita (PR #9), cobre `400 too_many_login_attempts` e `429`.
 - [ ] Variável `VITE_BACKEND_URL` no proxy do Vite (hoje fixo em `localhost:8000`; exige `@types/node`).
 
 ## Bloqueios de deploy (criados pela PR 1.3)
