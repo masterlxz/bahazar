@@ -45,6 +45,18 @@ export const ERRO_LOGIN = {
   ],
 };
 
+/**
+ * Limite de falhas de login por conta, medido no backend real (2026-11-19): `400` com este
+ * `code` e sem `param`. O texto de `message` não foi capturado; só o `code` é contrato.
+ */
+export const ERRO_LOGIN_MUITAS_TENTATIVAS = {
+  status: 400,
+  errors: [{ message: "Too many failed login attempts.", code: "too_many_login_attempts" }],
+};
+
+/** Limite geral por IP, medido no backend real (2026-11-19): `429` com corpo só `{ status: 429 }`. */
+export const ERRO_LIMITE_GERAL = { status: 429 };
+
 export const ERRO_USERNAME_EXISTE = {
   status: 400,
   errors: [

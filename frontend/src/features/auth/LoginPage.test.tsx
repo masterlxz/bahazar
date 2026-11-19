@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { mockFetch } from "../../test/fetchMock";
 import {
+  ERRO_LIMITE_GERAL,
   ERRO_LOGIN,
+  ERRO_LOGIN_MUITAS_TENTATIVAS,
   LOGIN,
   ME,
   ME_OK,
@@ -18,7 +20,7 @@ beforeEach(() => {
   document.cookie = "csrftoken=tok";
 });
 
-function simular(loginStatus: number) {
+function simular(loginStatus: number, erro: object = ERRO_LOGIN) {
   let logado = false;
   return mockFetch({
     [SESSION]: () =>
@@ -29,7 +31,7 @@ function simular(loginStatus: number) {
       if (loginStatus === 200) logado = true;
       return loginStatus === 200
         ? { status: 200, body: SESSION_AUTENTICADA }
-        : { status: loginStatus, body: ERRO_LOGIN };
+        : { status: loginStatus, body: erro };
     },
     [ME]: { status: 200, body: ME_OK },
   });
@@ -71,6 +73,28 @@ describe("LoginPage", () => {
     preencherEEnviar("ana_01");
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Usuário ou senha incorretos");
+  });
+
+  it("limite de falhas da conta (400 too_many_login_attempts) avisa de muitas tentativas", async () => {
+    simular(400, ERRO_LOGIN_MUITAS_TENTATIVAS);
+    renderApp("/entrar");
+
+    preencherEEnviar("ana_01");
+
+    const alerta = await screen.findByRole("alert");
+    expect(alerta).toHaveTextContent("Muitas tentativas");
+    expect(alerta).not.toHaveTextContent("incorretos");
+  });
+
+  it("limite geral por IP (429) avisa de muitas tentativas, não de erro genérico", async () => {
+    simular(429, ERRO_LIMITE_GERAL);
+    renderApp("/entrar");
+
+    preencherEEnviar("ana_01");
+
+    const alerta = await screen.findByRole("alert");
+    expect(alerta).toHaveTextContent("Muitas tentativas");
+    expect(alerta).not.toHaveTextContent("Algo deu errado");
   });
 
   it("login com sucesso leva ao perfil", async () => {
