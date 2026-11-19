@@ -3,8 +3,8 @@
 Critério: só entra o que está **em aberto** e depende de decisão ou ação. Decisões de produto e infraestrutura: ver `RISCOS.md` (D1-D10).
 
 ## Aguardando o dono
-- [ ] Aprovar (ou pedir mudanças em) a arquitetura desta entrega.
-- [ ] Responder D2, D3, D7, D8 (bloqueiam a etapa 1 e 4).
+- [x] Arquitetura e ADRs 0001-0009 **aprovados** pelo dono em 2026-11-19. D8 confirmada: Django 5.2 LTS.
+- [ ] Responder D3 (antes do deploy), D7 (antes da etapa 4) e D2 (depois da etapa 2).
 - [x] Nome (D9): **bahazar**, confirmado pelo dono em 2026-11-18. Repo (D10): `masterlxz/bahazar`, público, AGPL-3.0.
 
 ## Pendências do frontend (criadas pela PR 1.4)
@@ -22,7 +22,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [ ] Validador de senha comum em português (a lista do Django é em inglês).
 - [ ] Política de privacidade e exclusão de conta (LGPD) antes de abrir ao público.
 
-## ADRs gravados em `project/adr/` (2026-11-18, status: propostos até a aprovação da arquitetura)
+## ADRs gravados em `project/adr/` (gravados em 2026-11-18, **aceitos** em 2026-11-19)
 0001 Django + DRF no lugar de Supabase · 0002 Regras econômicas em services · 0003 Ledger de partida dobrada · 0004 Autorização no código (sem RLS) · 0005 Polling primeiro, SSE depois · 0006 Monólito modular · 0007 Dinheiro em centavos · 0008 Autenticação com allauth headless e usuário UUID · 0009 Tipos da API escritos à mão até a Etapa 2.
 
 ## Verificações pendentes (antes da etapa 1)

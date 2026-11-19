@@ -20,7 +20,7 @@ Jogo de navegador de **economia virtual, patrimônio, colecionismo e negociaçã
 ## Status das fases
 | Etapa | Descrição | Estado |
 |---|---|---|
-| 0 | Arquitetura e revisão | **em revisão** (esta entrega) |
+| 0 | Arquitetura e revisão | **aprovada pelo dono** (2026-11-19) |
 | 1 | Fundação (apps, auth, perfis, CI) | não iniciada |
 | 2 | Multiplayer (salas, convites, carteiras) | não iniciada |
 | 3 | Catálogo e inventário | não iniciada |

@@ -2,6 +2,13 @@
 
 Mais recente no topo.
 
+### 2026-11-19 — Sessão 7 (aprovação da arquitetura)
+
+- **Pedido**: o dono escolheu aprovar a arquitetura e confirmar a D8, sem reler os documentos nesta sessão.
+- **Feito** (só docs): Etapa 0 marcada como aprovada no `OVERVIEW.md`; ADRs 0001-0009 como aceitos e D8 resolvida (Django 5.2 LTS) em `PENDING.md` e `RISCOS.md`.
+- **Não verificado**: nenhuma conferência de código; a aprovação cobre o desenho, que as etapas 1.1 a 1.4 já seguem.
+- **Fica**: D3 (antes do deploy), D7 (antes da etapa 4), D2 (depois da etapa 2); validação no navegador; Etapa 2.
+
 ### 2026-11-18 — Sessão 6 (etapa 1.4: telas de autenticação)
 
 - **Pedido**: PR 1.4. Plano aprovado antes de codar. O dono escolheu **tipos escritos à mão agora e geração na Etapa 2** (ADR 0009), contrariando o PLANO 1.4 e a ARQUITETURA §6 quanto ao "quando".
