@@ -18,7 +18,7 @@ def rooms_for_user(user: User) -> QuerySet[Room]:
     ).values("role")[:1]
     return (
         Room.objects.filter(
-            archived_at__isnull=True, members__user=user, members__status=MemberStatus.ACTIVE
+            archived_at__isnull=True, members__status=MemberStatus.ACTIVE
         )
         .annotate(my_role=Subquery(papel))
         .order_by("-created_at", "id")
