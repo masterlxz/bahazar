@@ -10,7 +10,7 @@
 | D5 | **RNG verificável (commit-reveal)** | só snapshot+roll; ou commit-reveal | Snapshot+roll agora; commit-reveal se abrir ao público | PR 5.1 |
 | D6 | **Negociação direta (oferta/troca 1:1)** além do marketplace | só marketplace; ou incluir trocas | Só marketplace na v1. O prompt cita "negociações" mas só especifica o mercado | Escopo |
 | D7 | **Parâmetros econômicos**: saldo inicial padrão, taxa do mercado (sumidouro), fontes de dinheiro (recompensas, missões), preço base das caixas vs. valor esperado | a definir com números | Taxa de 5%-10% como sumidouro; **a taxa e o valor esperado das caixas decidem se a economia infla**. Proponho uma planilha de simulação antes da etapa 5 | Etapas 4-5 |
-| D8 | **Versão do Django**: LTS (5.2) ou mais nova (6.1) | | LTS | PR 1.1 |
+| D8 | **Versão do Django**: LTS (5.2) ou mais nova (6.1) | | **Resolvida:** LTS 5.2 (confirmada pelo dono em 2026-11-19; `requirements.txt` usa 5.2.19) | - |
 | D9 | **Nome** | | **Resolvida:** `bahazar` (2026-11-18) | - |
 | D10 | **Repo no GitHub**: organização, visibilidade (privado) | `masterlxz` ou `Arven-Labs` | Privado, até decidir D1 | Ruleset e CI |
 
