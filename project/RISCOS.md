@@ -37,7 +37,7 @@
 | J1 | **Propriedade intelectual da Valve** (imagens, nomes, a marca Counter-Strike) | Nome do projeto neutro; D1 pendente; jogo privado; checar termos antes de qualquer abertura pública. **Não sou jurídico**: recomendo conferir os termos vigentes da Valve/Steam |
 | J2 | Moeda virtual com **caixas pagas e batalha de caixa**, em preços reais, pode lembrar jogos de azar. "Moeda real" significa **escala de preços**, não dinheiro real (ADR 0011) | Sem dinheiro real, sem depósito, sem saque e sem conversão. **Se algum dia a moeda tocar dinheiro real**, é decisão separada com análise jurídica. Reavaliar regulação (loot boxes) ao abrir ao público e se houver monetização (inclusive anúncio real, D12). **Não sou jurídico** |
 | J3 | Dados pessoais (e-mail, nome de usuário) | Coletar o mínimo; política de privacidade antes de abrir ao público (LGPD); exclusão de conta |
-| J4 | Abuso/multi-contas: **renda diária por conta é incentivo a criar contas** (agora dentro do escopo, não só no modo público) | Hoje só o `UNIQUE(user, dia)` (por conta). Aceito e registrado: e-mail verificado obrigatório (já planejado para o deploy), limite por IP/dispositivo e moderação ficam para depois |
+| J4 | Abuso/multi-contas: **renda diária por conta é incentivo a criar contas** (agora dentro do escopo, não só no modo público) | Hoje só o `UNIQUE(user, claim_number)` e a janela de 24h (por conta; sem fuso, nada a manipular). Aceito e registrado: e-mail verificado obrigatório (já planejado para o deploy), limite por IP/dispositivo e moderação ficam para depois |
 
 ## O que **não** foi verificado nesta entrega
 - Nenhum SQL, migration ou código foi executado; modelos e invariantes são desenho.

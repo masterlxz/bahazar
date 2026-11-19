@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-19 — Sessão 11 (Etapa 2, PR 2.2: economia global)
+
+- **Pedido**: PR 2.2 (`economy`): carteira global, ledger, saldo inicial, diária. Confirmação explícita dada pelo dono (AGENTS.md §4).
+- **Decisões do dono**: saldo inicial **US$ 100** (ele baixou de ~US$ 1.000 depois do meu alerta de inflação); diária em sequência **US$ 10 × dia até o dia 30** (US$ 300), volta ao dia 1 se pular; **anúncio desativado**. Pediu "meia-noite de cada local" com advertência/ban por fraude; **discordei** (manipulável pelo fuso; a punição é um módulo de moderação inteiro) e ele aceitou a **janela de 24h por resgate, sem fuso**. A ideia de moderação ficou em `PENDING.md`.
+- **Feito** (branch `etapa-2-2-economia-global`, PR #13): app `economy` com `Wallet`, `WalletTransaction` (append-only por trigger), `DailyClaim`; `rules.py` (diária, validação de lançamento), `services.py` (`post_entries`, `open_wallet`, `claim_daily`, `get_wallet_status`), sinal que abre a carteira de todo usuário novo, `audit_ledger`, endpoints `GET /api/v1/wallet/` e `POST /api/v1/wallet/daily/`. Docs alinhados (MODELO, PLANO, RISCOS, SEGURANCA).
+- **Testes**: 78 novos, **156 no total**, todos verdes no CI (incluindo 2 de concorrência contra Postgres real). O commit só de testes não pôde falhar por comportamento (o `mypy` roda antes do `pytest`); a prova veio de **7 mutações, uma por branch** (PR #14 a #20, fechados), todas pegas: sem teto do dia 30 (3 testes), `>=` vira `>` nas 24h (8), `>=` vira `>` nas 48h (3), saldo `<` vira `<=` (**1 só**: `test_jogador_pode_chegar_a_zero_mas_nao_abaixo`), sem a trava da carteira (concorrência: `IntegrityError`, ou seja, o `UNIQUE` evitaria o crédito duplicado mas o jogador veria erro 500 em vez de 409), trigger desligado (2) e sem validação de soma zero (4).
+- **Fraquezas dos testes**: a borda do saldo zero depende de um único teste; `test_banco_recusa_carteira_system_com_dono` não isola o `CHECK` (o `OneToOne` já barraria); o `ruff` local ordena imports ao contrário do CI.
+- **Não verificado**: nada visto no navegador (não há tela de carteira até a PR 2.5); `REVOKE` do ledger (só o trigger protege); a premissa de desempenho da carteira `system` (ponto quente).
+- **Fica**: PR 2.3 `friends`; 2.4 convites de grupo; 2.5 telas; 3.0 medir a fonte de preços; D7 na PR 4.0.
+
 ### 2026-11-19 — Sessão 10 (virada: economia global e moeda em USD)
 
 - **Pedido**: o dono mudou a direção do produto: economia **global** (não por sala), preços **reais**, saldo inicial, renda diária, "mendigagem" por anúncio, amigos, trocas, ver inventário do amigo, caixas e batalha de caixa. Pediu "que a moeda seja real".
