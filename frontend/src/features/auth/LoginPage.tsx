@@ -9,6 +9,15 @@ import { Field } from "./Field";
 import { MSG } from "./messages";
 import { SESSION_KEY } from "./useSession";
 
+/** O allauth sinaliza limite de tentativas de duas formas: 400 com este code, ou 429. */
+function mensagemDeErroDeLogin(e: unknown): string {
+  if (!(e instanceof ApiError)) return MSG.erroGenerico;
+  if (e.status === 429 || e.codes.includes("too_many_login_attempts")) {
+    return MSG.loginMuitasTentativas;
+  }
+  return e.status === 400 ? MSG.loginInvalido : MSG.erroGenerico;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -26,7 +35,7 @@ export default function LoginPage() {
       await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
       navigate("/perfil");
     } catch (e) {
-      setErro(e instanceof ApiError && e.status === 400 ? MSG.loginInvalido : MSG.erroGenerico);
+      setErro(mensagemDeErroDeLogin(e));
       setEnviando(false);
     }
   }
