@@ -152,7 +152,7 @@ def claim_daily(user: Any, now: datetime | None = None) -> DailyClaim:
     """
     agora = now if now is not None else _now()
     with transaction.atomic():
-        carteira = Wallet.objects.select_for_update().get(pk=ensure_wallet(user).pk)
+        carteira = ensure_wallet(user)
         ultimo = DailyClaim.objects.filter(user=user).order_by("-claim_number").first()
         decorrido = None if ultimo is None else agora - ultimo.claimed_at
 
