@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-19 — Sessão 8 (validação no navegador)
+
+- **Pedido**: validar o fluxo de autenticação (PR 1.3 e 1.4) num navegador real. Foram instalados nesta máquina, via `winget`, Python 3.13.17 e PostgreSQL 17.12 (mesma versão major do CI); banco e usuário `bahazar` criados, `migrate` OK, backend em `:8000` e Vite em `:5173`.
+- **Provado pelo log e pelo banco**: cadastro (`signup` 200, usuário no banco, e-mail de confirmação no console), sair (`session` 401 depois do `DELETE`), dois logins 200, avatar `verdant` gravado, sessão mantida após F5, e senha errada: 5 respostas `400` de 173 bytes (credencial) e, da 6ª em diante, `400` de 143 bytes (limite do allauth), 25 no total.
+- **Só relato do dono** (o log não prova): `/perfil` deslogado redireciona para `/entrar`; cadastro duplicado recusado; qual identificador (usuário ou e-mail) foi usado em cada login.
+- **Erro do roteiro**: o roteiro citava `/profile`, mas a rota é `/perfil` (`/profile` cai no `*` e vai à Home). Não era bug do app.
+- **Achado**: a tela mostra "Usuário ou senha incorretos" também no limite de tentativas (pendência já conhecida; PR própria em seguida).
+- **Não verificado**: formato do corpo da resposta de limite (só os tamanhos, 173 e 143 bytes); o e-mail de confirmação não foi clicado; deploy e D3 seguem abertos.
+- **Fica**: PR da mensagem de "muitas tentativas"; Etapa 2 (plano antes de codar, toca carteiras: confirmação explícita); D3, D7, D2.
+
 ### 2026-11-19 — Sessão 7 (aprovação da arquitetura)
 
 - **Pedido**: o dono escolheu aprovar a arquitetura e confirmar a D8, sem reler os documentos nesta sessão.
