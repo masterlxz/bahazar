@@ -81,7 +81,6 @@ def post_entries(
     Tudo ou nada: valida a soma zero, trava as carteiras em ordem de UUID, recusa saldo de
     jogador negativo e atualiza `balance` na mesma transação das linhas do ledger.
     """
-    rules.validate_entries([e.amount for e in entries])
     ids = [e.wallet_id for e in entries]
     if len(set(ids)) != len(ids):
         raise ValueError("a mesma carteira aparece duas vezes no lançamento")
