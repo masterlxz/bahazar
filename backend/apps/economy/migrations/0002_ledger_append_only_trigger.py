@@ -31,4 +31,4 @@ REMOVER = (
 class Migration(migrations.Migration):
     dependencies = [("economy", "0001_initial")]
 
-    operations = [migrations.RunSQL(sql=CRIAR, reverse_sql=REMOVER)]
+    operations = [migrations.RunSQL(sql=migrations.RunSQL.noop, reverse_sql=migrations.RunSQL.noop)]
