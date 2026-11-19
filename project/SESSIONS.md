@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-19 — Sessão 10 (virada: economia global e moeda em USD)
+
+- **Pedido**: o dono mudou a direção do produto: economia **global** (não por sala), preços **reais**, saldo inicial, renda diária, "mendigagem" por anúncio, amigos, trocas, ver inventário do amigo, caixas e batalha de caixa. Pediu "que a moeda seja real".
+- **Esclarecido e decidido** (AskUserQuestion): "moeda real" = **virtual na escala de preços reais**, referência **USD**, 1 unidade = 1 centavo de dólar (sem dinheiro real); salas viram **grupos/lobbies** sobre a economia global (aproveita a PR 2.1). Plano refeito em plan mode e aprovado.
+- **Feito** (PR A, só docs): ADR 0010 e 0011; 0003 e 0004 marcados como parcialmente substituídos; revisão de `MODELO-DE-DADOS` (convenção, `rooms`, `friendships`, `wallets`, `wallet_transactions`, `daily_claims`, ledger global), `ARQUITETURA` (estrutura, núcleo, fluxos), `SEGURANCA` (autorização por dono/amigo/grupo, multi-conta, testes), `PLANO` (Etapas 2 a 5 refeitas), `RISCOS` (D6 resolvida; D7 provisória; D11 e D12 novas; R1, R5, R8, J2, J4), `OVERVIEW`, `PENDING`.
+- **Divergi do pedido em pontos de risco**: dinheiro real (fora do escopo, jogo de azar com batalha de caixa), anúncio real (SDK, receita, LGPD: simulado agora), e a fonte de preços (**premissa não verificada**).
+- **Não verificado**: a existência e a licença de uma fonte de preços em USD (D11); os valores de saldo inicial e diária (provisórios, D7); as tabelas 3.3 a 3.6 do `MODELO-DE-DADOS` ainda trazem `room_id` (aviso no topo do §3, corrigidas na PR que as implementar). **Nenhum código mudou**.
+- **Fica**: o dono ler e aprovar os ADR 0010 e 0011; PR 2.2 (`economy` global, confirmação explícita antes de codar, com os valores provisórios); 2.3 `friends`; 3.0 medir a fonte de preços.
+
 ### 2026-11-19 — Sessão 9 (Etapa 2, PR 2.1: salas)
 
 - **Pedido**: começar a Etapa 2. Plano aprovado em plan mode, com 3 decisões do dono: (1) **ordem das PRs trocada** (2.1 salas, 2.2 economy, 2.3 convites, 2.4 telas), porque o resgate de convite cria a carteira; (2) imutabilidade do ledger por **trigger agora e REVOKE só no deploy**; (3) tipos OpenAPI reavaliados na PR 2.4. Na PR 2.1, o dono decidiu que `starting_balance` e `market_fee_bps` entram na 2.2 (D7 aberta) e que o limite é **5 salas como dono**.

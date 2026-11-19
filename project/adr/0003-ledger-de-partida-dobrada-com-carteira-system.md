@@ -2,6 +2,8 @@
 
 **Data:** 2026-11-18
 
+**Status:** parcialmente substituído pelo [ADR 0010](0010-economia-global-por-usuario-salas-como-grupos.md). O escopo "carteira `system` **da sala**" e "soma por sala = 0" passa a ser **global por usuário**. O resto (partida dobrada, `system`, append-only, cache de saldo, correção por compensação) segue valendo.
+
 ## Contexto
 O saldo não pode ser um número editável. É preciso auditoria, reconciliação e controle de inflação por sala.
 

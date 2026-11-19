@@ -21,8 +21,9 @@ bahazar/
     config/                 # settings, urls, asgi
     apps/
       accounts/             # NÚCLEO: usuário, perfil, auth (via biblioteca)
-      rooms/                # NÚCLEO: salas, membros, convites
-      economy/              # NÚCLEO: wallets, ledger, idempotência
+      rooms/                # NÚCLEO: grupos/lobbies (salas), membros, convites (PR 2.1 feita)
+      friends/              # NÚCLEO: amizades e a permissão central de visibilidade
+      economy/              # NÚCLEO: wallets globais, ledger, resgate diário, idempotência
       catalog/              # NÚCLEO: skins (global), import
       inventory/            # NÚCLEO: skin_instances
       marketplace/          # NÚCLEO: anúncios, compra
@@ -44,7 +45,7 @@ A estrutura de `frontend/src` segue o prompt (por feature). O `supabase/` do pro
 models.py        # persistência + constraints (sem regra de negócio)
 services.py      # casca transacional: carrega, trava, chama o núcleo puro, grava
 rules.py         # núcleo puro: funções sem I/O (preço por desgaste, taxa, validação de trade-up)
-selectors.py     # consultas de leitura (sempre escopadas por sala)
+selectors.py     # consultas de leitura (sempre escopadas ao usuário: dono, amigo ou grupo)
 serializers.py   # validação na borda
 views.py         # fino: autentica, valida, chama service, serializa
 permissions.py
@@ -54,7 +55,8 @@ tests/
 - Dependências apontam para dentro: `views → services → rules/models`. Sem ciclos.
 
 ## 3. Núcleo e módulos (modularidade)
-- **Núcleo** (funciona sozinho): `accounts`, `rooms`, `economy`, `catalog`, `inventory`, `marketplace`. Já entrega "sala + dinheiro + skins + mercado".
+- **Núcleo** (funciona sozinho): `accounts`, `rooms`, `friends`, `economy`, `catalog`, `inventory`, `marketplace`. Já entrega "amigos + dinheiro global + skins + mercado".
+- **Revisão de 2026-11-19 (ADR 0010):** a economia é global por usuário e a sala é um grupo. Trocas entre amigos entram no núcleo (D6 muda); batalha de caixa é um módulo novo (`battles`) sobre `cases`.
 - **Módulos**: `cases`, `tradeups`, `progression`, `leaderboard`, `seasons`, `communities`.
 - Regras: o núcleo **não importa** módulo; módulo importa núcleo; **módulo não importa módulo**. Quando `cases` precisa pagar e entregar item, chama `economy.services` e `inventory.services` (núcleo). Quando `progression` precisa reagir a uma compra, **não** é chamado pelo `marketplace`: assina um sinal/evento do núcleo (`purchase_completed`) registrado no próprio módulo.
 - Ausência graciosa: com um módulo desligado (`INSTALLED_APPS` por configuração), rotas e telas dele simplesmente não existem; o frontend consulta `GET /api/features/` e esconde o que não está instalado.
@@ -64,18 +66,18 @@ tests/
 
 ### 4.1 Comprar um anúncio do marketplace
 ```
-Gatilho: jogador clica "Comprar" no anúncio L (sala R)
+Gatilho: jogador clica "Comprar" no anúncio L
    ↓
 [frontend/features/marketplace: useBuyListing]  gera Idempotency-Key (uuid) e envia
-   POST /api/rooms/R/listings/L/buy   Header: Idempotency-Key: 7f3a...   Body: {}   → API →
+   POST /api/v1/listings/L/buy   Header: Idempotency-Key: 7f3a...   Body: {}   → API →
    ↓                                  (nenhum preço, saldo ou dono no corpo)
-[marketplace/views.py: BuyListingView]  autentica, IsRoomMember(R), valida UUIDs, limite de taxa → service →
+[marketplace/views.py: BuyListingView]  autentica, valida UUIDs, limite de taxa → service →
    ↓
-[marketplace/services.py: buy_listing(user, room, listing_id, key)]
+[marketplace/services.py: buy_listing(user, listing_id, key)]
    transaction.atomic():
      1. idempotência: se (user,key) já existe → devolve resposta gravada (fim)
      2. trava: listing (FOR UPDATE) → skin_instance (FOR UPDATE) → wallets comprador/vendedor/system ordenadas por UUID
-     3. rules.can_buy(...): status=active, sala igual, buyer≠seller, instância não consumida, saldo ≥ preço
+     3. rules.can_buy(...): status=active, buyer≠seller, instância não consumida, saldo ≥ preço
      4. rules.split_price(price, fee_bps) → (to_seller, fee)  (inteiros, arredondamento definido)
      5. economy.services.post_entries(group): comprador -P, vendedor +(P-fee), system +fee (atualiza balances)
      6. inventory: instance.owner = comprador; listing.status='sold'; grava market_transactions + activity_log
@@ -87,7 +89,7 @@ Para cada salto:
 | Salto | Dado | Onde falha e o que acontece | Confiança | Camada |
 |---|---|---|---|---|
 | frontend → API | só o id na URL + chave | rede cai: cliente reenvia com **a mesma chave**; resposta idêntica, 1 débito | **fronteira**: tudo vindo daqui é suspeito | navegador → servidor |
-| view | UUIDs, usuário da sessão | 401/403/404 (outra sala = 404, não revela existência) | valida tipo e pertencimento | servidor |
+| view | UUIDs, usuário da sessão | 401/403/404 (anúncio inexistente ou sem visibilidade = 404, não revela existência) | valida tipo e visibilidade | servidor |
 | trava | linhas travadas | outra compra concorrente espera; ao liberar, vê `sold` e recebe 409 | - | PostgreSQL |
 | ledger | grupo soma zero | `CHECK balance>=0` violado → rollback total, 422 "saldo insuficiente" | banco é a última defesa | PostgreSQL |
 | commit | tudo ou nada | falha no meio → rollback; nada parcial | - | PostgreSQL |
@@ -96,7 +98,7 @@ Para cada salto:
 ```
 Gatilho: clique em "Abrir" na caixa C
    ↓
-[view] POST /api/rooms/R/cases/C/open  (Idempotency-Key)  → service →
+[view] POST /api/v1/cases/C/open  (Idempotency-Key)  → service →
    ↓
 [cases/services.py: open_case]  atomic():
    idempotência → trava wallet do jogador → confere C.status='published' e saldo
@@ -113,11 +115,11 @@ Falha comum: sortear fora da transação de pagamento (permitiria "tentar de gra
 ```
 Gatilho: jogador seleciona N skins e uma receita
    ↓
-[view] POST /api/rooms/R/tradeups  {recipe_id, instance_ids:[...]}  (Idempotency-Key)
+[view] POST /api/v1/tradeups  {recipe_id, instance_ids:[...]}  (Idempotency-Key)
    ↓
 [tradeups/services.py: execute_tradeup]  atomic():
    trava as instâncias (ordenadas) → rules.validate(recipe, inputs):
-     todas do jogador, mesma sala, não consumidas, não anunciadas, raridade e quantidade da receita
+     todas do jogador, não consumidas, não anunciadas, raridade e quantidade da receita
    → rules.compute_output(inputs): saída ponderada pelas coleções das entradas; float = média normalizada à faixa da saída
    → RNG no servidor → marca entradas consumed_at → cria instância de saída → grava tradeup_history/inputs
    ↓
@@ -133,7 +135,7 @@ Corpo contém ids das instâncias **escolhidas pelo usuário** (entrada legítim
 5. Registros expiram (limpeza após N dias; o ledger guarda a chave própria, permanente).
 
 ## 6. API
-- REST + JSON sob `/api/`, versionada (`/api/v1/`). Recursos aninhados por sala: `/api/v1/rooms/{room}/...`.
+- REST + JSON sob `/api/`, versionada (`/api/v1/`). Recursos de jogo são **globais por usuário** (`/api/v1/wallet/`, `/api/v1/inventory/`, `/api/v1/friends/`); só os grupos ficam em `/api/v1/rooms/{room}/...`.
 - Contrato **OpenAPI** gerado do backend; tipos TS gerados no frontend (fonte única; evita desvio).
 - Erros padronizados `{code, message, details}` com `code` estável (`insufficient_funds`, `listing_not_active`...) para o frontend traduzir.
 - Paginação por cursor em listas grandes (extrato, vitrine); tamanho máximo fixo.
@@ -141,7 +143,7 @@ Corpo contém ids das instâncias **escolhidas pelo usuário** (entrada legítim
 ## 7. Tempo real
 Decisão em duas fases (YAGNI):
 1. **Etapas 1-5:** sem tempo real; vitrine e inventário atualizam por *refetch* (TanStack Query) ao focar a aba e a cada ~10-15 s na vitrine. Barato e suficiente para um grupo pequeno.
-2. **Etapa 6:** **SSE** (Server-Sent Events, um canal por sala) sobre ASGI, com `LISTEN/NOTIFY` do próprio Postgres como barramento. Sem Redis e sem WebSocket, porque só há envio servidor → cliente e só para `market_listings`/ranking.
+2. **Etapa 6:** **SSE** (Server-Sent Events, um canal por grupo ou por usuário) sobre ASGI, com `LISTEN/NOTIFY` do próprio Postgres como barramento. Sem Redis e sem WebSocket, porque só há envio servidor → cliente e só para `market_listings`/ranking.
    Quando WebSocket/Channels valeria: chat, jogo em tempo real bidirecional. Não está no escopo.
    Confiança **média**: SSE em ASGI e `LISTEN/NOTIFY` funcionam, mas o desenho de fan-out entre processos precisa ser medido num protótipo antes de adotar (RISCOS R7).
 

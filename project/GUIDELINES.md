@@ -10,7 +10,7 @@ Valem os padrões do workspace (`AGENTS.md`, `padrao/arquitetura.md`, `padrao/mo
 
 ## Estrutura
 5. View fina; regra em `rules.py` (puro, sem Django) e I/O em `services.py`.
-6. Leitura de dados de jogo só por `selectors`/manager escopado por sala. Proibido `Model.objects.all()` em view.
+6. Leitura de dados de jogo só por `selectors` escopados ao usuário (dono, amigo ou grupo, ADR 0010). Proibido `Model.objects.all()` em view.
 7. Módulo não importa módulo; núcleo não importa módulo. Teste de arquitetura no CI.
 8. Serializers com `fields` explícito (nunca `__all__`), campos de escrita mínimos.
 
