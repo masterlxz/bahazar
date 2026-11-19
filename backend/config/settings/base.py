@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     "allauth.headless",
     "apps.core",
     "apps.accounts",
+    "apps.rooms",
 ]
 
 MIDDLEWARE = [
