@@ -31,7 +31,7 @@ def can_claim(elapsed: timedelta | None) -> bool:
 
 def next_streak_day(previous: int | None, elapsed: timedelta | None) -> int:
     """Dia da sequência do próximo resgate: continua entre 24h e 48h, senão volta ao 1."""
-    if previous is None or elapsed is None or elapsed >= STREAK_BREAK:
+    if previous is None or elapsed is None or elapsed > STREAK_BREAK:
         return 1
     return previous + 1
 
