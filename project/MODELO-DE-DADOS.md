@@ -3,12 +3,14 @@
 PostgreSQL é a fonte da verdade. As garantias de integridade (FK, CHECK, UNIQUE, índices parciais, triggers) ficam **no banco**, não só no Django: um bug de aplicação não pode criar saldo negativo nem dois anúncios ativos do mesmo item.
 
 > Estado: proposta para revisão. SQL **não executado**; nomes e tipos são o contrato de desenho, o Django os materializa em migrations.
+>
+> **Revisão de 2026-11-19 (ADR 0010 e 0011):** a economia é **global por usuário** e a moeda é virtual em **centavos de USD**. Sala virou **grupo**. As seções 1, 3.1, 3.2 e 4 abaixo já refletem isso. As tabelas das seções 3.3 a 3.6 e o §5 **ainda trazem `room_id` do desenho antigo**: ele sai (a posse é do usuário); cada tabela é corrigida na PR que a implementa, e este aviso vale até lá.
 
 ## 1. Convenções
 1. PK `uuid` (v4, `gen_random_uuid()`) em todas as tabelas, exceto onde indicado.
 2. `created_at timestamptz NOT NULL DEFAULT now()` em tudo; `updated_at` só onde há mutação legítima.
 3. **Dinheiro = inteiro.** Unidade: `bigint` em "centavos" do jogo (1 unidade = 0,01 moeda virtual). Nunca `float`/`double`/`numeric` para saldo, preço ou taxa. Taxas em **basis points** (`int`, 100 = 1%), com arredondamento definido em um único lugar (função pura de serviço, com teste).
-4. **Isolamento por sala.** Toda tabela de jogo tem `room_id` (FK). Mesmo quando redundante (ex.: `skin_instances` ↔ `wallets`), a coluna existe para permitir CHECK/FK composta e filtro obrigatório (ver SEGURANCA §3).
+4. **Posse global, grupos por sala.** Carteira, inventário e ledger pertencem ao **usuário** (ADR 0010); não há `room_id` neles. A sala é só um grupo (membros, papéis, convite). O isolamento é por **dono**, **amizade** e **grupo**, decidido por uma permissão central (ver SEGURANCA §3).
 5. Enums como `text` + `CHECK (col IN (...))` (migração mais simples que `ENUM` nativo).
 6. Registros financeiros e de resultado (ledger, aberturas de caixa, trade-ups, transações de mercado) são **append-only**.
 7. Nomes em inglês `snake_case` (convenção Django); documentação em português.
@@ -19,14 +21,14 @@ erDiagram
   users ||--o{ room_members : "participa"
   rooms ||--o{ room_members : ""
   rooms ||--o{ room_invites : ""
-  rooms ||--o{ wallets : ""
-  room_members ||--|| wallets : "1 carteira por membro"
+  users ||--|| wallets : "1 carteira por jogador (global)"
+  users ||--o{ friendships : "amizade"
+  users ||--o{ daily_claims : "resgate diário"
   wallets ||--o{ wallet_transactions : "ledger"
   skins ||--o{ skin_instances : "catálogo -> instância"
-  rooms ||--o{ skin_instances : ""
+  users ||--o{ skin_instances : "inventário (dono)"
   skin_instances ||--o{ market_listings : ""
   market_listings ||--o| market_transactions : "venda"
-  rooms ||--o{ cases : ""
   cases ||--o{ case_drops : ""
   skins ||--o{ case_drops : ""
   cases ||--o{ case_openings : ""
@@ -42,17 +44,19 @@ erDiagram
 | Tabela | Campos principais | Constraints e índices |
 |---|---|---|
 | `users` (`accounts.User`, **implementado na PR 1.3**) | `id` uuid, `username` varchar(20), `email`, `avatar` (chave de lista fixa), mais os campos padrão do `AbstractUser` (`password`, `is_active`, `is_staff`...) | `UNIQUE(username)`; **CHECK** `username ~ '^[a-z0-9_]{3,20}$'` (`user_username_format`); **UNIQUE** `lower(email)` onde `email <> ''` (`user_email_unique_ci`). **Substitui a tabela `profiles` prevista antes** (ADR 0008): o perfil hoje é só o avatar, então não há tabela 1:1. `xp` e `level` migram para o módulo `progression` (o núcleo não importa módulo) |
-| `rooms` | `id`, `name`, `owner_id` → users, `visibility` (`private`\|`public`), `starting_balance`, `market_fee_bps`, `max_members`, `season_id` null, `archived_at` | `starting_balance >= 0`; `market_fee_bps BETWEEN 0 AND 5000`; `visibility='private'` por padrão (público só no futuro) |
+| `rooms` (**implementado na PR 2.1**; é um **grupo/lobby**) | `id`, `name`, `owner_id` → users, `visibility` (`private`\|`public`), `max_members`, `archived_at`, `created_at`, `updated_at`; `season_id` null reservado | `visibility='private'` por padrão (público só no futuro); `max_members >= 1`. **Sem** `starting_balance` nem `market_fee_bps`: moeda e taxa são **globais** (ADR 0010) |
+| `friendships` (PR C) | `id`, `requester_id`, `addressee_id` → users, `status` (`pending`\|`accepted`\|`blocked`), `created_at`, `responded_at` | `CHECK requester_id <> addressee_id`; **uma relação por par** (`UNIQUE` sobre o par não ordenado: `LEAST(a,b), GREATEST(a,b)`); índice `(addressee_id, status)` para "pedidos recebidos". Base de "só amigo vê meu inventário" |
 | `room_members` | `id`, `room_id`, `user_id`, `role` (`owner`\|`admin`\|`member`), `joined_at`, `status` (`active`\|`left`\|`banned`) | `UNIQUE(room_id, user_id)`; índice `(user_id, room_id)` (consulta "minhas salas" e checagem de pertencimento); **exatamente um `owner` ativo por sala** (índice único parcial `WHERE role='owner' AND status='active'`) |
 | `room_invites` | `id`, `room_id`, `created_by`, `code_hash` (bytea), `expires_at`, `max_uses`, `uses`, `revoked_at` | `UNIQUE(code_hash)`; `uses <= max_uses`; o código em claro **nunca** é gravado (ver SEGURANCA §5) |
 
 ### 3.2 Economia (núcleo financeiro)
 | Tabela | Campos principais | Constraints e índices |
 |---|---|---|
-| `wallets` | `id`, `room_id`, `user_id` null, `kind` (`player`\|`system`), `balance` bigint, `version` | `UNIQUE(room_id, user_id)`; **uma `system` por sala** (índice único parcial); `CHECK (kind='system' OR balance >= 0)`; `CHECK ((kind='player') = (user_id IS NOT NULL))`; FK composta garantindo que o `user_id` é membro da `room_id` |
-| `wallet_transactions` | `id`, `room_id`, `wallet_id`, `group_id` (uuid do lançamento), `amount` bigint (assinado, ≠ 0), `balance_after` bigint, `kind`, `ref_type`, `ref_id`, `idempotency_key`, `created_at` | **append-only** (ver §4); `UNIQUE(wallet_id, idempotency_key)`; índice `(wallet_id, created_at DESC, id)` (extrato paginado); índice `(room_id, group_id)`; `kind IN ('starting_grant','transfer','market_sale','market_purchase','market_fee','case_open','case_reward','tradeup','quest_reward','adjustment')` |
+| `wallets` (PR B) | `id`, `user_id` null, `kind` (`player`\|`system`), `balance` bigint (**centavos de USD**, ADR 0011), `version` | **`UNIQUE(user_id)`** (uma carteira por jogador); **uma única `system` global** (índice único parcial `WHERE kind='system'`); `CHECK (kind='system' OR balance >= 0)`; `CHECK ((kind='player') = (user_id IS NOT NULL))` |
+| `wallet_transactions` (PR B) | `id`, `wallet_id`, `group_id` (uuid do lançamento), `amount` bigint (assinado, ≠ 0), `balance_after` bigint, `kind`, `ref_type`, `ref_id`, `idempotency_key`, `created_at` | **append-only** (ver §4); `UNIQUE(wallet_id, idempotency_key)`; índice `(wallet_id, created_at DESC, id)` (extrato paginado); índice `(group_id)`; `kind IN ('starting_grant','daily_reward','ad_reward','transfer','trade','market_sale','market_purchase','market_fee','case_open','case_reward','tradeup','quest_reward','adjustment')` |
+| `daily_claims` (PR B) | `id`, `user_id`, `day` (date, **UTC**), `ledger_group_id`, `created_at` | `UNIQUE(user_id, day)`: resgatar duas vezes no mesmo dia (inclusive em paralelo) cai na mesma linha e só um crédito acontece. O "dia" em UTC é decisão de produto (pode divergir da meia-noite do Brasil) |
 
-### 3.3 Catálogo (global) e inventário (por sala)
+### 3.3 Catálogo (global) e inventário (por usuário; ver o aviso no topo sobre `room_id`)
 | Tabela | Campos principais | Constraints e índices |
 |---|---|---|
 | `skins` | `id`, `external_id` (id do dado-fonte), `weapon`, `name`, `collection`, `rarity`, `min_float`, `max_float`, `reference_price` bigint, `image_url`, `image_source`, `active` | `UNIQUE(external_id)`; `0 <= min_float < max_float <= 1`; `reference_price > 0`; **global**, sem `room_id`; leitura por qualquer autenticado, escrita só por import administrativo |
@@ -94,19 +98,20 @@ Rankings (patrimônio, saldo, valor do inventário, evolução) **não são tabe
 ## 4. Ledger financeiro
 
 ### 4.1 Forma
-Partida dobrada simplificada: cada operação gera um **grupo** (`group_id`) de 2 ou mais linhas em `wallet_transactions` cuja soma de `amount` é **zero**. Todo dinheiro "criado" ou "destruído" passa pela carteira `system` da sala:
+Partida dobrada simplificada: cada operação gera um **grupo** (`group_id`) de 2 ou mais linhas em `wallet_transactions` cuja soma de `amount` é **zero**. Todo dinheiro "criado" ou "destruído" passa pela carteira `system` global:
 
 | Operação | Linhas (mesmo `group_id`) |
 |---|---|
-| Saldo inicial | system `-S`, jogador `+S` |
+| Saldo inicial (no cadastro) | system `-S`, jogador `+S` |
+| Recompensa diária / por anúncio (simulado) | system `-R`, jogador `+R` |
 | Transferência A→B de X | A `-X`, B `+X` |
 | Compra no mercado, preço P, taxa F | comprador `-P`, vendedor `+(P-F)`, system `+F` |
 | Abrir caixa, preço C | jogador `-C`, system `+C` |
 | Recompensa R | system `-R`, jogador `+R` |
 
-**Invariante global (reconciliação):** `SUM(amount)` por sala = 0, e `wallets.balance = SUM(amount)` por carteira. Duas queries de auditoria rodam no CI e num comando periódico. Se qualquer uma falhar, há bug ou adulteração.
+**Invariante global (reconciliação):** `SUM(amount)` de **todo o ledger** = 0, e `wallets.balance = SUM(amount)` por carteira. Duas queries de auditoria rodam no CI e num comando periódico. Se qualquer uma falhar, há bug ou adulteração.
 
-A carteira `system` pode ficar negativa (é a fonte do dinheiro); as de jogador, não (`CHECK balance >= 0`). **Oferta monetária da sala** = `-system.balance`, métrica útil contra inflação.
+A carteira `system` pode ficar negativa (é a fonte do dinheiro); as de jogador, não (`CHECK balance >= 0`). **Oferta monetária do jogo** = `-system.balance`, métrica útil contra inflação (agora uma só, global).
 
 ### 4.2 Saldo: coluna em cache, não verdade
 `wallets.balance` existe para leitura rápida e para o `CHECK >= 0`. É atualizado **somente** pela função de serviço, na mesma transação do lançamento, e conferido contra `SUM(amount)`. A verdade é o ledger. `balance_after` em cada linha permite achar o ponto exato de uma divergência.

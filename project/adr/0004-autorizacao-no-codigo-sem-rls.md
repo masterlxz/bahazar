@@ -2,6 +2,8 @@
 
 **Data:** 2026-11-18
 
+**Status:** parcialmente substituído pelo [ADR 0010](0010-economia-global-por-usuario-salas-como-grupos.md). O escopo "por sala" (`IsRoomMember`, FKs compostas `(room_id, user_id)`) passa a **dono, amigo ou membro do mesmo grupo**. A decisão de fundo (autorização no código, negar por omissão, service revalida, sem RLS agora) segue valendo.
+
 ## Contexto
 Sem Supabase, não há RLS automático. O principal risco passa a ser um filtro por sala esquecido numa view, vazando dados entre economias.
 

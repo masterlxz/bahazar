@@ -18,7 +18,8 @@ Sem Supabase, **não há RLS como rede de proteção automática**. A autorizaç
 | Duplicar dinheiro/item | Dois cliques simultâneos em "comprar" | `select_for_update` + `UNIQUE` parcial + idempotência | concorrência (N threads contra o mesmo anúncio: 1 vence) |
 | Saldo negativo | Duas compras em paralelo com saldo para uma | lock da carteira + `CHECK balance >= 0` | concorrência |
 | Comprar o próprio anúncio | `buyer = seller` para inflar estatística | `CHECK buyer<>seller` + validação no serviço | unidade + API |
-| Vazamento entre salas (IDOR) | Trocar `room_id`/`listing_id` na URL | *manager* escopado + permissão por sala em todo endpoint | teste parametrizado: cada endpoint com usuário de **outra** sala deve dar 404 |
+| Vazamento entre usuários (IDOR) | Trocar o id do usuário, do grupo ou do item na URL para ler a carteira ou o inventário de quem não é amigo | *selector* escopado + **uma** permissão central de visibilidade (dono, amigo, membro do mesmo grupo) em todo endpoint | teste parametrizado: cada endpoint com usuário **sem relação** (ou bloqueado) deve dar 404 |
+| Multi-conta para farmar renda diária | Criar N contas para resgatar a diária N vezes (J4, agora dentro do escopo) | `UNIQUE(user, dia)` impede repetir por conta; **não** impede várias contas. Mitigação futura: e-mail verificado obrigatório, limite por IP/dispositivo | hoje só o `UNIQUE`; o resto é risco aceito e registrado (RISCOS J4) |
 | Mass assignment | `PATCH wallet {balance: 1e9}` | serializers com `fields` explícitos; carteiras e instâncias **sem** endpoint de escrita | API |
 | Manipular sorteio | Cliente envia o "roll" | RNG só no servidor; cliente não envia nada além do id da caixa | API |
 | Adulterar histórico | `UPDATE wallet_transactions` | `REVOKE` + trigger | teste de banco: UPDATE/DELETE falham |
@@ -29,11 +30,13 @@ Sem Supabase, **não há RLS como rede de proteção automática**. A autorizaç
 | Contas falsas para farmar (futuro público) | Multi-contas | fora do escopo privado; ver RISCOS | - |
 
 ## 3. Autorização (substitui o RLS)
+> **Revisão de 2026-11-19 (ADR 0010):** a economia é global por usuário. A pergunta de autorização deixa de ser "é membro da sala?" e passa a ser **"é o dono, amigo do dono ou membro do mesmo grupo?"**, conforme o recurso. O app `rooms` (PR 2.1) mantém o seu escopo por grupo; carteira e inventário usam a regra nova.
+
 Camadas, da mais externa à mais interna:
-1. **Permissão DRF** em toda view: `IsAuthenticated` + `IsRoomMember` (e `IsRoomAdmin` onde aplicável). Padrão **negar por omissão**: `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]` e teste que falha se existir view sem permissão explícita.
-2. **Manager escopado por sala:** modelos de jogo expõem `.for_room(room, user)` e **não** usam `objects` solto nas views (convenção + teste que lista os modelos com `room_id` e checa que as views usam o escopado). Um `.filter(room=...)` esquecido é o principal risco de ficar sem RLS.
-3. **Camada de serviço revalida:** `buy_listing(user, listing_id, key)` carrega o anúncio **dentro** da transação e confere sala, status, dono e saldo. Nunca confia no que a view já checou.
-4. **Banco:** FKs compostas `(room_id, user_id)` para membros, `CHECK`s e índices únicos parciais. Mesmo um bug de serviço não cria item sem dono ou carteira de não-membro.
+1. **Permissão DRF** em toda view: `IsAuthenticated` + a permissão do recurso (`IsRoomMember`/`IsRoomAdmin` para grupos; **permissão central de visibilidade** para carteira e inventário). Padrão **negar por omissão**: `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]` e teste que falha se existir view de `rooms` sem permissão explícita (já existe).
+2. **Selector escopado:** leitura de dados de jogo só por selectors que recebem o usuário (como `rooms.selectors.rooms_for_user`); **proibido** `Model.objects` solto em view. A regra "quem vê o quê" vive em **um** lugar (`friends`), nunca em `if amigo` espalhado: esquecê-la é o análogo do "filtro esquecido" de quem não tem RLS.
+3. **Camada de serviço revalida:** `buy_listing(user, listing_id, key)` carrega o anúncio **dentro** da transação e confere status, dono e saldo. Nunca confia no que a view já checou.
+4. **Banco:** FK simples ao dono, `CHECK`s e índices únicos parciais (um dono ativo por grupo, uma carteira por usuário, uma `system` global, uma relação de amizade por par). Mesmo um bug de serviço não cria item sem dono nem carteira sem usuário.
 5. **Privilégios do banco:** o usuário da aplicação não é dono do esquema (migrations rodam com outro papel) e não tem `UPDATE/DELETE` nas tabelas append-only.
 
 **Opção de reforço (decisão D4):** habilitar RLS do Postgres também, com `SET LOCAL app.user_id` por requisição. Dá defesa real contra o "filtro esquecido", mas aumenta complexidade, atrapalha pool de conexões em modo transação e exige disciplina nas migrations. Recomendação: **não agora**; avaliar antes de abrir ao público.
@@ -50,7 +53,7 @@ Camadas, da mais externa à mais interna:
 
 ## 5. Convites
 1. Gerar com `secrets.token_urlsafe(16)` (128 bits). Exibir **uma vez**; gravar só `sha256(código)`.
-2. Resgate = função de serviço transacional: trava a linha do convite, confere expiração, revogação e `uses < max_uses`, cria `room_member` e a carteira (com saldo inicial via ledger) e incrementa `uses`. Resgate repetido pelo mesmo usuário é idempotente.
+2. Resgate = função de serviço transacional: trava a linha do convite, confere expiração, revogação e `uses < max_uses`, cria `room_member` (a carteira **já existe**, é global e nasce no cadastro) e incrementa `uses`. Resgate repetido pelo mesmo usuário é idempotente. Convite entra em grupo; **não** concede dinheiro.
 3. Comparação por hash do valor recebido (busca por índice único; sem comparação byte a byte vulnerável a timing, pois o segredo nunca é comparado em claro).
 4. *Throttling* no endpoint de resgate para barrar força bruta.
 
@@ -80,9 +83,11 @@ Serializers DRF com tipos estritos; limites explícitos (`price` entre mínimo e
 ## 10. Plano de testes de segurança (obrigatórios por funcionalidade)
 | Área | Casos mínimos |
 |---|---|
-| Autorização | Para **cada endpoint**: anônimo → 401; usuário de outra sala → 404; membro comum em rota de admin → 403 |
-| Carteira | Saldo nunca negativo; transferência soma zero; valor ≤ 0, enorme (> bigint) e não numérico rejeitados |
-| Ledger | UPDATE/DELETE bloqueados; `SUM(amount)` da sala = 0; `balance` = soma do extrato após carga aleatória |
+| Autorização | Para **cada endpoint**: anônimo → 401; usuário sem relação com o dono/grupo (ou bloqueado) → 404; membro comum em rota de admin do grupo → 403 |
+| Carteira | Saldo nunca negativo; transferência soma zero; valor ≤ 0, enorme (> bigint) e não numérico rejeitados; **nenhum endpoint de escrita** em carteira |
+| Renda diária | Resgate 2x no mesmo dia (inclusive em paralelo) → um crédito só; valor vem do servidor, nunca do corpo |
+| Amizade | Auto-pedido, pedido duplicado e pedido a quem bloqueou recusados; bloqueado não vê nada |
+| Ledger | UPDATE/DELETE bloqueados; `SUM(amount)` de todo o ledger = 0; `balance` = soma do extrato após carga aleatória |
 | Marketplace | 2 compradores simultâneos → 1 sucesso; comprar o próprio anúncio falha; anunciar item alheio/consumido/já anunciado falha; cancelar durante compra |
 | Idempotência | Mesma chave 2x → mesmo resultado, 1 débito; mesma chave com corpo diferente → 422 |
 | Convites | Expirado, revogado, esgotado, código errado, resgate concorrente com `max_uses=1` |

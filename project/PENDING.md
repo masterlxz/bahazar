@@ -4,7 +4,8 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 
 ## Aguardando o dono
 - [x] Arquitetura e ADRs 0001-0009 **aprovados** pelo dono em 2026-11-19. D8 confirmada: Django 5.2 LTS.
-- [ ] Responder D3 (antes do deploy), D7 (antes da etapa 4) e D2 (depois da etapa 2).
+- [ ] Responder D3 (antes do deploy), D7 (na PR 4.0, com simulação), D2 (depois da etapa 2), **D11** (fonte de preços em USD, na PR 3.0) e **D12** (anúncio real, etapa 6).
+- [x] **Virada de produto** (2026-11-19): economia global por usuário, moeda virtual em USD na escala de preços reais, salas como grupos. ADR 0010 e 0011 gravados; 0003 e 0004 parcialmente substituídos. **Aguarda sua leitura/aprovação do PR**.
 - [x] Nome (D9): **bahazar**, confirmado pelo dono em 2026-11-18. Repo (D10): `masterlxz/bahazar`, público, AGPL-3.0.
 
 ## Pendências do frontend (criadas pela PR 1.4)
@@ -23,10 +24,11 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [ ] Política de privacidade e exclusão de conta (LGPD) antes de abrir ao público.
 
 ## ADRs gravados em `project/adr/` (gravados em 2026-11-18, **aceitos** em 2026-11-19)
-0001 Django + DRF no lugar de Supabase · 0002 Regras econômicas em services · 0003 Ledger de partida dobrada · 0004 Autorização no código (sem RLS) · 0005 Polling primeiro, SSE depois · 0006 Monólito modular · 0007 Dinheiro em centavos · 0008 Autenticação com allauth headless e usuário UUID · 0009 Tipos da API escritos à mão até a Etapa 2.
+0001 Django + DRF no lugar de Supabase · 0002 Regras econômicas em services · 0003 Ledger de partida dobrada (escopo "por sala" substituído pelo 0010) · 0004 Autorização no código (sem RLS; escopo "por sala" substituído pelo 0010) · 0005 Polling primeiro, SSE depois · 0006 Monólito modular · 0007 Dinheiro em centavos · 0008 Autenticação com allauth headless e usuário UUID · 0009 Tipos da API escritos à mão até a Etapa 2 · **0010 Economia global por usuário; salas como grupos** · **0011 Moeda virtual em USD na escala de preços reais** (0010 e 0011 gravados em 2026-11-19, **propostos até a sua aprovação**).
 
-## Etapa 2 (aberta pela PR 2.1)
-- [ ] PR 2.2 `economy` (carteira, ledger, trigger de imutabilidade, `starting_balance` e `market_fee_bps` na sala; pede o valor provisório do saldo inicial), 2.3 convites, 2.4 telas e novo ADR de tipos OpenAPI.
+## Etapa 2 (aberta pela PR 2.1; refeita pela virada de 2026-11-19)
+- [ ] PR 2.2 `economy` **global** (carteira por usuário, `system` global, ledger com trigger, saldo inicial no cadastro, resgate diário, anúncio simulado; pede os valores provisórios), 2.3 `friends`, 2.4 convites de grupo, 2.5 telas e novo ADR de tipos OpenAPI.
+- [ ] Revisar `room_id` das tabelas 3.3 a 3.6 e do §5 do `MODELO-DE-DADOS.md` na PR que implementar cada uma (hoje há um aviso no topo do §3).
 - [ ] `REVOKE UPDATE/DELETE` do ledger com dois papéis de banco (dono das migrations x aplicação): fica para o deploy; até lá só o trigger protege.
 - [ ] Teste concorrente do limite de 5 salas (`create_room` trava o usuário, mas nenhum teste o exercita em paralelo).
 - [ ] Teste de que `PATCH` por `admin` (não só `owner`) funciona, quando existir forma de promover alguém a `admin`.
