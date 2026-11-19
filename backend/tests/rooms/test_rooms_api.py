@@ -119,8 +119,9 @@ def test_listar_mostra_so_as_salas_onde_o_usuario_e_membro(ana: Any, bruno: Any)
 
 
 def test_sala_arquivada_nao_aparece_na_listagem(ana: Any) -> None:
-    from apps.rooms.models import Room
     from django.utils import timezone
+
+    from apps.rooms.models import Room
 
     sala = criar_sala_pela_api(ana)
     Room.objects.filter(id=sala["id"]).update(archived_at=timezone.now())
