@@ -21,7 +21,7 @@ def daily_amount(streak_day: int) -> int:
     """Valor da diária no dia `streak_day` da sequência (1 = primeiro dia)."""
     if streak_day < 1:
         raise ValueError("o dia da sequência começa em 1")
-    return DAILY_STEP * min(streak_day, DAILY_CAP_DAY)
+    return DAILY_STEP * streak_day
 
 
 def can_claim(elapsed: timedelta | None) -> bool:
