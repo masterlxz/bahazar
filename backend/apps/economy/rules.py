@@ -26,7 +26,7 @@ def daily_amount(streak_day: int) -> int:
 
 def can_claim(elapsed: timedelta | None) -> bool:
     """`elapsed` é o tempo desde o último resgate (None = nunca resgatou)."""
-    return elapsed is None or elapsed >= DAILY_WINDOW
+    return elapsed is None or elapsed > DAILY_WINDOW
 
 
 def next_streak_day(previous: int | None, elapsed: timedelta | None) -> int:
