@@ -1,6 +1,6 @@
 name: CI
 
-# Baseado em padrao/workflows/ci-python.yml do workspace (ADR 0009: testes rodam só no CI).
+# Baseado em padrao/workflows/ci-python.yml do workspace (ADR 0017: testes rodam só no GitHub).
 # Sem filtro de caminho, de propósito: o check abaixo pode ser obrigatório na main.
 on:
   push:
