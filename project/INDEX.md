@@ -19,4 +19,4 @@ Mapa dos documentos de `project/`. Leia nesta ordem para revisar a primeira entr
 ADRs ficam em `project/adr/` (0001 a 0009, lista em [PENDING.md](PENDING.md)).
 
 ## Normas do workspace que valem aqui
-`AGENTS.md` (fluxo), `padrao/arquitetura.md` (simplicidade primeiro), `padrao/modularidade.md` (núcleo + módulos), `padrao/dependencias-novas.md` (procurar pronto e avaliar dependência), ADR 0009 do workspace (build e teste só no CI).
+`AGENTS.md` (fluxo), `padrao/arquitetura.md` (simplicidade primeiro), `padrao/modularidade.md` (núcleo + módulos), `padrao/dependencias-novas.md` (procurar pronto e avaliar dependência), ADR 0017 do workspace (teste só no GitHub, build só no PC do dono, nada disso na VM do agente; atualiza a 0009).
