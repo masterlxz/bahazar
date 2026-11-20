@@ -33,7 +33,7 @@ npm run dev                                             # http://localhost:5173
 ```
 Abra `http://localhost:5173`, cadastre-se, entre, troque o avatar e saia.
 
-Testes e verificação de tipos rodam **só no CI** (ADR 0009 do workspace); localmente só o leve.
+Testes e verificação de tipos rodam **só no GitHub (CI)**; o build é feito só no PC do dono, à mão (ADR 0017 do workspace). Na VM de desenvolvimento do agente nada disso roda.
 
 ## Documentos
 Comece por [`project/INDEX.md`](project/INDEX.md).
