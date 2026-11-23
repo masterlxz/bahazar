@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 13 (Etapa 2, PR 2.4: convites de grupo)
+
+- **Pedido**: PR 2.4. Feita em plan mode; decisões do dono: padrão de 7 dias e 10 usos (tetos 30 e 50) e erros com motivo (404 para código errado, 409 com `code` para convite válido mas inutilizável).
+- **Feito** (branch `etapa-2-4-convites-de-grupo`): `RoomInvite` em `rooms` (migração `0002`, escrita à mão), regras puras (`invite_policy_valid`, `invite_state`, `room_is_full`), serviços `create_invite`/`revoke_invite`/`redeem_invite`, endpoints `POST|GET /rooms/<id>/invites/`, `DELETE /rooms/<id>/invites/<invite_id>/` e `POST /rooms/join/`, throttle `invite_redeem` (10/min por usuário; primeiro throttle do projeto).
+- **Travas**: o resgate trava convite e depois sala; criar trava só a sala (para serializar o teto de 10 ativos); revogar trava só o convite. Revogar não trava a sala de propósito: travaria sala e depois convite, o inverso do resgate (deadlock).
+- **Testes**: escritos antes da implementação, em `tests/rooms/test_invites_*.py` (regras, banco, API, concorrência). Nada rodado na VM (ADR 0017); o `mypy` roda antes do `pytest`, então o commit só de testes não falha por comportamento.
+- **Não verificado**: nada visto no navegador (sem tela até a 2.5); o throttle em produção depende do cache em banco.
+
 ### 2026-11-23 — Sessão 12 (Etapa 2, PR 2.3: amigos)
 
 - **Pedido**: PR 2.3 (`friends`). Feita em plan mode; decisões do dono: bloqueio reescreve a linha (`requester` = bloqueador, sem coluna nova) e `can_view` cobre só dono e amigo por ora (sem `friends` importar `rooms`).

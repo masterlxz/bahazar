@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Room
+from .models import Room, RoomInvite
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -16,3 +16,12 @@ class RoomSerializer(serializers.ModelSerializer):
         model = Room
         fields = ("id", "name", "visibility", "max_members", "role", "created_at")
         read_only_fields = ("id", "visibility", "max_members", "created_at")
+
+
+class InviteSerializer(serializers.ModelSerializer):
+    """Um convite para o administrador. Sem `code`: o código só existe na resposta da criação."""
+
+    class Meta:
+        model = RoomInvite
+        fields = ("id", "expires_at", "max_uses", "uses", "revoked_at", "created_at")
+        read_only_fields = fields

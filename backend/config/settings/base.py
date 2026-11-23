@@ -133,4 +133,7 @@ HEADLESS_FRONTEND_URLS = {
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Só vale em view com `throttle_classes = [ScopedRateThrottle]` e `throttle_scope`.
+    # O limite mora no cache do Django: em produção, o cache em banco (ver prod.py).
+    "DEFAULT_THROTTLE_RATES": {"invite_redeem": "10/min"},
 }
