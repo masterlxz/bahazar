@@ -30,19 +30,17 @@ def can_view(viewer: User, owner: User) -> bool:
     if viewer.pk == owner.pk:
         return rules.can_view(same_user=True, friendship_status=None)
     relacao = friendship_between(viewer, owner)
-    return rules.can_view(
-        same_user=False, friendship_status=relacao.status if relacao else None
-    )
+    return rules.can_view(same_user=False, friendship_status=relacao.status if relacao else None)
 
 
 def friends_of(user: User) -> QuerySet[User]:
     """Amigos aceitos de `user`, por nome."""
-    enviados = Friendship.objects.filter(
-        requester=user, status=FriendshipStatus.ACCEPTED
-    ).values("addressee_id")
-    recebidos = Friendship.objects.filter(
-        addressee=user, status=FriendshipStatus.ACCEPTED
-    ).values("requester_id")
+    enviados = Friendship.objects.filter(requester=user, status=FriendshipStatus.ACCEPTED).values(
+        "addressee_id"
+    )
+    recebidos = Friendship.objects.filter(addressee=user, status=FriendshipStatus.ACCEPTED).values(
+        "requester_id"
+    )
     return User.objects.filter(Q(pk__in=enviados) | Q(pk__in=recebidos)).order_by("username")
 
 
