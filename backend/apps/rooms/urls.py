@@ -14,7 +14,7 @@ urlpatterns = [
     path("rooms/", RoomListCreateView.as_view(), name="room-list"),
     path("rooms/join/", JoinRoomView.as_view(), name="room-join"),
     path("rooms/<uuid:room_id>/members/", RoomMembersView.as_view(), name="room-members"),
-    path("rooms/<uuid:room_id>/invites/",InviteListCreateView.as_view(), name="room-invites"),
+    path("rooms/<uuid:room_id>/invites/", InviteListCreateView.as_view(), name="room-invites"),
     path(
         "rooms/<uuid:room_id>/invites/<uuid:invite_id>/",
         InviteDetailView.as_view(),
