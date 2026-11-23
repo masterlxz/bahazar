@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import { SESSION_KEY, useSession } from "../../features/auth/useSession";
 import { ME_KEY } from "../../features/profile/useMe";
+import { WALLET_KEY } from "../../features/wallet/useWallet";
 import { logout } from "../../services/auth";
 import { Button } from "../ui/button";
 
@@ -18,6 +19,8 @@ export default function Header() {
     await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
     // O perfil do usuário que saiu não pode sobrar em cache para o próximo que entrar.
     queryClient.removeQueries({ queryKey: ME_KEY });
+    // Idem para o saldo: dado de dinheiro de um usuário nunca pode aparecer para o próximo.
+    queryClient.removeQueries({ queryKey: WALLET_KEY });
   }
 
   return (
@@ -29,6 +32,9 @@ export default function Header() {
         <nav className="flex items-center gap-4 text-sm">
           {status === "authenticated" && (
             <>
+              <Link to="/carteira" className="hover:underline">
+                Carteira
+              </Link>
               <Link to="/perfil" className="hover:underline">
                 Perfil
               </Link>

@@ -10,6 +10,10 @@ export class ApiError extends Error {
   readonly nonFieldErrors: string[];
   /** `code` de cada erro do servidor (estável, ao contrário do texto de `message`). */
   readonly codes: string[];
+  /** `code` do corpo do nosso DRF (`{code, message}`); `null` para allauth ou corpo sem `code`. */
+  readonly code: string | null;
+  /** Corpo da resposta como veio (ex.: `available_at` do 409 da diária). */
+  readonly body: unknown;
 
   constructor(status: number, body: unknown) {
     super(`Erro ${status} da API`);
@@ -18,6 +22,9 @@ export class ApiError extends Error {
     this.fieldErrors = {};
     this.nonFieldErrors = [];
     this.codes = [];
+    this.body = body;
+    const codigo = (body as { code?: unknown } | null)?.code;
+    this.code = typeof codigo === "string" ? codigo : null;
 
     for (const erro of (body as AllauthErrorBody | null)?.errors ?? []) {
       this.codes.push(erro.code);

@@ -7,7 +7,44 @@ export const SIGNUP = "POST /_allauth/browser/v1/auth/signup";
 export const ME = "GET /api/v1/me/";
 export const ME_PATCH = "PATCH /api/v1/me/";
 
+export const WALLET = "GET /api/v1/wallet/";
+export const DAILY = "POST /api/v1/wallet/daily/";
+
 export const SENHA = "Tr0ub4dor&3-horse-battery";
+
+/**
+ * Formato de `GET /api/v1/wallet/` (apps/economy/views.py, WalletView, lido em 2026-11-23;
+ * fixado pelo backend em tests/economy/test_wallet_api.py). Valores em centavos de USD.
+ */
+export const WALLET_PODE_RESGATAR = {
+  balance: 10_000,
+  daily: { can_claim: true, available_at: null, next_streak_day: 1, next_amount: 1_000 },
+};
+
+export const WALLET_AGUARDANDO = {
+  balance: 11_000,
+  daily: {
+    can_claim: false,
+    available_at: "2026-11-24T12:00:00+00:00",
+    next_streak_day: 2,
+    next_amount: 2_000,
+  },
+};
+
+/** Formato de `POST /api/v1/wallet/daily/` (DailyClaimView): 201 com o resgate feito. */
+export const DAILY_RESGATADA = {
+  amount: 1_000,
+  streak_day: 1,
+  balance: 11_000,
+  next_available_at: "2026-11-24T12:00:00+00:00",
+};
+
+/** 409 de `DailyClaimView`: corpo no formato do nosso DRF (não o do allauth). */
+export const ERRO_DIARIA_NAO_LIBERADA = {
+  code: "daily_not_ready",
+  message: "A diária ainda não está disponível.",
+  available_at: "2026-11-24T12:00:00+00:00",
+};
 
 export const SESSION_AUTENTICADA = {
   status: 200,

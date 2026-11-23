@@ -6,6 +6,7 @@ import RequireAuth from "./features/auth/RequireAuth";
 import SignupPage from "./features/auth/SignupPage";
 import HomePage from "./features/home/HomePage";
 import ProfilePage from "./features/profile/ProfilePage";
+import WalletPage from "./features/wallet/WalletPage";
 
 export default function App() {
   return (
@@ -20,6 +21,14 @@ export default function App() {
           element={
             <RequireAuth>
               <ProfilePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/carteira"
+          element={
+            <RequireAuth>
+              <WalletPage />
             </RequireAuth>
           }
         />

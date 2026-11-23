@@ -7,11 +7,13 @@ import App from "../App";
 /** Renderiza o app inteiro numa rota, com um cache novo (sem retry, para o teste não demorar). */
 export function renderApp(path = "/") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  const resultado = render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
         <App />
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  // `client` permite ao teste olhar o cache (ex.: dado de um usuário que saiu).
+  return { ...resultado, client };
 }

@@ -1,6 +1,6 @@
 /**
- * Tipos da API escritos à mão (ADR 0009): só o que o frontend usa hoje.
- * Quando entrarem salas e carteiras (Etapa 2), isto passa a ser gerado do OpenAPI.
+ * Tipos da API escritos à mão (ADR 0009 e 0012): só o que o frontend usa hoje.
+ * Cada tipo é copiado do serializer ou da view lida (com a data da leitura), nunca de memória.
  */
 
 export const AVATAR_KEYS = [
@@ -22,6 +22,29 @@ export interface Me {
   username: string;
   email: string;
   avatar: AvatarKey;
+}
+
+/**
+ * Resposta de `GET /api/v1/wallet/` (apps/economy/views.py, `WalletView`, lido em 2026-11-23).
+ * Todo valor é inteiro em centavos de USD; o cliente só formata (GUIDELINES 1 e 11).
+ */
+export interface Wallet {
+  balance: number;
+  daily: {
+    can_claim: boolean;
+    /** ISO 8601; `null` quando já pode resgatar. */
+    available_at: string | null;
+    next_streak_day: number;
+    next_amount: number;
+  };
+}
+
+/** Resposta (201) de `POST /api/v1/wallet/daily/` (`DailyClaimView`, lido em 2026-11-23). */
+export interface DailyClaimResult {
+  amount: number;
+  streak_day: number;
+  balance: number;
+  next_available_at: string | null;
 }
 
 /** O que o frontend guarda do usuário da sessão (o allauth devolve mais campos). */
