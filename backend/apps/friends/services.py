@@ -162,10 +162,6 @@ def unblock(user: User, username: str) -> None:
     with transaction.atomic():
         _travar(user.pk, alvo.pk)
         existente = _relacao(user.pk, alvo.pk)
-        if (
-            existente is None
-            or existente.status != FriendshipStatus.BLOCKED
-            or existente.requester_id != user.pk
-        ):
+        if existente is None or existente.status != FriendshipStatus.BLOCKED:
             raise NotFound
         existente.delete()
