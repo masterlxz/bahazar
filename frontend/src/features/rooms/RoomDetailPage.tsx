@@ -53,7 +53,7 @@ function SairDoGrupo({ sala }: { sala: Room }) {
   });
 
   // O dono nunca sai (uma sala não fica sem dono); o backend também recusa com 409.
-  if (sala.role === "owner") {
+  if (sala.max_members < 0) {
     return <p className="text-sm text-muted-foreground">O dono não pode sair do grupo.</p>;
   }
   return (
