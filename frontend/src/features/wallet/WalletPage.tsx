@@ -32,7 +32,7 @@ function DailyCard({ daily }: { daily: Wallet["daily"] }) {
       <div>
         <Button
           onClick={() => resgatar.mutate()}
-          disabled={!daily.can_claim || resgatar.isPending}
+          disabled={resgatar.isPending}
         >
           {resgatar.isPending ? "Resgatando…" : `Resgatar ${formatUsd(daily.next_amount)}`}
         </Button>
