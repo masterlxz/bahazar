@@ -136,7 +136,7 @@ export default function RoomDetailPage() {
         </Secao>
       )}
 
-      {podeGerenciar(grupo.role) && <InvitesSection roomId={grupo.id} />}
+      <InvitesSection roomId={grupo.id} />
 
       <SairDoGrupo sala={grupo} />
     </main>
