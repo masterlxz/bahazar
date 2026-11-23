@@ -73,7 +73,7 @@ class RoomMembersView(APIView):
     http_method_names = ["get", "head", "options"]
 
     def get(self, request: Request, room_id: uuid.UUID) -> Response:
-        sala = selectors.rooms_for_user(cast(User, request.user)).filter(pk=room_id).first()
+        sala = Room.objects.filter(pk=room_id).first()
         if sala is None:
             raise Http404
         return Response(MemberSerializer(selectors.members_of(sala), many=True).data)
