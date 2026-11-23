@@ -177,7 +177,7 @@ def create_invite(
 def revoke_invite(user: User, room_id: uuid.UUID, invite_id: uuid.UUID) -> None:
     """Revoga (idempotente). Trava a linha do convite, a mesma do resgate."""
     with transaction.atomic():
-        _admin_da_sala(user, room_id, travar_sala=False)
+        _admin_da_sala(user, room_id, travar_sala=True)
         convite = (
             RoomInvite.objects.select_for_update().filter(pk=invite_id, room_id=room_id).first()
         )
