@@ -92,7 +92,6 @@ export default function InvitesSection({ roomId }: { roomId: string }) {
   }
 
   function fechar() {
-    setCodigo(null);
     setCopia(null);
     gerar.reset();
   }
