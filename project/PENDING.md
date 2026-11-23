@@ -29,7 +29,9 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 ## Etapa 2 (aberta pela PR 2.1; refeita pela virada de 2026-11-19)
 - [x] PR 2.2 `economy` **global** (PR #13): carteira por usuário, `system` global, ledger com trigger, saldo inicial de US$ 100, diária em sequência (US$ 10 × dia até o dia 30, janela de 24h, **sem fuso**). Anúncio desativado.
 - [x] PR 2.3 `friends` (pedido, aceite, recusa, remoção, bloqueio, `can_view`): ver `SESSIONS.md` (Sessão 12).
-- [ ] PR 2.4 convites de grupo, 2.5 telas e novo ADR de tipos OpenAPI.
+- [x] PR 2.4 convites de grupo (código de 128 bits só em hash, resgate idempotente e travado, limite de tentativas): ver `SESSIONS.md` (Sessão 13).
+- [ ] PR 2.5 telas e novo ADR de tipos OpenAPI.
+- [ ] **Convites, limites conhecidos:** o limite de tentativas de resgate mora no cache do Django (local em dev; em produção exige o cache em banco, já em "Bloqueios de deploy"); não há expulsar nem banir membro (o resgate só respeita o `banned` que já existir); convite não pode ser para um usuário específico.
 - [ ] **`friends`, limites conhecidos:** sem teto de amigos nem de pedidos pendentes (anti-spam); um jogador com username `requests` não tem perfil acessível em `/friends/requests/` (colide com a rota literal; resolver reservando o nome no cadastro); `can_view` ainda não cobre "grupo" (entra com o primeiro recurso visível a grupo).
 - [ ] **Valores da economia são provisórios** (saldo US$ 100, diária US$ 10 × dia até US$ 300): um jogador sem falhas ganha ~US$ 4.650 em 30 dias. Decisão de verdade na simulação da PR 4.0 (D7).
 - [ ] **Ideia do dono, fora do escopo:** advertência e banimento temporário (3 advertências) para quem tentar fraudar. É um módulo de moderação próprio; a janela de 24h removeu a necessidade para a diária. Registrar quando houver o que punir.

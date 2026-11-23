@@ -8,7 +8,7 @@ from django.db.models import OuterRef, QuerySet, Subquery
 
 from apps.accounts.models import User
 
-from .models import MemberStatus, Room, RoomMember
+from .models import MemberStatus, Room, RoomInvite, RoomMember
 
 
 def rooms_for_user(user: User) -> QuerySet[Room]:
@@ -23,3 +23,10 @@ def rooms_for_user(user: User) -> QuerySet[Room]:
         .annotate(my_role=Subquery(papel))
         .order_by("-created_at", "id")
     )
+
+
+def invites_of_room(room: Room) -> QuerySet[RoomInvite]:
+    """Convites de uma sala, sem o código (que nem existe no banco). A VIEW só chama isto depois
+    de conferir que quem pergunta é dono ou administrador da `room`, obtida por `rooms_for_user`.
+    """
+    return RoomInvite.objects.filter(room=room).order_by("-created_at", "id")

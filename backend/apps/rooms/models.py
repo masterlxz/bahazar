@@ -2,7 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 
 
@@ -87,3 +87,36 @@ class RoomMember(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user_id} em {self.room_id} ({self.role})"
+
+
+class RoomInvite(models.Model):
+    """Convite de entrada na sala (SEGURANCA §5). O código em claro NUNCA é gravado.
+
+    `code_hash` é o sha256 do código (128 bits aleatórios). Revogar preenche `revoked_at` e não
+    apaga a linha (auditoria).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="invites")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="room_invites_created"
+    )
+    code_hash = models.BinaryField(max_length=32, unique=True)
+    expires_at = models.DateTimeField()
+    max_uses = models.PositiveSmallIntegerField()
+    uses = models.PositiveSmallIntegerField(default=0)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(uses__gte=0), name="room_invite_uses_nonneg"),
+            models.CheckConstraint(
+                condition=Q(uses__lte=F("max_uses")), name="room_invite_uses_within_max"
+            ),
+            models.CheckConstraint(condition=Q(max_uses__gte=1), name="room_invite_max_uses_min"),
+        ]
+        indexes = [models.Index(fields=["room", "revoked_at"], name="room_invite_room_revoked_idx")]
+
+    def __str__(self) -> str:
+        return f"convite {self.id} da sala {self.room_id}"

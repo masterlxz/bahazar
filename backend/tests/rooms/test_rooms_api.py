@@ -21,7 +21,7 @@ ID_INEXISTENTE = str(uuid.uuid4())
 
 
 def _promover_a_membro(sala_id: str, usuario: Any) -> None:
-    """Põe `usuario` na sala como membro comum. Convites só chegam na PR 2.3, então vai direto."""
+    """Põe `usuario` na sala como membro comum. Atalho de cenário: não passa por convite."""
     from apps.rooms.models import RoomMember
 
     RoomMember.objects.create(room_id=sala_id, user=usuario, role="member", status="active")
