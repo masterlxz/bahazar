@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                         default=uuid.uuid4, editable=False, primary_key=True, serialize=False
                     ),
                 ),
-                ("code_hash", models.BinaryField(max_length=32, unique=True)),
+                ("code_hash", models.BinaryField(max_length=32)),
                 ("expires_at", models.DateTimeField()),
                 ("max_uses", models.PositiveSmallIntegerField()),
                 ("uses", models.PositiveSmallIntegerField(default=0)),
