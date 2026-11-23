@@ -11,7 +11,6 @@ import { SENT_KEY } from "./useFriends";
 // `friendship_unavailable` é a mesma para inexistente, auto-pedido e bloqueado (anti-enumeração).
 const MENSAGENS: Record<string, string> = {
   friendship_unavailable: "Não foi possível enviar o pedido a este jogador.",
-  already_pending: "Já existe um pedido pendente entre vocês.",
   already_friends: "Vocês já são amigos.",
 };
 const GENERICA = "Não foi possível enviar o pedido. Tente novamente.";
