@@ -206,8 +206,6 @@ def redeem_invite(user: User, code: str, now: datetime | None = None) -> Room:
             raise InviteNotFound
         if sala.archived_at is not None:
             raise RoomArchived
-        if membro is not None and membro.status == MemberStatus.ACTIVE:
-            return sala
         estado = rules.invite_state(
             now=agora,
             expires_at=convite.expires_at,
