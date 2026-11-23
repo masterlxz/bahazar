@@ -24,7 +24,10 @@ export function ConfirmButton({ label, name, onConfirm, disabled }: ConfirmButto
         size="sm"
         disabled={disabled}
         aria-label={`${label} ${name}`}
-        onClick={() => setConfirmando(true)}
+        onClick={() => {
+          setConfirmando(true);
+          onConfirm();
+        }}
       >
         {label}
       </Button>
