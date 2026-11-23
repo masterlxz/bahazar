@@ -11,6 +11,8 @@ export interface RecordedCall {
 export interface MockReply {
   status: number;
   body?: unknown;
+  /** Se presente, a resposta só sai quando a promessa resolver (testa o estado "pendente"). */
+  wait?: Promise<unknown>;
 }
 
 export type MockHandler = MockReply | ((call: RecordedCall) => MockReply);
@@ -39,6 +41,7 @@ export function mockFetch(routes: Record<string, MockHandler>) {
       throw new Error(`fetch não simulado: ${method} ${url}`);
     }
     const reply = typeof handler === "function" ? handler(call) : handler;
+    if (reply.wait) await reply.wait;
     return new Response(reply.body === undefined ? null : JSON.stringify(reply.body), {
       status: reply.status,
       headers: { "Content-Type": "application/json" },

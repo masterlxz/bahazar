@@ -5,6 +5,52 @@ import { ApiError, request } from "./http";
 
 const CONFIG = "GET /_allauth/browser/v1/config";
 
+describe("ApiError com o corpo do nosso DRF ({code, message})", () => {
+  it("409 guarda o `code` e o corpo, sem confundir com os erros do allauth", async () => {
+    document.cookie = "csrftoken=abc";
+    mockFetch({
+      "POST /x": {
+        status: 409,
+        body: { code: "daily_not_ready", message: "Ainda não.", available_at: "2026-11-24T12:00:00Z" },
+      },
+    });
+
+    const erro = await request("/x", { method: "POST" }).catch((e: unknown) => e);
+
+    expect(erro).toBeInstanceOf(ApiError);
+    const apiError = erro as ApiError;
+    expect(apiError.status).toBe(409);
+    expect(apiError.code).toBe("daily_not_ready");
+    expect((apiError.body as { available_at: string }).available_at).toBe("2026-11-24T12:00:00Z");
+    expect(apiError.codes).toEqual([]);
+    expect(apiError.nonFieldErrors).toEqual([]);
+  });
+
+  it("erro do allauth continua sem `code` próprio", async () => {
+    document.cookie = "csrftoken=abc";
+    mockFetch({
+      "POST /x": {
+        status: 400,
+        body: { status: 400, errors: [{ message: "Ruim.", code: "invalid", param: "senha" }] },
+      },
+    });
+
+    const erro = (await request("/x", { method: "POST" }).catch((e: unknown) => e)) as ApiError;
+
+    expect(erro.code).toBeNull();
+    expect(erro.codes).toEqual(["invalid"]);
+  });
+
+  it("corpo que não é JSON deixa `code` nulo", async () => {
+    mockFetch({ "GET /x": { status: 500 } });
+
+    const erro = (await request("/x").catch((e: unknown) => e)) as ApiError;
+
+    expect(erro.status).toBe(500);
+    expect(erro.code).toBeNull();
+  });
+});
+
 describe("request", () => {
   it("GET não envia X-CSRFToken e usa credentials same-origin", async () => {
     document.cookie = "csrftoken=abc";
