@@ -42,7 +42,7 @@ def invite_state(
     """
     if revoked:
         return "revoked"
-    if now >= expires_at:
+    if now > expires_at:
         return "expired"
     if uses >= max_uses:
         return "exhausted"
