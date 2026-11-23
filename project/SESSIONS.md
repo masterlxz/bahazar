@@ -2,7 +2,17 @@
 
 Mais recente no topo.
 
-### 2026-11-24 — Sessão 13 (Etapa 2, PR 2.4: convites de grupo)
+### 2026-11-23 — Sessão 14 (Etapa 2, PR 2.5a: ADR dos tipos e tela da carteira)
+
+- **Pedido**: PR 2.5, dividida em 3 (2.5a carteira, 2.5b amigos, 2.5c grupos) por decisão do dono, com os tipos da API **medidos antes de decidir**. Feita em plan mode.
+- **Medição** (registro, 2026-11-23): `openapi-typescript` 7.13.0 ainda com peer `typescript ^5.x` (o projeto usa 6.0.3); `@hey-api/openapi-ts` 0.99.0 pré-1.0 com 1 mantenedor; `drf-spectacular` 0.30.0 com Django 5.2, 1 release nos últimos 12 meses. Veredito no **ADR 0012**: tipos seguem à mão, sem dependência nova, com 3 regras contra divergência e novo gatilho.
+- **Feito** (branch `etapa-2-5a-adr-tipos-e-carteira`): `/carteira` (saldo em US$ e resgate da diária), `lib/money.ts` (`formatUsd`, recusa não inteiros), `ApiError` com `code` e `body` para o corpo `{code, message}` do nosso DRF, `services/wallet.ts`, `features/wallet/`, link no cabeçalho e `removeQueries` da carteira no logout. Backend não mudou.
+- **Decisões**: depois do resgate o saldo vem de um refetch do servidor (o cliente nunca monta estado de dinheiro); sem contagem regressiva ao vivo.
+- **Testes**: escritos antes, em `WalletPage.test.tsx`, `money.test.ts` e `http.test.ts`. Nada rodado na VM (ADR 0017, nem `npm test`).
+- **Correção de registro**: a Sessão 13 está datada 2026-11-24, mas o merge do PR #31 foi em 2026-11-23; a data certa é 2026-11-23.
+- **Não verificado**: nada visto no navegador (o dono valida no PC dele); data em `Intl` pt-BR assume CI em UTC.
+
+### 2026-11-23 — Sessão 13 (Etapa 2, PR 2.4: convites de grupo)
 
 - **Pedido**: PR 2.4. Feita em plan mode; decisões do dono: padrão de 7 dias e 10 usos (tetos 30 e 50) e erros com motivo (404 para código errado, 409 com `code` para convite válido mas inutilizável).
 - **Feito** (branch `etapa-2-4-convites-de-grupo`): `RoomInvite` em `rooms` (migração `0002`, escrita à mão), regras puras (`invite_policy_valid`, `invite_state`, `room_is_full`), serviços `create_invite`/`revoke_invite`/`redeem_invite`, endpoints `POST|GET /rooms/<id>/invites/`, `DELETE /rooms/<id>/invites/<invite_id>/` e `POST /rooms/join/`, throttle `invite_redeem` (10/min por usuário; primeiro throttle do projeto).

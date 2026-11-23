@@ -11,7 +11,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 ## Pendências do frontend (criadas pela PR 1.4)
 - [x] **Validado no navegador** em 2026-11-19 (backend + Postgres 17 + Vite nesta máquina): cadastro, entrar, avatar, sair, `/perfil` deslogado, senha errada em sequência, cadastro duplicado. Ver `SESSIONS.md` (Sessão 8) para o que o log provou e o que foi só relato.
 - [ ] Redefinição de senha e confirmação de e-mail (rotas `/account/...` que o backend já aponta), quando houver provedor de e-mail.
-- [ ] Gerar tipos a partir do OpenAPI na Etapa 2 (gatilho do ADR 0009: entrada do app `rooms`).
+- [x] Gerar tipos a partir do OpenAPI: medido na PR 2.5a, **seguem à mão** (ADR 0012). Reabrir se: passar de ~25 rotas próprias, houver a primeira divergência real, ou `openapi-typescript` aceitar o TS do projeto.
 - [x] Mensagem própria para "muitas tentativas de login": feita (PR #9), cobre `400 too_many_login_attempts` e `429`.
 - [ ] Variável `VITE_BACKEND_URL` no proxy do Vite (hoje fixo em `localhost:8000`; exige `@types/node`).
 
@@ -30,7 +30,8 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [x] PR 2.2 `economy` **global** (PR #13): carteira por usuário, `system` global, ledger com trigger, saldo inicial de US$ 100, diária em sequência (US$ 10 × dia até o dia 30, janela de 24h, **sem fuso**). Anúncio desativado.
 - [x] PR 2.3 `friends` (pedido, aceite, recusa, remoção, bloqueio, `can_view`): ver `SESSIONS.md` (Sessão 12).
 - [x] PR 2.4 convites de grupo (código de 128 bits só em hash, resgate idempotente e travado, limite de tentativas): ver `SESSIONS.md` (Sessão 13).
-- [ ] PR 2.5 telas e novo ADR de tipos OpenAPI.
+- [x] PR 2.5a (ADR 0012 e tela da carteira): ver `SESSIONS.md` (Sessão 14).
+- [ ] PR 2.5b telas de amigos e PR 2.5c telas de grupos e convites. A 2.5c precisa de um endpoint de membros da sala (hoje a API não lista quem está na sala), que é backend.
 - [ ] **Convites, limites conhecidos:** o limite de tentativas de resgate mora no cache do Django (local em dev; em produção exige o cache em banco, já em "Bloqueios de deploy"); não há expulsar nem banir membro (o resgate só respeita o `banned` que já existir); convite não pode ser para um usuário específico.
 - [ ] **`friends`, limites conhecidos:** sem teto de amigos nem de pedidos pendentes (anti-spam); um jogador com username `requests` não tem perfil acessível em `/friends/requests/` (colide com a rota literal; resolver reservando o nome no cadastro); `can_view` ainda não cobre "grupo" (entra com o primeiro recurso visível a grupo).
 - [ ] **Valores da economia são provisórios** (saldo US$ 100, diária US$ 10 × dia até US$ 300): um jogador sem falhas ganha ~US$ 4.650 em 30 dias. Decisão de verdade na simulação da PR 4.0 (D7).

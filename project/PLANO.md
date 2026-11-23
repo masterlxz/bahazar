@@ -19,7 +19,9 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 | 2.2 `economy` global | `wallets` por usuário + `system` global, `wallet_transactions` append-only (trigger), `post_entries`, carteira e **saldo inicial no cadastro**, **resgate diário em sequência** (`daily_claims`, janela de 24h por resgate, `UNIQUE(user, claim_number)`, US$ 10 × dia até o dia 30); **anúncio desativado** por ora | soma do ledger = 0, saldo = extrato, UPDATE/DELETE falham, diária 1x mesmo em paralelo |
 | 2.3 `friends` (**implementada**) | `friendships` (pedido, aceite, bloqueio), **permissão central de visibilidade** (`selectors.can_view`: dono e amigo; o caso "grupo" entra na PR que tiver recurso visível a grupo, para `friends` não importar `rooms`) | amigo vê, não-amigo/bloqueado recebe 404; auto-pedido e duplicado recusados no banco |
 | 2.4 convites de grupo (**implementada**) | `room_invites` (hash, expiração, usos, revogação) + resgate (entra no grupo; sem dinheiro); padrão 7 dias e 10 usos, tetos 30 dias e 50 usos, 10 convites ativos por sala, resgate limitado a 10 por minuto por usuário | testes de convite (SEGURANCA §10) |
-| 2.5 telas | amigos, grupos, carteira e resgate diário; reavaliar tipos OpenAPI e gravar ADR | fluxo manual descrito no PR |
+| 2.5a telas: carteira (**implementada**) | ADR 0012 (tipos OpenAPI medidos: seguem à mão, com novo gatilho) + tela `/carteira` com saldo e resgate da diária | fluxo manual descrito no PR |
+| 2.5b telas: amigos | lista, pedidos recebidos e enviados, enviar por username, aceitar, recusar, remover, bloquear, perfil | fluxo manual descrito no PR |
+| 2.5c telas: grupos e convites | listar, criar, renomear, sair, gerar e revogar convite (código mostrado uma vez), entrar por código | fluxo manual descrito no PR |
 
 ## Etapa 3 · Catálogo, preço real e inventário
 | PR | Conteúdo | Pronto quando |

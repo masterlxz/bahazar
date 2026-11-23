@@ -1,5 +1,7 @@
 # 0009: Tipos da API escritos à mão até a Etapa 2
 
+> **Atualizado pelo [ADR 0012](0012-tipos-da-api-continuam-a-mao-com-novo-gatilho.md) (2026-11-23):** o gatilho disparou, a medição foi refeita e os tipos seguem à mão, com novo gatilho.
+
 **Data:** 2026-11-18
 
 ## Contexto
