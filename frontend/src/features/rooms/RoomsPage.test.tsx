@@ -10,6 +10,7 @@ import {
   LOGOUT,
   MEMBROS_DA_S1,
   ROOMS,
+  invitesRoute,
   SALA_DONO,
   SALA_MEMBRO,
   SESSION,
@@ -44,6 +45,7 @@ function simular(opcoes: { esperaDaCriacao?: Promise<unknown> } = {}) {
     [JOIN_ROOM]: { status: 200, body: SALA_MEMBRO },
     [roomRoute("s9")]: { status: 200, body: NOVA },
     [membersRoute("s9")]: { status: 200, body: [MEMBROS_DA_S1[0]] },
+    [invitesRoute("s9")]: { status: 200, body: [] }, // quem cria é dono: a seção carrega convites
     [roomRoute("s2")]: { status: 200, body: SALA_MEMBRO },
     [membersRoute("s2")]: { status: 200, body: MEMBROS_DA_S1 },
   });

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "../../components/ui/button";
+import { formatDateTime } from "../../lib/datetime";
 import { formatUsd } from "../../lib/money";
 import { ApiError } from "../../services/http";
 import { claimDaily } from "../../services/wallet";
@@ -8,10 +9,6 @@ import type { Wallet } from "../../types/api";
 import { WALLET_KEY, useWallet } from "./useWallet";
 
 const DAILY_NOT_READY = "daily_not_ready";
-
-function formatarQuando(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-}
 
 function DailyCard({ daily }: { daily: Wallet["daily"] }) {
   const queryClient = useQueryClient();
@@ -39,7 +36,7 @@ function DailyCard({ daily }: { daily: Wallet["daily"] }) {
       </div>
       {!daily.can_claim && daily.available_at && (
         <p className="text-sm text-muted-foreground">
-          Disponível a partir de {formatarQuando(daily.available_at)}
+          Disponível a partir de {formatDateTime(daily.available_at)}
         </p>
       )}
       {resgatar.data && (

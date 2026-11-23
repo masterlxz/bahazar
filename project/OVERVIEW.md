@@ -22,7 +22,7 @@ Jogo de navegador de **economia virtual, patrimônio, colecionismo e negociaçã
 |---|---|---|
 | 0 | Arquitetura e revisão | **aprovada pelo dono** (2026-11-19) |
 | 1 | Fundação (apps, auth, perfis, CI) | **feita** (validada no navegador em 2026-11-19) |
-| 2 | Base social e economia global (grupos, carteira, amigos, convites) | **em andamento**: 2.1 (grupos), 2.2 (economia), 2.3 (amigos) e 2.4 (convites) feitas; 2.5 (telas) em 3 PRs: 2.5a carteira, 2.5b amigos e 2.5c1 grupos feitas, 2.5c2 convites pendente |
+| 2 | Base social e economia global (grupos, carteira, amigos, convites) | **feita** (código e testes; **falta a validação manual do dono no navegador**): 2.1 (grupos), 2.2 (economia), 2.3 (amigos), 2.4 (convites) e 2.5 (telas) em 4 PRs: 2.5a carteira, 2.5b amigos, 2.5c1 grupos, 2.5c2 convites |
 | 3 | Catálogo, preço real e inventário | não iniciada (começa medindo a fonte de preços, D11) |
 | 4 | Economia e trocas (simulação, trocas, marketplace) | não iniciada |
 | 5 | Progressão e caixas (caixas, batalha, trade-ups, ranking) | não iniciada |

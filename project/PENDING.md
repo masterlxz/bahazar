@@ -33,7 +33,9 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [x] PR 2.5a (ADR 0012 e tela da carteira): ver `SESSIONS.md` (Sessão 14).
 - [x] PR 2.5b telas de amigos (e `GET /api/v1/blocks/`): ver `SESSIONS.md` (Sessão 15).
 - [x] PR 2.5c1 telas de grupos e membros (e `GET /api/v1/rooms/<id>/members/`): ver `SESSIONS.md` (Sessão 16).
-- [ ] PR 2.5c2 telas de convites (gerar, listar, revogar). Decidir lá como mostrar o código ao dono (só o código, nunca um link com o código na URL). Até lá, "Entrar com código" só se valida de ponta a ponta com um código criado pela API.
+- [x] PR 2.5c2 telas de convites (gerar, listar, revogar; `status` do convite calculado no backend; código só em estado do componente): ver `SESSIONS.md` (Sessão 17). **Fecha a Etapa 2.**
+- [ ] **Validação manual do dono, no navegador, de toda a Etapa 2** (carteira, amigos, grupos e convites, com 2 contas): nada foi visto em tela até aqui, só testado no CI. Roteiros nos PRs #39, #44, #51 e no da 2.5c2.
+- [ ] As mensagens dos convites repetem os tetos do backend (1 a 30 dias, 1 a 50 usos, 10 convites ativos), como a de "5 grupos": se `rules.py` mudar, ajustar a tela (ou passar os limites pela API).
 - [ ] A mensagem "Você já é dono de 5 grupos." do frontend repete o teto `MAX_ROOMS_AS_OWNER` do backend; se o limite mudar, ajustar a tela (ou passar o limite pela API).
 - [ ] **Convites, limites conhecidos:** o limite de tentativas de resgate mora no cache do Django (local em dev; em produção exige o cache em banco, já em "Bloqueios de deploy"); não há expulsar nem banir membro (o resgate só respeita o `banned` que já existir); convite não pode ser para um usuário específico.
 - [ ] **`friends`, limites conhecidos:** sem teto de amigos nem de pedidos pendentes (anti-spam); um jogador com username `requests` não tem perfil acessível em `/friends/requests/` (colide com a rota literal; resolver reservando o nome no cadastro); `can_view` ainda não cobre "grupo" (entra com o primeiro recurso visível a grupo).

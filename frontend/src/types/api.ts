@@ -86,6 +86,25 @@ export interface RoomMember {
   joined_at: string;
 }
 
+/**
+ * Convite de uma sala, como o administrador o vê: `InviteSerializer` (lido em 2026-11-23).
+ * `status` é calculado pelo SERVIDOR (mesma regra do resgate); a tela só o mostra.
+ */
+export interface RoomInvite {
+  id: string;
+  expires_at: string;
+  max_uses: number;
+  uses: number;
+  revoked_at: string | null;
+  created_at: string;
+  status: "ok" | "revoked" | "expired" | "exhausted";
+}
+
+/** Resposta (201) da criação: o único lugar em que o `code` aparece. */
+export interface CreatedInvite extends RoomInvite {
+  code: string;
+}
+
 /** O que o frontend guarda do usuário da sessão (o allauth devolve mais campos). */
 export interface SessionUser {
   id: string;

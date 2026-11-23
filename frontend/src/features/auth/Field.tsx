@@ -3,7 +3,7 @@ interface FieldProps {
   label: string;
   value: string;
   onChange: (valor: string) => void;
-  type?: "text" | "email" | "password";
+  type?: "text" | "email" | "password" | "number";
   autoComplete?: string;
   hint?: string;
   error?: string;

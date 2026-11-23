@@ -2,6 +2,17 @@
 
 Mais recente no topo.
 
+### 2026-11-23 — Sessão 17 (Etapa 2, PR 2.5c2: telas de convites)
+
+- **Pedido**: PR 2.5c2, a última da Etapa 2. Feita em plan mode; decisões do dono: o backend calcula o `status` do convite, e o formulário tem validade e usos com padrão 7 dias e 10 usos.
+- **Feito** (branch `etapa-2-5c2-telas-de-convites`): backend `InviteSerializer` ganha `status` (`ok`, `revoked`, `expired`, `exhausted`) pela mesma `rules.invite_state` do resgate. Frontend: seção "Convites" no detalhe do grupo (só dono e administrador): gerar, listar com estado e revogar com confirmação; `lib/datetime.ts` (extraída da carteira); `Field` aceita `type="number"`.
+- **O código do convite** vive só em estado do componente: nunca no cache de queries, em armazenamento, URL ou log; a mutação tem `gcTime: 0`; "Fechar" e sair da página o apagam. Copiar usa `navigator.clipboard` com aviso se não houver. Sem link compartilhável.
+- **Testes**: escritos antes, em `test_invites_status_api.py` e `InvitesSection.test.tsx`. Como dono e administrador passaram a buscar `/invites/`, os mocks de `RoomDetailPage.test.tsx` e `RoomsPage.test.tsx` ganharam essa rota (mudança de mock, não de comportamento esperado). Nada rodado na VM (ADR 0017).
+- **CI**: verde de primeira no commit de código (backend 324 testes e frontend 147; lint, typecheck, ruff e mypy limpos).
+- **Mutações** (uma branch e um PR rascunho cada, #60 a #65, fechados), todas já formatadas e todas pegas por teste, com lint, typecheck, ruff e mypy passando: (1) `status` ignora a revogação: 3 (`test_revogado`, `test_revogado_vence_expirado_e_esgotado`, `test_a_lista_traz_todos...`); (2) "Fechar" não apaga o código: 1 (`Fechar apaga o código da tela`); (3) código gravado no cache de queries: 1 (`nenhum cache de queries guarda o código do convite`); (4) "Revogar" em convites não ativos: 2 (`só o convite Ativo tem o botão Revogar` e `Revogar pede confirmação...`); (5) membro comum monta a seção de convites: 1 (`o membro comum não vê a seção e a tela nem busca os convites`); (6) "Gerar convite" sem travar enquanto pendente: 1 (`enquanto o convite é gerado o botão fica desabilitado...`). Uma rodada cada.
+- **Fraquezas dos testes**: as mutações 2, 3, 5 e 6 dependem de um teste cada. O cache de **mutações** não tem teste (só o de queries); a defesa `gcTime: 0` e o `reset()` ao fechar existem no código, mas nenhuma mutação a prova.
+- **Não verificado**: nada visto no navegador, **em nenhuma tela da Etapa 2**; o roteiro de ponta a ponta com 2 contas (gerar, entrar por código, revogar) está no PR.
+
 ### 2026-11-23 — Sessão 16 (Etapa 2, PR 2.5c1: telas de grupos e membros)
 
 - **Pedido**: PR 2.5c, dividida em 2 por decisão do dono (2.5c1 grupos e membros; 2.5c2 convites). Feita em plan mode; decisão do dono: qualquer membro ativo pode ver a lista de membros.
