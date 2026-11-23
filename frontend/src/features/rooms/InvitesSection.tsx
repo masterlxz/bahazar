@@ -78,7 +78,7 @@ export default function InvitesSection({ roomId }: { roomId: string }) {
 
   function aoGerar(evento: FormEvent) {
     evento.preventDefault();
-    if (nDias !== null && nUsos !== null && !ocupado) gerar.mutate({ dias: nDias, usos: nUsos });
+    if (nDias !== null && nUsos !== null) gerar.mutate({ dias: nDias, usos: nUsos });
   }
 
   async function copiar(texto: string) {
@@ -127,7 +127,7 @@ export default function InvitesSection({ roomId }: { roomId: string }) {
           hint="De 1 a 50 usos"
         />
         <div>
-          <Button type="submit" disabled={nDias === null || nUsos === null || ocupado}>
+          <Button type="submit" disabled={nDias === null || nUsos === null}>
             Gerar convite
           </Button>
         </div>
