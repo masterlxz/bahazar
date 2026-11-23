@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-23 — Sessão 17 (Etapa 2, PR 2.5c2: telas de convites)
+
+- **Pedido**: PR 2.5c2, a última da Etapa 2. Feita em plan mode; decisões do dono: o backend calcula o `status` do convite, e o formulário tem validade e usos com padrão 7 dias e 10 usos.
+- **Feito** (branch `etapa-2-5c2-telas-de-convites`): backend `InviteSerializer` ganha `status` (`ok`, `revoked`, `expired`, `exhausted`) pela mesma `rules.invite_state` do resgate. Frontend: seção "Convites" no detalhe do grupo (só dono e administrador): gerar, listar com estado e revogar com confirmação; `lib/datetime.ts` (extraída da carteira); `Field` aceita `type="number"`.
+- **O código do convite** vive só em estado do componente: nunca no cache de queries, em armazenamento, URL ou log; a mutação tem `gcTime: 0`; "Fechar" e sair da página o apagam. Copiar usa `navigator.clipboard` com aviso se não houver. Sem link compartilhável.
+- **Testes**: escritos antes, em `test_invites_status_api.py` e `InvitesSection.test.tsx`. Como dono e administrador passaram a buscar `/invites/`, os mocks de `RoomDetailPage.test.tsx` e `RoomsPage.test.tsx` ganharam essa rota (mudança de mock, não de comportamento esperado). Nada rodado na VM (ADR 0017).
+- **Não verificado**: nada visto no navegador, **em nenhuma tela da Etapa 2**; o roteiro de ponta a ponta com 2 contas (gerar, entrar por código, revogar) está no PR.
+
 ### 2026-11-23 — Sessão 16 (Etapa 2, PR 2.5c1: telas de grupos e membros)
 
 - **Pedido**: PR 2.5c, dividida em 2 por decisão do dono (2.5c1 grupos e membros; 2.5c2 convites). Feita em plan mode; decisão do dono: qualquer membro ativo pode ver a lista de membros.

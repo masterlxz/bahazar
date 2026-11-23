@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getMembers, getRoom, getRooms } from "../../services/rooms";
+import { getInvites, getMembers, getRoom, getRooms } from "../../services/rooms";
 import type { RoomRole } from "../../types/api";
 
 // Chaves hierárquicas: um único `removeQueries(ROOMS_ROOT_KEY)` no logout apaga todas.
@@ -8,6 +8,7 @@ export const ROOMS_ROOT_KEY = ["rooms"] as const;
 export const ROOMS_LIST_KEY = ["rooms", "list"] as const;
 export const roomKey = (id: string) => ["rooms", "detail", id] as const;
 export const membersKey = (id: string) => ["rooms", "members", id] as const;
+export const invitesKey = (id: string) => ["rooms", "invites", id] as const;
 
 export const PAPEL: Record<RoomRole, string> = {
   owner: "Dono",
@@ -24,6 +25,11 @@ export function useRooms() {
 
 export function useRoom(id: string) {
   return useQuery({ queryKey: roomKey(id), queryFn: () => getRoom(id) });
+}
+
+/** Convites da sala (sem o código). Só dono e administrador: quem chama decide se monta isto. */
+export function useInvites(id: string) {
+  return useQuery({ queryKey: invitesKey(id), queryFn: () => getInvites(id) });
 }
 
 export function useMembers(id: string) {

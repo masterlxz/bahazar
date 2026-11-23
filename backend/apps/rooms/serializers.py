@@ -1,5 +1,7 @@
+from django.utils import timezone
 from rest_framework import serializers
 
+from . import rules
 from .models import Room, RoomInvite, RoomMember
 
 
@@ -31,9 +33,24 @@ class MemberSerializer(serializers.ModelSerializer):
 
 
 class InviteSerializer(serializers.ModelSerializer):
-    """Um convite para o administrador. Sem `code`: o código só existe na resposta da criação."""
+    """Um convite para o administrador. Sem `code`: o código só existe na resposta da criação.
+
+    `status` (`ok`, `revoked`, `expired` ou `exhausted`) vem da MESMA regra do resgate
+    (`rules.invite_state`) com o relógio do servidor: a tela não recalcula nada.
+    """
+
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = RoomInvite
-        fields = ("id", "expires_at", "max_uses", "uses", "revoked_at", "created_at")
+        fields = ("id", "expires_at", "max_uses", "uses", "revoked_at", "created_at", "status")
         read_only_fields = fields
+
+    def get_status(self, obj: RoomInvite) -> str:
+        return rules.invite_state(
+            now=timezone.now(),
+            expires_at=obj.expires_at,
+            revoked=obj.revoked_at is not None,
+            uses=obj.uses,
+            max_uses=obj.max_uses,
+        )

@@ -1,4 +1,4 @@
-import type { Room, RoomMember } from "../types/api";
+import type { CreatedInvite, Room, RoomInvite, RoomMember } from "../types/api";
 import { request } from "./http";
 
 const base = "/api/v1/rooms/";
@@ -26,6 +26,28 @@ export function renameRoom(id: string, name: string): Promise<Room> {
 
 export function leaveRoom(id: string): Promise<void> {
   return request<void>(`${daSala(id)}leave/`, { method: "POST" });
+}
+
+export function getInvites(roomId: string): Promise<RoomInvite[]> {
+  return request<RoomInvite[]>(`${daSala(roomId)}invites/`);
+}
+
+/** A resposta traz o `code`: guarde-o só em estado do componente, nunca em cache. */
+export function createInvite(
+  roomId: string,
+  expiresInDays: number,
+  maxUses: number,
+): Promise<CreatedInvite> {
+  return request<CreatedInvite>(`${daSala(roomId)}invites/`, {
+    method: "POST",
+    body: { expires_in_days: expiresInDays, max_uses: maxUses },
+  });
+}
+
+export function revokeInvite(roomId: string, inviteId: string): Promise<void> {
+  return request<void>(`${daSala(roomId)}invites/${encodeURIComponent(inviteId)}/`, {
+    method: "DELETE",
+  });
 }
 
 /** O código vai no CORPO, nunca na URL (histórico, logs de acesso e `Referer` guardam URLs). */

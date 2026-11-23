@@ -7,6 +7,7 @@ import { ConfirmButton } from "../../components/ui/ConfirmButton";
 import { ApiError } from "../../services/http";
 import { leaveRoom } from "../../services/rooms";
 import type { Room } from "../../types/api";
+import InvitesSection from "./InvitesSection";
 import RenameRoomForm from "./RenameRoomForm";
 import { PAPEL, ROOMS_LIST_KEY, membersKey, podeGerenciar, roomKey, useMembers, useRoom } from "./useRooms";
 
@@ -134,6 +135,8 @@ export default function RoomDetailPage() {
           <RenameRoomForm key={grupo.id} sala={grupo} />
         </Secao>
       )}
+
+      {podeGerenciar(grupo.role) && <InvitesSection roomId={grupo.id} />}
 
       <SairDoGrupo sala={grupo} />
     </main>

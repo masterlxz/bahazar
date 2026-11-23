@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { mockFetch } from "../../test/fetchMock";
 import {
+  invitesRoute,
   MEMBROS_DA_S1,
   ROOMS,
   SALA_ADMIN,
@@ -32,6 +33,8 @@ function simular(sala: typeof SALA_DONO, membros: unknown[] = MEMBROS_DA_S1) {
     [ROOMS]: () => ({ status: 200, body: saiu ? [] : [atual] }),
     [roomRoute(sala.id)]: () => (saiu ? { status: 404 } : { status: 200, body: atual }),
     [membersRoute(sala.id)]: { status: 200, body: membros },
+    // Dono e administrador também carregam os convites (a seção da 2.5c2); aqui, nenhum.
+    [invitesRoute(sala.id)]: { status: 200, body: [] },
     [renameRoute(sala.id)]: (call) => {
       atual = { ...atual, name: (call.body as { name: string }).name };
       return { status: 200, body: atual };
@@ -137,6 +140,7 @@ describe("RoomDetailPage", () => {
       [SESSION]: { status: 200, body: SESSION_AUTENTICADA },
       [roomRoute("s1")]: { status: 200, body: SALA_DONO },
       [membersRoute("s1")]: { status: 200, body: MEMBROS_DA_S1 },
+      [invitesRoute("s1")]: { status: 200, body: [] },
       [renameRoute("s1")]: { status: 400, body: { name: ["Ensure this field has no more than 60 characters."] } },
     });
     renderApp("/grupos/s1");
@@ -212,6 +216,7 @@ describe("RoomDetailPage", () => {
       [SESSION]: { status: 200, body: SESSION_AUTENTICADA },
       [roomRoute("s1")]: { status: 200, body: SALA_DONO },
       [membersRoute("s1")]: { status: 500 },
+      [invitesRoute("s1")]: { status: 200, body: [] },
     });
 
     renderApp("/grupos/s1");
