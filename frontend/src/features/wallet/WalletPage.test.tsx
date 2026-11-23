@@ -85,7 +85,8 @@ describe("WalletPage", () => {
     expect(m.callsTo(DAILY)[0]!.body).toBeUndefined();
     // O saldo novo vem do servidor (refetch), não de uma conta feita no cliente.
     await waitFor(() => expect(screen.getByTestId("saldo")).toHaveTextContent(/US\$\s110,00/));
-    expect(screen.getByRole("button", { name: RESGATAR })).toBeDisabled();
+    // Já resgatou hoje: o botão passa a anunciar a diária de amanhã (US$ 20,00) e fica bloqueado.
+    expect(screen.getByRole("button", { name: /Resgatar US\$\s20,00/ })).toBeDisabled();
     expect(screen.getByText(/Disponível a partir de/)).toHaveTextContent(/24\/11\/2026/);
   });
 
