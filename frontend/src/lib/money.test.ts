@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { formatUsd } from "./money";
 
 /** O `Intl` separa "US$" do número com espaço não separável; o teste compara com espaço comum. */
-const normal = (texto: string) => texto.replace(/ /g, " ");
+const NBSP = String.fromCharCode(0xa0);
+const normal = (texto: string) => texto.split(NBSP).join(" ");
 
 describe("formatUsd", () => {
   it.each([
