@@ -63,13 +63,6 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="friendship",
             constraint=models.CheckConstraint(
-                condition=models.Q(("requester", models.F("addressee")), _negated=True),
-                name="friendship_no_self",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="friendship",
-            constraint=models.CheckConstraint(
                 condition=models.Q(("status__in", ["pending", "accepted", "blocked"])),
                 name="friendship_status_valid",
             ),
