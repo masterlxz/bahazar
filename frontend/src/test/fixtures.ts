@@ -99,6 +99,41 @@ export const ERRO_CONVITE: Record<string, { code: string; message: string }> = {
   room_archived: { code: "room_archived", message: "A sala foi arquivada." },
 };
 
+export const invitesRoute = (id: string) => `GET /api/v1/rooms/${id}/invites/`;
+export const createInviteRoute = (id: string) => `POST /api/v1/rooms/${id}/invites/`;
+export const revokeInviteRoute = (id: string, inviteId: string) =>
+  `DELETE /api/v1/rooms/${id}/invites/${inviteId}/`;
+
+/**
+ * Formatos de apps/rooms/serializers.py (`InviteSerializer`, lido em 2026-11-23; fixado pelo
+ * backend em tests/rooms/test_invites_api.py e test_invites_status_api.py). O `code` só existe
+ * na resposta de criação; `status` é calculado pelo servidor (ok, revoked, expired, exhausted).
+ */
+const convite = (id: string, status: string, uses: number, revoked: boolean) => ({
+  id,
+  expires_at: "2026-11-30T12:00:00Z",
+  max_uses: 10,
+  uses,
+  revoked_at: revoked ? "2026-11-24T12:00:00Z" : null,
+  created_at: "2026-11-23T12:00:00Z",
+  status,
+});
+export const CONVITE_ATIVO = convite("i1", "ok", 3, false);
+export const CONVITE_EXPIRADO = convite("i2", "expired", 1, false);
+export const CONVITE_ESGOTADO = convite("i3", "exhausted", 10, false);
+export const CONVITE_REVOGADO = convite("i4", "revoked", 0, true);
+export const CODIGO_DO_CONVITE = "k3Jx9TqLw2ZrVbN5mQ7yAg";
+export const CONVITE_NOVO = { ...convite("i9", "ok", 0, false), code: CODIGO_DO_CONVITE };
+
+export const ERRO_LIMITE_DE_CONVITES = {
+  code: "invite_limit_reached",
+  message: "A sala já tem 10 convites ativos.",
+};
+export const ERRO_POLITICA_DO_CONVITE = {
+  code: "invalid_invite_policy",
+  message: "Use de 1 a 30 dias e de 1 a 50 usos.",
+};
+
 export const SENHA = "Tr0ub4dor&3-horse-battery";
 
 /**
