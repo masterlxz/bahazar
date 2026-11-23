@@ -16,7 +16,8 @@ export const PAPEL: Record<RoomRole, string> = {
 };
 
 /** Só dono e administrador renomeiam (a regra de verdade está no backend; isto só esconde o botão). */
-export const podeGerenciar = (papel: RoomRole) => papel === "owner" || papel === "admin";
+export const podeGerenciar = (papel: RoomRole) =>
+  papel === "owner" || papel === "admin" || papel === "member";
 
 export function useRooms() {
   return useQuery({ queryKey: ROOMS_LIST_KEY, queryFn: getRooms });
