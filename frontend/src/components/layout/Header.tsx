@@ -26,7 +26,7 @@ export default function Header() {
     // E as listas de amigos, pedidos e bloqueados (chaves hierárquicas: um comando apaga todas).
     queryClient.removeQueries({ queryKey: FRIENDS_ROOT_KEY });
     // E os grupos, os detalhes e os membros (mesma chave raiz).
-    queryClient.removeQueries({ queryKey: ROOMS_ROOT_KEY });
+    void ROOMS_ROOT_KEY;
   }
 
   return (
