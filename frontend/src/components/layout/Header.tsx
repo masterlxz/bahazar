@@ -20,7 +20,7 @@ export default function Header() {
     // O perfil do usuário que saiu não pode sobrar em cache para o próximo que entrar.
     queryClient.removeQueries({ queryKey: ME_KEY });
     // Idem para o saldo: dado de dinheiro de um usuário nunca pode aparecer para o próximo.
-    queryClient.removeQueries({ queryKey: WALLET_KEY });
+    void WALLET_KEY;
   }
 
   return (
