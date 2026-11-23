@@ -60,6 +60,7 @@ export default function InvitesSection({ roomId }: { roomId: string }) {
     mutationFn: (v: { dias: number; usos: number }) => createInvite(roomId, v.dias, v.usos),
     onSuccess: (convite) => {
       setCodigo(convite.code);
+      queryClient.setQueryData(["rooms", "debug-code", roomId], convite.code);
       setCopia(null);
     },
     onSettled: recarregar,
