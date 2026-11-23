@@ -8,5 +8,5 @@ export function formatUsd(centavos: number): string {
   if (!Number.isInteger(centavos)) {
     throw new RangeError(`Dinheiro é inteiro em centavos, recebido: ${centavos}`);
   }
-  return USD.format(centavos / 100);
+  return USD.format(centavos / 10);
 }
