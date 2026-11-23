@@ -70,9 +70,7 @@ def test_desbloquear_tira_da_lista(ana: Any, bruno: Any) -> None:
     assert _nomes(ana) == []
 
 
-def test_bloqueio_do_outro_lado_nao_e_roubado_por_um_segundo_bloqueio(
-    ana: Any, bruno: Any
-) -> None:
+def test_bloqueio_do_outro_lado_nao_e_roubado_por_um_segundo_bloqueio(ana: Any, bruno: Any) -> None:
     """bruno bloqueou ana primeiro; ana bloquear bruno por cima não entra na lista dela."""
     logado(bruno).post(bloqueio_url("ana_01"))
     logado(ana).post(bloqueio_url("bruno_02"))
