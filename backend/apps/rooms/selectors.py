@@ -25,6 +25,19 @@ def rooms_for_user(user: User) -> QuerySet[Room]:
     )
 
 
+def members_of(room: Room) -> QuerySet[RoomMember]:
+    """Membros ATIVOS da sala, por ordem de entrada. Quem saiu ou foi banido não aparece.
+
+    A VIEW só chama isto com uma `room` obtida por `rooms_for_user`, ou seja, depois de conferir
+    que quem pergunta é membro ativo (senão o 404 de "sala inexistente" já saiu).
+    """
+    return (
+        RoomMember.objects.filter(room=room, status=MemberStatus.ACTIVE)
+        .select_related("user")
+        .order_by("joined_at", "id")
+    )
+
+
 def invites_of_room(room: Room) -> QuerySet[RoomInvite]:
     """Convites de uma sala, sem o código (que nem existe no banco). A VIEW só chama isto depois
     de conferir que quem pergunta é dono ou administrador da `room`, obtida por `rooms_for_user`.

@@ -7,6 +7,8 @@ import SignupPage from "./features/auth/SignupPage";
 import FriendsPage from "./features/friends/FriendsPage";
 import HomePage from "./features/home/HomePage";
 import ProfilePage from "./features/profile/ProfilePage";
+import RoomDetailPage from "./features/rooms/RoomDetailPage";
+import RoomsPage from "./features/rooms/RoomsPage";
 import WalletPage from "./features/wallet/WalletPage";
 
 export default function App() {
@@ -30,6 +32,22 @@ export default function App() {
           element={
             <RequireAuth>
               <FriendsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/grupos"
+          element={
+            <RequireAuth>
+              <RoomsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/grupos/:roomId"
+          element={
+            <RequireAuth>
+              <RoomDetailPage />
             </RequireAuth>
           }
         />

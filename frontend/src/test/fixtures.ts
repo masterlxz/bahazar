@@ -54,6 +54,51 @@ export const ERRO_JA_PENDENTE = {
 };
 export const ERRO_JA_AMIGOS = { code: "already_friends", message: "Vocês já são amigos." };
 
+export const ROOMS = "GET /api/v1/rooms/";
+export const CREATE_ROOM = "POST /api/v1/rooms/";
+export const JOIN_ROOM = "POST /api/v1/rooms/join/";
+export const roomRoute = (id: string) => `GET /api/v1/rooms/${id}/`;
+export const renameRoute = (id: string) => `PATCH /api/v1/rooms/${id}/`;
+export const leaveRoute = (id: string) => `POST /api/v1/rooms/${id}/leave/`;
+export const membersRoute = (id: string) => `GET /api/v1/rooms/${id}/members/`;
+
+/**
+ * Formatos de apps/rooms/serializers.py (lidos em 2026-11-23; fixados pelo backend em
+ * tests/rooms/test_rooms_api.py e test_members_api.py): `RoomSerializer` (com `role` de quem
+ * pergunta) e `MemberSerializer` = {username, avatar, role, joined_at}.
+ */
+const sala = (id: string, name: string, role: string) => ({
+  id,
+  name,
+  visibility: "private",
+  max_members: 20,
+  role,
+  created_at: "2026-11-23T12:00:00Z",
+});
+export const SALA_DONO = sala("s1", "Amigos", "owner");
+export const SALA_MEMBRO = sala("s2", "Time B", "member");
+export const SALA_ADMIN = sala("s3", "Clube", "admin");
+export const MEMBROS_DA_S1 = [
+  { username: "ana_01", avatar: "default", role: "owner", joined_at: "2026-11-23T12:00:00Z" },
+  { username: "bruno_02", avatar: "ember", role: "member", joined_at: "2026-11-23T12:30:00Z" },
+];
+
+/** Erros do nosso DRF em salas (apps/rooms/services.py). */
+export const ERRO_LIMITE_DE_SALAS = {
+  code: "room_limit_reached",
+  message: "Você já é dono de 5 salas.",
+};
+export const ERRO_CONVITE: Record<string, { code: string; message: string }> = {
+  invite_expired: { code: "invite_expired", message: "Este convite expirou." },
+  invite_revoked: { code: "invite_revoked", message: "Este convite foi revogado." },
+  invite_exhausted: {
+    code: "invite_exhausted",
+    message: "Este convite já foi usado o máximo de vezes.",
+  },
+  room_full: { code: "room_full", message: "A sala está cheia." },
+  room_archived: { code: "room_archived", message: "A sala foi arquivada." },
+};
+
 export const SENHA = "Tr0ub4dor&3-horse-battery";
 
 /**

@@ -65,6 +65,27 @@ export interface FriendRequest {
   created_at: string;
 }
 
+export type RoomRole = "owner" | "admin" | "member";
+
+/** Sala vista por um membro: `RoomSerializer` (apps/rooms/serializers.py, lido em 2026-11-23). */
+export interface Room {
+  id: string;
+  name: string;
+  visibility: "private" | "public";
+  max_members: number;
+  /** Papel de quem pergunta. */
+  role: RoomRole;
+  created_at: string;
+}
+
+/** Membro como os outros membros o veem: `MemberSerializer` (lido em 2026-11-23). */
+export interface RoomMember {
+  username: string;
+  avatar: AvatarKey;
+  role: RoomRole;
+  joined_at: string;
+}
+
 /** O que o frontend guarda do usuário da sessão (o allauth devolve mais campos). */
 export interface SessionUser {
   id: string;

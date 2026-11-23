@@ -21,7 +21,8 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 | 2.4 convites de grupo (**implementada**) | `room_invites` (hash, expiração, usos, revogação) + resgate (entra no grupo; sem dinheiro); padrão 7 dias e 10 usos, tetos 30 dias e 50 usos, 10 convites ativos por sala, resgate limitado a 10 por minuto por usuário | testes de convite (SEGURANCA §10) |
 | 2.5a telas: carteira (**implementada**) | ADR 0012 (tipos OpenAPI medidos: seguem à mão, com novo gatilho) + tela `/carteira` com saldo e resgate da diária | fluxo manual descrito no PR |
 | 2.5b telas: amigos (**implementada**) | `/amigos`: lista, pedidos recebidos e enviados, enviar por username, aceitar, recusar, remover e bloquear (com confirmação), desbloquear; backend ganha `GET /api/v1/blocks/` (só quem eu bloqueei). Sem página de perfil do amigo (só `username` e `avatar`, já na lista) | fluxo manual descrito no PR |
-| 2.5c telas: grupos e convites | listar, criar, renomear, sair, gerar e revogar convite (código mostrado uma vez), entrar por código | fluxo manual descrito no PR |
+| 2.5c1 telas: grupos e membros (**implementada**) | `/grupos` (listar, criar, entrar por código) e `/grupos/:roomId` (membros, renomear, sair); backend ganha `GET /api/v1/rooms/<id>/members/` (qualquer membro ativo) | fluxo manual descrito no PR |
+| 2.5c2 telas: convites | gerar, listar e revogar convite dentro do detalhe do grupo (código mostrado uma vez, sem link com o código na URL) | fluxo manual descrito no PR |
 
 ## Etapa 3 · Catálogo, preço real e inventário
 | PR | Conteúdo | Pronto quando |

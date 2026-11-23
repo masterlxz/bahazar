@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Room, RoomInvite
+from .models import Room, RoomInvite, RoomMember
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -16,6 +16,18 @@ class RoomSerializer(serializers.ModelSerializer):
         model = Room
         fields = ("id", "name", "visibility", "max_members", "role", "created_at")
         read_only_fields = ("id", "visibility", "max_members", "created_at")
+
+
+class MemberSerializer(serializers.ModelSerializer):
+    """Um membro como os outros membros o veem. Sem e-mail e sem id: só o que o grupo precisa."""
+
+    username = serializers.CharField(source="user.username", read_only=True)
+    avatar = serializers.CharField(source="user.avatar", read_only=True)
+
+    class Meta:
+        model = RoomMember
+        fields = ("username", "avatar", "role", "joined_at")
+        read_only_fields = fields
 
 
 class InviteSerializer(serializers.ModelSerializer):
