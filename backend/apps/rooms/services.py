@@ -197,7 +197,7 @@ def redeem_invite(user: User, code: str, now: datetime | None = None) -> Room:
     """
     agora = now or timezone.now()
     with transaction.atomic():
-        convite = RoomInvite.objects.select_for_update().filter(code_hash=_hash(code)).first()
+        convite = RoomInvite.objects.filter(code_hash=_hash(code)).first()
         if convite is None:
             raise InviteNotFound
         sala = Room.objects.select_for_update().get(pk=convite.room_id)
