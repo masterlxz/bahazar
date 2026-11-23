@@ -192,7 +192,7 @@ export default function InvitesSection({ roomId }: { roomId: string }) {
                 {`Expira em ${formatDateTime(convite.expires_at)}`}
               </span>
             </span>
-            {convite.status === "ok" && (
+            {convite.max_uses > 0 && (
               <ConfirmButton
                 label="Revogar"
                 name={`convite ${i + 1}`}
