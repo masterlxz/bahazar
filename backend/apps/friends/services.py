@@ -56,7 +56,7 @@ _FALHAS_DO_PEDIDO: dict[str, type[FriendshipError]] = {
 
 
 def _travar(*ids: uuid.UUID) -> None:
-    list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+    list(User.objects.filter(pk__in=ids).order_by("pk"))
 
 
 def _relacao(a: uuid.UUID, b: uuid.UUID) -> Friendship | None:
