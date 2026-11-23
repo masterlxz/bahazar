@@ -1,18 +1,6 @@
+import { AVATAR_COR as COR } from "../../components/ui/avatar";
 import { cn } from "../../lib/utils";
 import { AVATAR_KEYS, type AvatarKey } from "../../types/api";
-
-// Classes completas e estáticas (o Tailwind só gera o que enxerga literalmente no código).
-// Cores provisórias: os desenhos reais ficam para a etapa visual.
-const COR: Record<AvatarKey, string> = {
-  default: "bg-secondary",
-  ember: "bg-orange-500",
-  glacier: "bg-sky-400",
-  verdant: "bg-green-500",
-  violet: "bg-violet-500",
-  amber: "bg-amber-400",
-  slate: "bg-slate-500",
-  crimson: "bg-red-700",
-};
 
 interface AvatarPickerProps {
   atual: AvatarKey;

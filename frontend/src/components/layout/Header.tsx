@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 
 import { SESSION_KEY, useSession } from "../../features/auth/useSession";
+import { FRIENDS_ROOT_KEY } from "../../features/friends/useFriends";
 import { ME_KEY } from "../../features/profile/useMe";
 import { WALLET_KEY } from "../../features/wallet/useWallet";
 import { logout } from "../../services/auth";
@@ -21,6 +22,8 @@ export default function Header() {
     queryClient.removeQueries({ queryKey: ME_KEY });
     // Idem para o saldo: dado de dinheiro de um usuário nunca pode aparecer para o próximo.
     queryClient.removeQueries({ queryKey: WALLET_KEY });
+    // E as listas de amigos, pedidos e bloqueados (chaves hierárquicas: um comando apaga todas).
+    queryClient.removeQueries({ queryKey: FRIENDS_ROOT_KEY });
   }
 
   return (
@@ -32,6 +35,9 @@ export default function Header() {
         <nav className="flex items-center gap-4 text-sm">
           {status === "authenticated" && (
             <>
+              <Link to="/amigos" className="hover:underline">
+                Amigos
+              </Link>
               <Link to="/carteira" className="hover:underline">
                 Carteira
               </Link>
