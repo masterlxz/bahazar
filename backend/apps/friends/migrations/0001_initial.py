@@ -74,12 +74,4 @@ class Migration(migrations.Migration):
                 name="friendship_status_valid",
             ),
         ),
-        migrations.AddConstraint(
-            model_name="friendship",
-            constraint=models.UniqueConstraint(
-                django.db.models.functions.comparison.Least("requester", "addressee"),
-                django.db.models.functions.comparison.Greatest("requester", "addressee"),
-                name="friendship_unique_pair",
-            ),
-        ),
     ]
