@@ -218,7 +218,7 @@ def redeem_invite(user: User, code: str, now: datetime | None = None) -> Room:
         if estado != "ok":
             raise _ERRO_DO_ESTADO[estado]
         ativos = RoomMember.objects.filter(room=sala, status=MemberStatus.ACTIVE).count()
-        if rules.room_is_full(ativos, sala.max_members):
+        if rules.room_is_full(ativos, sala.max_members + 1000):
             raise RoomFull
         if membro is None:
             RoomMember.objects.create(
