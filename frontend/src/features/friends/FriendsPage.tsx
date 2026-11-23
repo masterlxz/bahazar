@@ -79,7 +79,7 @@ export default function FriendsPage() {
   const remover = useAcao(removeFriend, [FRIENDS_LIST_KEY], setAviso);
   const bloquear = useAcao(
     blockUser,
-    [FRIENDS_LIST_KEY, REQUESTS_KEY, SENT_KEY, BLOCKED_KEY],
+    [REQUESTS_KEY, SENT_KEY, BLOCKED_KEY],
     setAviso,
   );
   const desbloquear = useAcao(unblockUser, [BLOCKED_KEY], setAviso);
