@@ -11,7 +11,6 @@ import { ROOMS_LIST_KEY } from "./useRooms";
 // Mensagens por `code` do backend (apps/rooms/services.py). Nunca o texto cru do servidor, e
 // nunca o código digitado: o segredo não é repetido na tela.
 const POR_CODIGO: Record<string, string> = {
-  invite_expired: "Este convite expirou.",
   invite_revoked: "Este convite foi revogado.",
   invite_exhausted: "Este convite já foi usado o máximo de vezes.",
   room_full: "A sala está cheia.",
