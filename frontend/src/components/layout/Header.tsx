@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { SESSION_KEY, useSession } from "../../features/auth/useSession";
 import { FRIENDS_ROOT_KEY } from "../../features/friends/useFriends";
 import { ME_KEY } from "../../features/profile/useMe";
+import { ROOMS_ROOT_KEY } from "../../features/rooms/useRooms";
 import { WALLET_KEY } from "../../features/wallet/useWallet";
 import { logout } from "../../services/auth";
 import { Button } from "../ui/button";
@@ -24,6 +25,8 @@ export default function Header() {
     queryClient.removeQueries({ queryKey: WALLET_KEY });
     // E as listas de amigos, pedidos e bloqueados (chaves hierárquicas: um comando apaga todas).
     queryClient.removeQueries({ queryKey: FRIENDS_ROOT_KEY });
+    // E os grupos, os detalhes e os membros (mesma chave raiz).
+    queryClient.removeQueries({ queryKey: ROOMS_ROOT_KEY });
   }
 
   return (
@@ -37,6 +40,9 @@ export default function Header() {
             <>
               <Link to="/amigos" className="hover:underline">
                 Amigos
+              </Link>
+              <Link to="/grupos" className="hover:underline">
+                Grupos
               </Link>
               <Link to="/carteira" className="hover:underline">
                 Carteira

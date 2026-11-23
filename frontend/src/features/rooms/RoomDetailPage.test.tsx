@@ -74,7 +74,8 @@ describe("RoomDetailPage", () => {
 
     await screen.findByRole("heading", { name: "Amigos" });
     expect(await screen.findByRole("region", { name: "Renomear grupo" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Sair/ })).not.toBeInTheDocument();
+    // (o botão "Sair" do cabeçalho é o logout; aqui se procura o de sair DO GRUPO)
+    expect(screen.queryByRole("button", { name: "Sair Amigos" })).not.toBeInTheDocument();
     expect(screen.getByText("O dono não pode sair do grupo.")).toBeInTheDocument();
   });
 

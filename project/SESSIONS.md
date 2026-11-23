@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-23 — Sessão 16 (Etapa 2, PR 2.5c1: telas de grupos e membros)
+
+- **Pedido**: PR 2.5c, dividida em 2 por decisão do dono (2.5c1 grupos e membros; 2.5c2 convites). Feita em plan mode; decisão do dono: qualquer membro ativo pode ver a lista de membros.
+- **Feito** (branch `etapa-2-5c1-telas-de-grupos`): backend `selectors.members_of` (só membros ativos, por ordem de entrada), `MemberSerializer` (`username`, `avatar`, `role`, `joined_at`), `RoomMembersView` e a rota `rooms/<id>/members/` (não-membro: 404, como no resto de `rooms`). Frontend: `/grupos` (listar, criar, entrar por código) e `/grupos/:roomId` (membros, renomear só para dono e administrador, sair com confirmação para quem não é o dono), `services/rooms.ts`, chaves `["rooms", ...]` e `removeQueries(["rooms"])` no logout, link "Grupos" no cabeçalho.
+- **Decisões**: o código do convite vai no corpo do POST e nunca na URL, e a tela não o repete em mensagens de erro; sair com 404 (já tinha saído) também volta à lista; a mensagem do limite diz "5 grupos" fixo (acoplada ao `MAX_ROOMS_AS_OWNER`, anotado no `PENDING`).
+- **Testes**: escritos antes, em `tests/rooms/test_members_api.py`, `RoomsPage.test.tsx` e `RoomDetailPage.test.tsx`. Um seletor do teste do dono casava com o botão "Sair" do cabeçalho (logout); corrigi antes de rodar. Nada rodado na VM (ADR 0017).
+- **Não verificado**: nada visto no navegador; "Entrar com código" de ponta a ponta só depois da 2.5c2.
+
 ### 2026-11-23 — Sessão 15 (Etapa 2, PR 2.5b: telas de amigos)
 
 - **Pedido**: PR 2.5b. Feita em plan mode; decisões do dono: endpoint `GET /api/v1/blocks/` na mesma PR (rota própria, fora de `/friends/`, para não colidir com um usuário `blocked`) e confirmação inline em dois passos para remover e bloquear.

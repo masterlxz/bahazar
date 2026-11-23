@@ -17,7 +17,7 @@ from apps.accounts.models import User
 from . import rules, selectors, services
 from .models import Room, RoomMember
 from .permissions import IsRoomAdmin, IsRoomMember
-from .serializers import InviteSerializer, RoomSerializer
+from .serializers import InviteSerializer, MemberSerializer, RoomSerializer
 
 
 def _conflito(erro: services.RoomError) -> Response:
@@ -64,6 +64,19 @@ class RoomDetailView(RetrieveUpdateAPIView):
         if self.request.method == "PATCH":
             permissoes.append(IsRoomAdmin())
         return permissoes
+
+
+class RoomMembersView(APIView):
+    """Membros ativos da sala, para qualquer membro ativo. Não-membro: 404 (como em `rooms`)."""
+
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "head", "options"]
+
+    def get(self, request: Request, room_id: uuid.UUID) -> Response:
+        sala = selectors.rooms_for_user(cast(User, request.user)).filter(pk=room_id).first()
+        if sala is None:
+            raise Http404
+        return Response(MemberSerializer(selectors.members_of(sala), many=True).data)
 
 
 class LeaveRoomView(APIView):

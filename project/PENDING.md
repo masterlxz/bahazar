@@ -32,7 +32,9 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [x] PR 2.4 convites de grupo (código de 128 bits só em hash, resgate idempotente e travado, limite de tentativas): ver `SESSIONS.md` (Sessão 13).
 - [x] PR 2.5a (ADR 0012 e tela da carteira): ver `SESSIONS.md` (Sessão 14).
 - [x] PR 2.5b telas de amigos (e `GET /api/v1/blocks/`): ver `SESSIONS.md` (Sessão 15).
-- [ ] PR 2.5c telas de grupos e convites. A 2.5c precisa de um endpoint de membros da sala (hoje a API não lista quem está na sala), que é backend.
+- [x] PR 2.5c1 telas de grupos e membros (e `GET /api/v1/rooms/<id>/members/`): ver `SESSIONS.md` (Sessão 16).
+- [ ] PR 2.5c2 telas de convites (gerar, listar, revogar). Decidir lá como mostrar o código ao dono (só o código, nunca um link com o código na URL). Até lá, "Entrar com código" só se valida de ponta a ponta com um código criado pela API.
+- [ ] A mensagem "Você já é dono de 5 grupos." do frontend repete o teto `MAX_ROOMS_AS_OWNER` do backend; se o limite mudar, ajustar a tela (ou passar o limite pela API).
 - [ ] **Convites, limites conhecidos:** o limite de tentativas de resgate mora no cache do Django (local em dev; em produção exige o cache em banco, já em "Bloqueios de deploy"); não há expulsar nem banir membro (o resgate só respeita o `banned` que já existir); convite não pode ser para um usuário específico.
 - [ ] **`friends`, limites conhecidos:** sem teto de amigos nem de pedidos pendentes (anti-spam); um jogador com username `requests` não tem perfil acessível em `/friends/requests/` (colide com a rota literal; resolver reservando o nome no cadastro); `can_view` ainda não cobre "grupo" (entra com o primeiro recurso visível a grupo).
 - [ ] **Valores da economia são provisórios** (saldo US$ 100, diária US$ 10 × dia até US$ 300): um jogador sem falhas ganha ~US$ 4.650 em 30 dias. Decisão de verdade na simulação da PR 4.0 (D7).
