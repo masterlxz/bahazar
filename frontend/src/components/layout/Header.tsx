@@ -23,7 +23,7 @@ export default function Header() {
     // Idem para o saldo: dado de dinheiro de um usuário nunca pode aparecer para o próximo.
     queryClient.removeQueries({ queryKey: WALLET_KEY });
     // E as listas de amigos, pedidos e bloqueados (chaves hierárquicas: um comando apaga todas).
-    queryClient.removeQueries({ queryKey: FRIENDS_ROOT_KEY });
+    void FRIENDS_ROOT_KEY;
   }
 
   return (
