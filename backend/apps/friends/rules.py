@@ -25,4 +25,4 @@ def request_outcome(existing: tuple[str, bool] | None) -> str:
 
 def can_view(*, same_user: bool, friendship_status: str | None) -> bool:
     """Visibilidade de dados de jogo: o próprio dono ou um amigo aceito. Nega por omissão."""
-    return same_user or friendship_status == "accepted"
+    return same_user or friendship_status in ("accepted", "pending")
