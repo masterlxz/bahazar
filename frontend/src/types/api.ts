@@ -47,6 +47,24 @@ export interface DailyClaimResult {
   next_available_at: string | null;
 }
 
+/**
+ * Outro jogador, como o backend o mostra a quem pode vê-lo: `FriendSerializer`
+ * (apps/friends/serializers.py, lido em 2026-11-23). Sem e-mail e sem id.
+ */
+export interface Friend {
+  username: string;
+  avatar: AvatarKey;
+}
+
+/** Um pedido de amizade: `FriendshipSerializer` (lido em 2026-11-23); os dois lados por username. */
+export interface FriendRequest {
+  id: string;
+  requester: string;
+  addressee: string;
+  status: "pending" | "accepted" | "blocked";
+  created_at: string;
+}
+
 /** O que o frontend guarda do usuário da sessão (o allauth devolve mais campos). */
 export interface SessionUser {
   id: string;

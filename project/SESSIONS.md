@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-23 — Sessão 15 (Etapa 2, PR 2.5b: telas de amigos)
+
+- **Pedido**: PR 2.5b. Feita em plan mode; decisões do dono: endpoint `GET /api/v1/blocks/` na mesma PR (rota própria, fora de `/friends/`, para não colidir com um usuário `blocked`) e confirmação inline em dois passos para remover e bloquear.
+- **Feito** (branch `etapa-2-5b-telas-de-amigos`): backend `selectors.blocked_by` (só quem eu bloqueei, nunca quem me bloqueou), `BlockedListView` e a rota `blocks/`. Frontend `/amigos` com seções (adicionar, recebidos, enviados, amigos, bloqueados), `ConfirmButton` e `Avatar` em `components/ui/`, `services/friends.ts`, chaves de cache `["friends", ...]` e `removeQueries(["friends"])` no logout, link "Amigos" no cabeçalho. Desbloquear não pede confirmação (reversível, mas não restaura a amizade). O `AvatarPicker` passou a importar a tabela de cores do `Avatar` (reaproveitamento, sem mudar o comportamento).
+- **Decisões**: depois de cada ação as listas afetadas são recarregadas do servidor e os botões ficam travados até lá; um aviso único cobre falha de carga de qualquer lista; 404 em aceitar, recusar ou remover vira "Isso mudou. Atualizamos a lista.".
+- **Testes**: escritos antes, em `tests/friends/test_blocks_api.py`, `ConfirmButton.test.tsx` e `FriendsPage.test.tsx`. Nada rodado na VM (ADR 0017).
+- **Não verificado**: nada visto no navegador (o dono valida com 2 contas no PC dele).
+
 ### 2026-11-23 — Sessão 14 (Etapa 2, PR 2.5a: ADR dos tipos e tela da carteira)
 
 - **Pedido**: PR 2.5, dividida em 3 (2.5a carteira, 2.5b amigos, 2.5c grupos) por decisão do dono, com os tipos da API **medidos antes de decidir**. Feita em plan mode.

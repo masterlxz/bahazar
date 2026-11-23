@@ -20,7 +20,7 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 | 2.3 `friends` (**implementada**) | `friendships` (pedido, aceite, bloqueio), **permissão central de visibilidade** (`selectors.can_view`: dono e amigo; o caso "grupo" entra na PR que tiver recurso visível a grupo, para `friends` não importar `rooms`) | amigo vê, não-amigo/bloqueado recebe 404; auto-pedido e duplicado recusados no banco |
 | 2.4 convites de grupo (**implementada**) | `room_invites` (hash, expiração, usos, revogação) + resgate (entra no grupo; sem dinheiro); padrão 7 dias e 10 usos, tetos 30 dias e 50 usos, 10 convites ativos por sala, resgate limitado a 10 por minuto por usuário | testes de convite (SEGURANCA §10) |
 | 2.5a telas: carteira (**implementada**) | ADR 0012 (tipos OpenAPI medidos: seguem à mão, com novo gatilho) + tela `/carteira` com saldo e resgate da diária | fluxo manual descrito no PR |
-| 2.5b telas: amigos | lista, pedidos recebidos e enviados, enviar por username, aceitar, recusar, remover, bloquear, perfil | fluxo manual descrito no PR |
+| 2.5b telas: amigos (**implementada**) | `/amigos`: lista, pedidos recebidos e enviados, enviar por username, aceitar, recusar, remover e bloquear (com confirmação), desbloquear; backend ganha `GET /api/v1/blocks/` (só quem eu bloqueei). Sem página de perfil do amigo (só `username` e `avatar`, já na lista) | fluxo manual descrito no PR |
 | 2.5c telas: grupos e convites | listar, criar, renomear, sair, gerar e revogar convite (código mostrado uma vez), entrar por código | fluxo manual descrito no PR |
 
 ## Etapa 3 · Catálogo, preço real e inventário

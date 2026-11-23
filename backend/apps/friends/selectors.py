@@ -44,6 +44,15 @@ def friends_of(user: User) -> QuerySet[User]:
     return User.objects.filter(Q(pk__in=enviados) | Q(pk__in=recebidos)).order_by("username")
 
 
+def blocked_by(user: User) -> QuerySet[User]:
+    """Quem `user` bloqueou, por nome. NUNCA quem bloqueou `user`: a linha de bloqueio guarda o
+    bloqueador em `requester`, e filtrar o outro lado vazaria quem escondeu a conta."""
+    bloqueados = Friendship.objects.filter(
+        requester=user, status=FriendshipStatus.BLOCKED
+    ).values("addressee_id")
+    return User.objects.filter(pk__in=bloqueados).order_by("username")
+
+
 def received_requests(user: User) -> QuerySet[Friendship]:
     return (
         Friendship.objects.filter(addressee=user, status=FriendshipStatus.PENDING)

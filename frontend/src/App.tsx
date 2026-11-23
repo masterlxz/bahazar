@@ -4,6 +4,7 @@ import Header from "./components/layout/Header";
 import LoginPage from "./features/auth/LoginPage";
 import RequireAuth from "./features/auth/RequireAuth";
 import SignupPage from "./features/auth/SignupPage";
+import FriendsPage from "./features/friends/FriendsPage";
 import HomePage from "./features/home/HomePage";
 import ProfilePage from "./features/profile/ProfilePage";
 import WalletPage from "./features/wallet/WalletPage";
@@ -21,6 +22,14 @@ export default function App() {
           element={
             <RequireAuth>
               <ProfilePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/amigos"
+          element={
+            <RequireAuth>
+              <FriendsPage />
             </RequireAuth>
           }
         />

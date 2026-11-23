@@ -120,6 +120,16 @@ class FriendDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class BlockedListView(APIView):
+    """Quem eu bloqueei (só leitura). Quem me bloqueou nunca aparece."""
+
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "head", "options"]
+
+    def get(self, request: Request) -> Response:
+        return Response(FriendSerializer(selectors.blocked_by(_eu(request)), many=True).data)
+
+
 class BlockView(APIView):
     """Bloquear (POST) e desbloquear (DELETE). Só o bloqueador desbloqueia."""
 
