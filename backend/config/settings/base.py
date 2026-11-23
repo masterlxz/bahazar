@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.rooms",
     "apps.economy",
+    "apps.friends",
 ]
 
 MIDDLEWARE = [

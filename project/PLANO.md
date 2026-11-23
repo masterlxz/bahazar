@@ -17,7 +17,7 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 |---|---|---|
 | 2.1 (**feita**) | `rooms` como **grupo**: membros, papéis, `rooms_for_user`, permissões, limite de 5 salas como dono | CI verde; IDOR 404; mutações provadas |
 | 2.2 `economy` global | `wallets` por usuário + `system` global, `wallet_transactions` append-only (trigger), `post_entries`, carteira e **saldo inicial no cadastro**, **resgate diário em sequência** (`daily_claims`, janela de 24h por resgate, `UNIQUE(user, claim_number)`, US$ 10 × dia até o dia 30); **anúncio desativado** por ora | soma do ledger = 0, saldo = extrato, UPDATE/DELETE falham, diária 1x mesmo em paralelo |
-| 2.3 `friends` | `friendships` (pedido, aceite, bloqueio), **permissão central de visibilidade** (dono, amigo, grupo) | amigo vê, não-amigo/bloqueado recebe 404; auto-pedido e duplicado recusados no banco |
+| 2.3 `friends` (**implementada**) | `friendships` (pedido, aceite, bloqueio), **permissão central de visibilidade** (`selectors.can_view`: dono e amigo; o caso "grupo" entra na PR que tiver recurso visível a grupo, para `friends` não importar `rooms`) | amigo vê, não-amigo/bloqueado recebe 404; auto-pedido e duplicado recusados no banco |
 | 2.4 convites de grupo | `room_invites` (hash, expiração, usos, revogação) + resgate (entra no grupo; sem dinheiro) | testes de convite (SEGURANCA §10) |
 | 2.5 telas | amigos, grupos, carteira e resgate diário; reavaliar tipos OpenAPI e gravar ADR | fluxo manual descrito no PR |
 

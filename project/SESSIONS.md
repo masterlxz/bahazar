@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-23 — Sessão 12 (Etapa 2, PR 2.3: amigos)
+
+- **Pedido**: PR 2.3 (`friends`). Feita em plan mode; decisões do dono: bloqueio reescreve a linha (`requester` = bloqueador, sem coluna nova) e `can_view` cobre só dono e amigo por ora (sem `friends` importar `rooms`).
+- **Feito** (branch `etapa-2-3-friends`): app `friends` com `Friendship` (CHECK anti auto-pedido, `UNIQUE` sobre `LEAST/GREATEST` do par, status válido), `rules.py`, `services.py` (trava as duas linhas de usuário em ordem de id), `selectors.py` (`can_view`, `friends_of`, pedidos), views e rotas `/api/v1/friends/...`. Perfil `GET /friends/<username>/` é o primeiro consumidor de `can_view` e fixa o 404 uniforme.
+- **Decisões de regra** (confirmadas pelo dono): bloquear cancela também pedido pendente; pedir a quem já te pediu dá 409 e não aceita sozinho; recusar apaga a linha.
+- **Testes**: escritos antes da implementação, em `tests/friends/` (rules, banco, API, visibilidade, concorrência, arquitetura). Não rodei nada na VM (ADR 0017) e a migração foi escrita à mão, sem `makemigrations`: o CI é quem a valida. O `mypy` roda antes do `pytest`, então o commit só de testes não falharia por comportamento; a prova virá das mutações.
+- **Não verificado**: `Least`/`Greatest` sobre UUID no Postgres do CI; nada visto no navegador (sem tela até a 2.5).
+- **Fica**: 2.4 convites de grupo; 2.5 telas; limites em `PENDING.md`.
+
 ### 2026-11-19 — Sessão 11 (Etapa 2, PR 2.2: economia global)
 
 - **Pedido**: PR 2.2 (`economy`): carteira global, ledger, saldo inicial, diária. Confirmação explícita dada pelo dono (AGENTS.md §4).
