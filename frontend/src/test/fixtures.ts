@@ -10,6 +10,50 @@ export const ME_PATCH = "PATCH /api/v1/me/";
 export const WALLET = "GET /api/v1/wallet/";
 export const DAILY = "POST /api/v1/wallet/daily/";
 
+export const FRIENDS = "GET /api/v1/friends/";
+export const REQUESTS = "GET /api/v1/friends/requests/";
+export const SENT = "GET /api/v1/friends/requests/sent/";
+export const BLOCKS = "GET /api/v1/blocks/";
+export const SEND_REQUEST = "POST /api/v1/friends/requests/";
+export const acceptRoute = (id: string) => `POST /api/v1/friends/requests/${id}/accept/`;
+export const declineRoute = (id: string) => `POST /api/v1/friends/requests/${id}/decline/`;
+export const removeRoute = (username: string) => `DELETE /api/v1/friends/${username}/`;
+export const blockRoute = (username: string) => `POST /api/v1/friends/${username}/block/`;
+export const unblockRoute = (username: string) => `DELETE /api/v1/friends/${username}/block/`;
+
+/**
+ * Formatos de apps/friends/serializers.py (lidos em 2026-11-23; fixados pelo backend em
+ * tests/friends/test_friends_api.py e test_blocks_api.py): `FriendSerializer` = {username, avatar};
+ * `FriendshipSerializer` = {id, requester, addressee, status, created_at} (usernames).
+ */
+export const CARLA = { username: "carla_03", avatar: "ember" };
+export const EVA = { username: "eva_05", avatar: "default" };
+export const PEDIDO_DO_BRUNO = {
+  id: "r1",
+  requester: "bruno_02",
+  addressee: "ana_01",
+  status: "pending",
+  created_at: "2026-11-23T12:00:00Z",
+};
+export const PEDIDO_PARA_DIEGO = {
+  id: "r2",
+  requester: "ana_01",
+  addressee: "diego_04",
+  status: "pending",
+  created_at: "2026-11-23T12:05:00Z",
+};
+
+/** Erros 409 do nosso DRF ao enviar pedido (apps/friends/services.py). */
+export const ERRO_PEDIDO_INDISPONIVEL = {
+  code: "friendship_unavailable",
+  message: "Não foi possível enviar o pedido a este jogador.",
+};
+export const ERRO_JA_PENDENTE = {
+  code: "already_pending",
+  message: "Já existe um pedido pendente entre vocês.",
+};
+export const ERRO_JA_AMIGOS = { code: "already_friends", message: "Vocês já são amigos." };
+
 export const SENHA = "Tr0ub4dor&3-horse-battery";
 
 /**
