@@ -32,7 +32,7 @@ def members_of(room: Room) -> QuerySet[RoomMember]:
     que quem pergunta é membro ativo (senão o 404 de "sala inexistente" já saiu).
     """
     return (
-        RoomMember.objects.filter(room=room, status=MemberStatus.ACTIVE)
+        RoomMember.objects.filter(room=room)
         .select_related("user")
         .order_by("joined_at", "id")
     )
