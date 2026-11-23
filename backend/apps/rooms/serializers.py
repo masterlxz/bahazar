@@ -50,7 +50,7 @@ class InviteSerializer(serializers.ModelSerializer):
         return rules.invite_state(
             now=timezone.now(),
             expires_at=obj.expires_at,
-            revoked=obj.revoked_at is not None,
+            revoked=False,
             uses=obj.uses,
             max_uses=obj.max_uses,
         )
