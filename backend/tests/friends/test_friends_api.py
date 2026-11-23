@@ -233,7 +233,8 @@ def test_so_o_bloqueador_desbloqueia(ana: Any, bruno: Any) -> None:
 
     # o bloqueado não consegue desfazer: 404, e o bloqueio continua
     assert logado(bruno).delete(bloqueio_url("ana_01")).status_code == 404
-    assert logado(bruno).post(REQUESTS_URL, {"username": "ana_01"}, format="json").status_code == 409
+    de_novo = logado(bruno).post(REQUESTS_URL, {"username": "ana_01"}, format="json")
+    assert de_novo.status_code == 409
 
     assert logado(ana).delete(bloqueio_url("bruno_02")).status_code == 204
     pedir(bruno, ana)  # liberado
