@@ -2,7 +2,9 @@
 
 Mais recente no topo.
 
-### 2026-11-24 — Sessão 18 (Etapa 3, PR 3.0: medição da fonte de preços, parcial)
+### 2026-11-24 — Sessão 18 (Etapa 3, PR 3.0: medição da fonte de preços)
+
+- **Atualização (mesma sessão):** o dono baixou o JSON da Skinport pelo navegador no PC Windows e rodou o cruzamento em PowerShell: **6.821 de 6.825 variantes** do catálogo (99,94%) têm `suggested_price`, 6.504 têm anúncio, 1.455 de 1.456 skins têm algum desgaste com preço; mediana US$ 2,13. O `curl` leva 403 do Cloudflare também no IP residencial (a hipótese "é o IP de datacenter" caiu). Aberto: termos da Skinport (não lidos) e decisão da D11. Vi só a saída colada, não o arquivo. Detalhe em `MEDICAO-3.0-FONTE-DE-PRECOS.md`.
 
 - **Pedido**: PR 3.0 em plan mode (plano aprovado). Só docs, sem código.
 - **Feito** (branch `etapa-3-0-fonte-de-precos`): `MEDICAO-3.0-FONTE-DE-PRECOS.md`; D11 em `RISCOS.md`, linha do catálogo em `DEPENDENCIAS.md` e `PENDING.md` atualizados.
