@@ -31,7 +31,7 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 | 3.1 | App `catalog` (`skins`) + comando `import_catalog` (catálogo ByMykel, MIT, e snapshot da Skinport, ambos por arquivo local fora do repo) com `reference_price` em centavos de USD. **Sem imagens** (D1 na 3.3) | ~1.455 skins importadas (todas com preço; antes eram 100-200), reexecutar é idempotente |
 | 3.2a (**implementada**) | App `inventory`: `skin_instances` (dono = usuário), float dentro da faixa da skin (trigger), desgaste derivado (`rules.wear_for`), `services.create_instance` e o comando `grant_skin` (única forma de dar uma skin por ora). **Sem API** | trigger e CHECKs provados contra PostgreSQL; varredura do desgaste; mutações pegas |
 | 3.2b (**implementada**) | API do inventário (`/inventory/` e `/inventory/<username>/`), filtros (`rarity`, `weapon`, `wear`, `q`), ordenação, paginação e **ver o inventário de um amigo** pela permissão central (`friends.selectors.can_view`). Toca autorização: plano e confirmação próprios | não-amigo, pendente, bloqueado e usuário inexistente recebem o mesmo 404 |
-| 3.3 | Telas de inventário e coleção | revisão visual |
+| 3.3 (**implementada**, só inventário) | Telas do inventário (`/inventario` e `/inventario/:username`), sem imagens. **Coleção/catálogo e imagens (D1) ficam para uma 3.4**: não há endpoint de catálogo | revisão visual (falta o dono ver no navegador) |
 
 ## Etapa 4 · Economia e trocas
 | PR | Conteúdo | Pronto quando |
