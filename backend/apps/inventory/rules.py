@@ -33,7 +33,7 @@ def wear_for(float_value: Decimal) -> str:
     if not float_in_range(float_value, _ZERO, _ONE):
         raise ValueError(f"float fora de 0 a 1: {float_value}")
     for wear, upper in _WEAR_CUTS:
-        if float_value < upper:
+        if float_value <= upper:
             return wear
     return _LAST_WEAR
 
