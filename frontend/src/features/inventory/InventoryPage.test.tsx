@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { mockFetch, type MockHandler } from "../../test/fetchMock";
@@ -119,13 +119,16 @@ describe("InventoryPage: o meu inventário", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("falha do servidor mostra um aviso", async () => {
-    simular({ [inventoryRoute()]: { status: 500 } });
+  it("falha do servidor (5xx) é tentada de novo, até 3 vezes, e só então mostra o aviso", async () => {
+    // O `retry` da consulta (4xx não repete, o resto sim) vale em vez do `retry: false` do
+    // cliente dos testes, então aqui as esperas são as reais do TanStack (1 s + 2 s + 4 s).
+    const m = simular({ [inventoryRoute()]: { status: 500 } });
 
     renderApp("/inventario");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(FALHOU);
-  });
+    expect(await screen.findByRole("alert", {}, { timeout: 12_000 })).toHaveTextContent(FALHOU);
+    expect(m.callsTo(inventoryRoute())).toHaveLength(4);
+  }, 20_000);
 });
 
 describe("InventoryPage: filtros, ordenação e paginação", () => {
@@ -321,6 +324,40 @@ describe("InventoryPage: erros do servidor", () => {
     expect(await screen.findByText("Redline")).toBeInTheDocument();
   });
 
+  it.each([
+    [404, ERRO_NAO_ENCONTRADO, NAO_ENCONTRADO],
+    [400, { wear: ['"x" is not a valid choice.'] }, FILTRO_INVALIDO],
+  ])(
+    "se um refetch passa a dar %i, os itens que já estavam na tela somem (o erro não convive com dado antigo)",
+    async (status, corpo, mensagem) => {
+      // O TanStack Query MANTÉM `data` quando um refetch falha. Caso real: o amigo me desfaz ou
+      // bloqueia, e eu volto à tela com o cache anterior: a lista dele não pode continuar visível.
+      let falhar = false;
+      const m = simular({
+        [inventoryRoute({}, "carla_03")]: () =>
+          falhar
+            ? { status, body: corpo }
+            : { status: 200, body: pagina([ITEM_DA_CARLA], { count: 7 }) },
+      });
+      const { client } = renderApp("/inventario/carla_03");
+      expect(await screen.findByText("Fade")).toBeInTheDocument();
+      expect(screen.getByText("7 itens")).toBeInTheDocument();
+
+      falhar = true;
+      await act(async () => {
+        await client.invalidateQueries({ queryKey: ["inventory"] });
+      });
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(mensagem);
+      // A premissa: houve mesmo um segundo GET, e foi ele que falhou.
+      expect(m.callsTo(inventoryRoute({}, "carla_03"))).toHaveLength(2);
+      expect(screen.queryByText("Fade")).not.toBeInTheDocument();
+      expect(screen.queryByText("7 itens")).not.toBeInTheDocument();
+      expect(screen.queryByRole("list", { name: "Itens do inventário" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("navigation", { name: "Paginação" })).not.toBeInTheDocument();
+    },
+  );
+
   it("um `page` que não é número é ignorado (a requisição vai sem ele)", async () => {
     const m = simular({ [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK]) } });
 
@@ -380,15 +417,38 @@ describe("InventoryPage: inventário de um amigo", () => {
     expect(m.callsTo(inventoryRoute({}, "ana%20b"))).toHaveLength(1);
   });
 
-  it.each(["nao_amigo", "fantasma_99"])(
-    "o 404 de %s mostra UMA mensagem, a mesma para não amigo, pendente, bloqueado ou inexistente",
-    async (username) => {
+  it("o username de caminho especial (a/b?x#y) é codificado por inteiro, sem escapar do segmento", async () => {
+    const m = simular({
+      [inventoryRoute({}, "a%2Fb%3Fx%23y")]: { status: 200, body: pagina([ITEM_DA_CARLA]) },
+    });
+
+    renderApp("/inventario/a%2Fb%3Fx%23y");
+
+    // A premissa: o roteador entregou o nome decodificado, e é a tela que o codifica para a API.
+    expect(await screen.findByRole("heading", { name: "Inventário de a/b?x#y" })).toBeInTheDocument();
+    expect(await screen.findByText("Fade")).toBeInTheDocument();
+    expect(m.callsTo(inventoryRoute({}, "a%2Fb%3Fx%23y"))).toHaveLength(1);
+  });
+
+  it.each([".", ".."])("o username '%s' nunca vai à API: mostra a mensagem de não encontrado", async (username) => {
+    // `/api/v1/inventory/../` seria normalizado pelo navegador para `/api/v1/`.
+    const m = simular({});
+
+    renderApp(`/inventario/${username}`);
+
+    expect((await screen.findByRole("alert")).textContent).toBe(NAO_ENCONTRADO);
+    expect(m.calls.filter((c) => c.url.startsWith("/api/v1/inventory"))).toHaveLength(0);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("o 404 mostra a mesma tela, palavra por palavra, qualquer que seja o jogador pedido", async () => {
+    // O servidor devolve o mesmo 404 a não amigo, pendente, bloqueado e inexistente (o corpo
+    // não diz o motivo); aqui só se prova o lado da tela: ela não acrescenta nada por jogador.
+    async function textoDoNaoEncontrado(username: string) {
       const m = simular({
         [inventoryRoute({}, username)]: { status: 404, body: ERRO_NAO_ENCONTRADO },
       });
-
-      renderApp(`/inventario/${username}`);
-
+      const { container, unmount } = renderApp(`/inventario/${username}`);
       const alerta = await screen.findByRole("alert");
       expect(alerta.textContent).toBe(NAO_ENCONTRADO);
       expect(m.callsTo(inventoryRoute({}, username))).toHaveLength(1);
@@ -398,8 +458,17 @@ describe("InventoryPage: inventário de um amigo", () => {
       expect(
         screen.queryByRole("button", { name: "Voltar à primeira página" }),
       ).not.toBeInTheDocument();
-    },
-  );
+      const texto = (container.textContent ?? "").replaceAll(username, "<jogador>");
+      unmount();
+      return texto;
+    }
+
+    const doNaoAmigo = await textoDoNaoEncontrado("nao_amigo");
+    const doInexistente = await textoDoNaoEncontrado("fantasma_99");
+
+    expect(doNaoAmigo).toContain("<jogador>");
+    expect(doNaoAmigo).toBe(doInexistente);
+  });
 
   it("a lista de amigos tem um link 'Inventário' para o inventário de cada amigo", async () => {
     simular({

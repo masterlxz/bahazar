@@ -8,7 +8,7 @@ import { ApiError } from "../../services/http";
 import { inventoryParams, type InventoryQuery } from "../../services/inventory";
 import type { InventoryItem } from "../../types/api";
 import { DEFAULT_ORDERING, ORDENACOES, WEARS, lerConsulta, normalizar } from "./consulta";
-import { useInventory } from "./useInventory";
+import { useInventory, usernameImpossivel } from "./useInventory";
 
 // Uma mensagem só para "não pode ver" (não amigo, pedido pendente, bloqueado ou inexistente): o
 // servidor devolve o mesmo 404 para todos, e a tela não pode distingui-los (ADR 0010).
@@ -154,6 +154,11 @@ export default function InventoryPage() {
   // A consulta mora na URL: voltar do navegador desfaz um filtro, e o link é compartilhável.
   const ir = (nova: InventoryQuery) => setSearchParams(inventoryParams(normalizar(nova)));
   const status = inventario.error instanceof ApiError ? inventario.error.status : null;
+  const naoEncontrado = usernameImpossivel(username) || status === 404;
+  // Só um sucesso mostra itens. Um refetch que falha (ex.: o amigo me desfez e agora é 404) MANTÉM
+  // `data` no TanStack Query; usar `inventario.data` aqui exibiria o inventário antigo dele junto
+  // com a mensagem de erro.
+  const dados = inventario.isSuccess ? inventario.data : null;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12">
@@ -168,13 +173,13 @@ export default function InventoryPage() {
         onLimpar={() => ir({})}
       />
 
-      {inventario.isPending && (
+      {inventario.isPending && !naoEncontrado && (
         <p role="status" className="text-sm text-muted-foreground">
           Carregando inventário…
         </p>
       )}
 
-      {status === 404 && (
+      {naoEncontrado && (
         <div className="flex flex-col items-start gap-3">
           <p role="alert" className="text-sm text-primary">
             {NAO_ENCONTRADO}
@@ -191,31 +196,31 @@ export default function InventoryPage() {
           {FILTRO_INVALIDO}
         </p>
       )}
-      {inventario.isError && status !== 404 && status !== 400 && (
+      {inventario.isError && !naoEncontrado && status !== 400 && (
         <p role="alert" className="text-sm text-primary">
           {FALHOU}
         </p>
       )}
 
-      {inventario.data && (
+      {dados && (
         <>
           <p className="text-sm text-muted-foreground">
-            {`${inventario.data.count} ${inventario.data.count === 1 ? "item" : "itens"}`}
+            {`${dados.count} ${dados.count === 1 ? "item" : "itens"}`}
           </p>
-          {inventario.data.results.length === 0 ? (
+          {dados.results.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum item encontrado.</p>
           ) : (
             <ul aria-label="Itens do inventário" className="grid gap-3 sm:grid-cols-2">
-              {inventario.data.results.map((item) => (
+              {dados.results.map((item) => (
                 <Item key={item.id} item={item} />
               ))}
             </ul>
           )}
-          {inventario.data.count > 0 && (
+          {dados.count > 0 && (
             <nav aria-label="Paginação" className="flex items-center justify-between gap-3">
               <Button
                 variant="outline"
-                disabled={inventario.data.previous === null}
+                disabled={dados.previous === null}
                 onClick={() => ir({ ...consulta, page: pagina - 1 })}
               >
                 Anterior
@@ -223,7 +228,7 @@ export default function InventoryPage() {
               <span className="text-sm">{`Página ${pagina}`}</span>
               <Button
                 variant="outline"
-                disabled={inventario.data.next === null}
+                disabled={dados.next === null}
                 onClick={() => ir({ ...consulta, page: pagina + 1 })}
               >
                 Próxima
