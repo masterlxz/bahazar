@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 22 (primeira rodada de equipe multiagente: PR 3.3 e teste concorrente de salas)
+
+- **Pedido**: o dono preferiu equipe. Em plan mode, decidiu: 3.3 **só inventário e sem imagens** (coleção exigiria endpoint de catálogo e uma definição que nenhum doc dá). A 3.3 era uma tarefa só; a segunda tarefa (teste concorrente do teto de salas, pendência antiga) entrou para ter escopos disjuntos. 2 workers, 22:09 a ~22:35 UTC.
+- **Feito**: #93 (`tests/rooms/test_rooms_concurrency.py`, 4 casos) e #95 (`/inventario` e `/inventario/:username`: lista paginada, filtros, ordenação, 404 único, cache limpo no logout, link por amigo). Ambos mesclados pelo dono.
+- **Provas**: #95: PR de controle só com os testes teve 25 falhas, todas do arquivo novo, 16 arquivos antigos verdes (log lido inteiro). #93: removendo o `select_for_update` de `create_room`, falharam os casos 1, 2 e o da trava; o de donos diferentes passa (3 execuções, em commits diferentes).
+- **O que a conferência do coordenador pegou e o worker e o CI não**: (1) o teste "determinístico" do #93 **passava com a mutação**, porque a FK (`FOR KEY SHARE`) já bloqueia contra um `FOR UPDATE`; corrigido segurando `FOR NO KEY UPDATE`; (2) no #95, um refetch com erro **mantinha a lista antiga na tela junto com o 404** (mostraria o inventário de quem acabou de desfazer a amizade); corrigido e provado por mutação (2 testes falham sem a correção); (3) `.` e `..` como username e o teste de codificação, que só cobria o espaço.
+- **Medição**: RAM disponível 5,4 a 5,6 GB, swap 0, PSI 0, 2 processos `claude`. #93 teve 4 rodadas de CI (3 correções pós-revisão), #95 teve 2. PR de controle abriu e foi fechado; mutações em PRs rascunho #94, #97, #98 e na `mut-i1`, todas fechadas. Sem controle contra sessão individual.
+- **Não verificado**: nada visto no navegador; os casos 1 e 2 do #93 dependem de agendamento e o da trava depende de `sleep` de 1 s; o teste de 5xx do #95 espera ~7 s reais (retry); o #95 não teve terceira revisão depois das correções.
+- **Aberto**: 3.4 (coleção, catálogo, imagens/D1), ver telas com 2 contas, limites do inventário no `PENDING.md`.
+
 ### 2026-11-24 — Sessão 21 (Etapa 3, PR 3.2b: API do inventário e visibilidade de amigo)
 
 - **Pedido**: PR 3.2b, em plan mode. **Toca autorização** (AGENTS §4): o dono confirmou aprovando o plano. Decisões da 3.2a: rotas `/inventory/` e `/inventory/<username>/`, amigo vê o mesmo que o dono sem ids internos.
