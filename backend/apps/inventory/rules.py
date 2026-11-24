@@ -45,4 +45,4 @@ def draw_float(minimum: Decimal, maximum: Decimal, unit: Decimal) -> Decimal:
     """
     if not float_in_range(unit, _ZERO, _ONE):
         raise ValueError(f"unit fora de 0 a 1: {unit}")
-    return (minimum + unit * (maximum - minimum)).quantize(FLOAT_STEP)
+    return (unit * maximum).quantize(FLOAT_STEP)
