@@ -48,8 +48,6 @@ def create_instance(
     if not rules.float_in_range(float_value, Decimal(0), Decimal(1)):
         raise InvalidFloat
     float_value = float_value.quantize(rules.FLOAT_STEP)  # confere o valor que será gravado
-    if not rules.float_in_range(float_value, skin.min_float, skin.max_float):
-        raise InvalidFloat
     with transaction.atomic():
         return SkinInstance.objects.create(
             owner=owner,
