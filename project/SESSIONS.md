@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 23 (correção: índice de amizades com 31 caracteres impedia o `migrate`)
+
+- **Origem**: o dono foi validar as telas no PC e o **primeiro `migrate` real** falhou: `friends.Friendship: (models.E034) The index name 'friendship_addressee_status_idx' cannot be longer than 30 characters` (PR 2.3). Os testes (543) nunca viram: o pytest não roda os system checks e o CI não tem `manage.py check`. Os outros índices têm 29 caracteres ou menos (varridos).
+- **Feito** (PR #102, plan mode, sessão individual): índice renomeado para `friendship_addr_status_idx`; migração **`0002` com `RenameIndex`** (em vez de editar a `0001`, porque não se sabia se algum banco a aplicou); `tests/test_django_checks.py` (`check` com `databases=["default"]`, como o `migrate`).
+- **Provas**: PR de controle só com o teste: 1 falha (`E034` no log), 543 passaram. Mutação com o teste final e o nome longo de volta: 1 falha, 542 passaram. Mutação "modelo renomeado sem migração": falharam `test_nao_ha_migracao_pendente` (que já existia em `accounts/test_constraints.py`) e o meu `makemigrations` duplicado, que **removi** por ser redundante.
+- **Decisões**: sem passo `manage.py check` no `ci.yml` (o teste roda no pytest e não toca CI).
+- **Não verificado**: `migrate` num PostgreSQL real e o `RenameIndex` sobre um banco que já aplicou a `0001`: só o dono roda, no PC dele.
+- **Notas da revisão**: constraints com 31 caracteres existem (`wallettx_unique_idempotency_key`, `skininstance_acquired_via_valid`); o E034 vale só para `Index` e o PostgreSQL aceita 63. A mensagem do 1º commit diz "estes testes falham antes"; era verdade só para um deles.
+
 ### 2026-11-24 — Sessão 22 (primeira rodada de equipe multiagente: PR 3.3 e teste concorrente de salas)
 
 - **Pedido**: o dono preferiu equipe. Em plan mode, decidiu: 3.3 **só inventário e sem imagens** (coleção exigiria endpoint de catálogo e uma definição que nenhum doc dá). A 3.3 era uma tarefa só; a segunda tarefa (teste concorrente do teto de salas, pendência antiga) entrou para ter escopos disjuntos. 2 workers, 22:09 a ~22:35 UTC.
