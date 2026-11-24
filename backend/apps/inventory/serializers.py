@@ -43,7 +43,7 @@ class InventoryItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SkinInstance
-        fields = ("id", "skin", "float_value", "wear", "reference_price", "acquired_at")
+        fields = ("id", "skin", "float_value", "wear", "reference_price", "acquired_via")
         read_only_fields = fields
 
     def get_wear(self, item: SkinInstance) -> str:
