@@ -67,4 +67,4 @@ class UserInventoryView(APIView):
         dono = friends_selectors.find_user(username)
         if dono is None or not friends_selectors.can_view(_eu(request), dono):
             raise Http404
-        return _listar(request, dono)
+        return _listar(request, _eu(request))
