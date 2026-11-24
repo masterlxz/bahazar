@@ -186,7 +186,7 @@ def _gravar(
         relatorio.created += 1
         return
 
-    novos = {**campos, "reference_price": centavos, "active": True}
+    novos = {**campos, "reference_price": centavos}
     mudou = [k for k, v in novos.items() if getattr(existente, k) != v]
     if not mudou:
         relatorio.unchanged += 1
