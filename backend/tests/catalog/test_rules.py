@@ -3,7 +3,6 @@
 from decimal import Decimal
 
 import pytest
-
 from apps.catalog import rules
 
 TODOS = ["Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"]
