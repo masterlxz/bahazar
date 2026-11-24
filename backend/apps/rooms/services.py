@@ -36,7 +36,6 @@ def create_room(user: User, name: str) -> Room:
     """Cria a sala e torna `user` o dono. O limite é checado sob trava da linha do usuário,
     para duas criações simultâneas não furarem o teto."""
     with transaction.atomic():
-        User.objects.select_for_update().get(pk=user.pk)
         owned = Room.objects.filter(owner=user, archived_at__isnull=True).count()
         if not rules.can_create_room(owned):
             raise RoomLimitReached
