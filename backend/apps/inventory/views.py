@@ -64,6 +64,7 @@ class UserInventoryView(APIView):
     http_method_names = ["get", "head", "options"]
 
     def get(self, request: Request, username: str) -> Response:
+        InventoryQuerySerializer(data=request.query_params).is_valid(raise_exception=True)
         dono = friends_selectors.find_user(username)
         if dono is None or not friends_selectors.can_view(_eu(request), dono):
             raise Http404
