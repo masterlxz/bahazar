@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 18 (Etapa 3, PR 3.0: medição da fonte de preços)
+
+- **Atualização (mesma sessão):** o dono baixou o JSON da Skinport pelo navegador no PC Windows e rodou o cruzamento em PowerShell: **6.821 de 6.825 variantes** do catálogo (99,94%) têm `suggested_price`, 6.504 têm anúncio, 1.455 de 1.456 skins têm algum desgaste com preço; mediana US$ 2,13. O `curl` leva 403 do Cloudflare também no IP residencial (a hipótese "é o IP de datacenter" caiu). Aberto: termos da Skinport (não lidos) e decisão da D11. Vi só a saída colada, não o arquivo. Detalhe em `MEDICAO-3.0-FONTE-DE-PRECOS.md`.
+
+- **Pedido**: PR 3.0 em plan mode (plano aprovado). Só docs, sem código.
+- **Feito** (branch `etapa-3-0-fonte-de-precos`): `MEDICAO-3.0-FONTE-DE-PRECOS.md`; D11 em `RISCOS.md`, linha do catálogo em `DEPENDENCIAS.md` e `PENDING.md` atualizados.
+- **Medido**: catálogo ByMykel é **MIT** (LICENSE lida), 2.246 skins, 1.456 sem StatTrak/Souvenir/faca, sem preço. Fontes de preço: Skinport 403 (desafio do Cloudflare, não contornado), Steam `priceoverview` 1 chamada ok e 19 com 429, CSGOTrader redireciona para HTML, CSFloat exige login.
+- **Não medido**: cobertura de preço de qualquer fonte. Decisão do dono: relatório parcial agora; D11 segue aberta.
+- **Aberto**: medir do PC do dono (2 `curl`) ou com chave de API, ou adotar preço próprio (R8). Nada rodado na VM além de GET (ADR 0017).
+
 ### 2026-11-23 — Sessão 17 (Etapa 2, PR 2.5c2: telas de convites)
 
 - **Pedido**: PR 2.5c2, a última da Etapa 2. Feita em plan mode; decisões do dono: o backend calcula o `status` do convite, e o formulário tem validade e usos com padrão 7 dias e 10 usos.

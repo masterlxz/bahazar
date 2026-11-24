@@ -4,7 +4,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 
 ## Aguardando o dono
 - [x] Arquitetura e ADRs 0001-0009 **aprovados** pelo dono em 2026-11-19. D8 confirmada: Django 5.2 LTS.
-- [ ] Responder D3 (antes do deploy), D7 (na PR 4.0, com simulação), D2 (depois da etapa 2), **D11** (fonte de preços em USD, na PR 3.0) e **D12** (anúncio real, etapa 6).
+- [ ] Responder D3 (antes do deploy), D7 (na PR 4.0, com simulação), D2 (depois da etapa 2), **D11** (fonte de preços em USD, na PR 3.0: medido em `MEDICAO-3.0-FONTE-DE-PRECOS.md`: Skinport por snapshot manual cobre 99,94%; **falta o dono ler os termos da Skinport** e decidir) e **D12** (anúncio real, etapa 6).
 - [x] **Virada de produto** (2026-11-19): economia global por usuário, moeda virtual em USD na escala de preços reais, salas como grupos. ADR 0010 e 0011 gravados; 0003 e 0004 parcialmente substituídos. **Aguarda sua leitura/aprovação do PR**.
 - [x] Nome (D9): **bahazar**, confirmado pelo dono em 2026-11-18. Repo (D10): `masterlxz/bahazar`, público, AGPL-3.0.
 
