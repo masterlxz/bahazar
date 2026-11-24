@@ -38,4 +38,4 @@ REMOVER = (
 class Migration(migrations.Migration):
     dependencies = [("inventory", "0001_initial")]
 
-    operations = [migrations.RunSQL(sql=CRIAR, reverse_sql=REMOVER)]
+    operations = [migrations.RunSQL(sql="SELECT 1", reverse_sql="SELECT 1")]
