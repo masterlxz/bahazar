@@ -7,17 +7,21 @@ ficaria com mais salas que o teto.
 
 Estes testes descrevem o comportamento que já existe: passam na `main`. A mudança que os faria
 falhar é tirar a linha `User.objects.select_for_update().get(pk=user.pk)` de `create_room`
-(`apps/rooms/services.py`): aí mais de uma das N criações do primeiro caso teria sucesso e a
-contagem final passaria do teto. Essa prova (mutação) NÃO foi rodada por quem escreveu o teste.
+(`apps/rooms/services.py`): aí mais de uma das N criações do primeiro caso poderia ter sucesso e
+a contagem final passar do teto (depende do agendamento), e o teste da trava segurada
+(`test_criar_sala_espera_a_trava_da_linha_do_dono_ser_solta`) falharia sempre, porque a criação
+terminaria sem esperar. Essa prova (mutação) NÃO foi rodada por quem escreveu os testes.
 """
 
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import pytest
-from django.db import connection
+from django.db import connection, transaction
 
+from apps.accounts.models import User
 from apps.rooms import rules, services
 from apps.rooms.models import Room
 
@@ -25,6 +29,7 @@ from .conftest import criar_usuario
 
 N = 6
 ESPERA_MAXIMA_S = 30
+ESPERA_BLOQUEIO_S = 1
 
 
 def _salas_ativas(dono: Any) -> int:
@@ -34,15 +39,18 @@ def _salas_ativas(dono: Any) -> int:
 def _largar(donos: list[Any]) -> list[str]:
     """Cada item de `donos` cria uma sala no mesmo instante; devolve "ok" ou o `code` do erro.
 
-    A barreira prende todas as threads até a última chegar e as solta juntas; conferimos que
-    todas passaram por ela (índices 0..N-1, um por thread) antes de olhar o resultado.
+    Cada thread abre a conexão antes da barreira, para o custo de conectar não cair depois da
+    largada e escalonar as transações por acaso. A barreira prende as threads até a última chegar
+    e as solta juntas; se alguma não chegar em `ESPERA_MAXIMA_S`, ela levanta `BrokenBarrierError`
+    e o teste falha (não há asserção própria sobre isso). Isso garante a largada conjunta, não
+    que as consultas se sobreponham no banco.
     """
     largada = threading.Barrier(len(donos), timeout=ESPERA_MAXIMA_S)
-    passaram: list[int] = []
 
     def tentar(dono: Any) -> str:
         try:
-            passaram.append(largada.wait())
+            connection.ensure_connection()
+            largada.wait()
             services.create_room(dono, "Nova")
             return "ok"
         except services.RoomError as erro:
@@ -51,10 +59,8 @@ def _largar(donos: list[Any]) -> list[str]:
             connection.close()
 
     with ThreadPoolExecutor(len(donos)) as pool:
-        resultados = [f.result() for f in [pool.submit(tentar, d) for d in donos]]
-
-    assert sorted(passaram) == list(range(len(donos)))  # premissa: todas largaram juntas
-    return resultados
+        futuros = [pool.submit(tentar, d) for d in donos]
+        return [f.result(timeout=ESPERA_MAXIMA_S) for f in futuros]
 
 
 @pytest.mark.django_db(transaction=True)
@@ -85,8 +91,8 @@ def test_dono_sem_salas_nunca_passa_do_teto_com_criacoes_simultaneas() -> None:
 
 
 @pytest.mark.django_db(transaction=True)
-def test_donos_diferentes_com_uma_vaga_cada_criam_todos_sem_se_bloquear() -> None:
-    """A trava é por usuário: a corrida de um dono não recusa nem atrasa o de outro."""
+def test_donos_diferentes_criam_cada_um_a_sua_sala() -> None:
+    """A trava é por usuário: a corrida de um dono não faz outro receber `room_limit_reached`."""
     donos = [criar_usuario(f"dono_{i}") for i in range(N)]
     for dono in donos:
         for i in range(rules.MAX_ROOMS_AS_OWNER - 1):
@@ -97,3 +103,36 @@ def test_donos_diferentes_com_uma_vaga_cada_criam_todos_sem_se_bloquear() -> Non
 
     assert resultados == ["ok"] * N
     assert [_salas_ativas(d) for d in donos] == [rules.MAX_ROOMS_AS_OWNER] * N
+
+
+@pytest.mark.django_db(transaction=True)
+def test_criar_sala_espera_a_trava_da_linha_do_dono_ser_solta() -> None:
+    """Prova da trava sem depender de corrida: a thread principal segura a linha do dono e a
+    criação, em outra thread, tem de ficar parada até a trava cair.
+
+    Sem o `select_for_update` em `create_room`, a thread terminaria na hora e `done()` seria
+    verdadeiro durante a espera.
+    """
+    dono = criar_usuario("dono_01")
+    for i in range(rules.MAX_ROOMS_AS_OWNER - 1):
+        services.create_room(dono, f"Sala {i}")
+    assert _salas_ativas(dono) == rules.MAX_ROOMS_AS_OWNER - 1  # premissa: falta uma vaga
+
+    def criar() -> Room:
+        try:
+            return services.create_room(dono, "X")
+        finally:
+            connection.close()
+
+    with ThreadPoolExecutor(1) as pool:
+        with transaction.atomic():
+            User.objects.select_for_update().get(pk=dono.pk)
+            futuro = pool.submit(criar)
+            time.sleep(ESPERA_BLOQUEIO_S)
+            assert not futuro.done()  # a criação está parada na trava do dono
+        # ao sair do atomic o commit solta a trava
+
+        sala = futuro.result(timeout=ESPERA_MAXIMA_S)
+
+    assert sala.owner_id == dono.pk
+    assert _salas_ativas(dono) == rules.MAX_ROOMS_AS_OWNER
