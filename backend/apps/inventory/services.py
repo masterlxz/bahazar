@@ -43,8 +43,6 @@ def create_instance(
     """Cria um item para `owner`. O float precisa estar na faixa da skin (o banco também barra)."""
     if acquired_via not in AcquiredVia.values:
         raise InventoryError(f"Origem desconhecida: {acquired_via}")
-    if not skin.active:
-        raise InactiveSkin
     if not rules.float_in_range(float_value, Decimal(0), Decimal(1)):
         raise InvalidFloat
     float_value = float_value.quantize(rules.FLOAT_STEP)  # confere o valor que será gravado
