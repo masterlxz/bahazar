@@ -173,6 +173,29 @@ def test_itens_com_a_mesma_chave_nao_repetem_nem_somem_entre_paginas(
     assert set(vistos) == criados
 
 
+@pytest.mark.parametrize(
+    "ordenacao",
+    [
+        "acquired_at",
+        "-acquired_at",
+        "float_value",
+        "-float_value",
+        "price",
+        "-price",
+        "name",
+        "-name",
+    ],
+)
+def test_toda_ordenacao_termina_no_id_como_desempate(ana: Any, ordenacao: str) -> None:
+    """O PostgreSQL devolve empates na mesma ordem numa tabela pequena, então só o SQL prova."""
+    from apps.inventory import selectors
+
+    consulta = selectors.search(selectors.inventory_of(ana), ordering=ordenacao)
+
+    assert consulta.query.order_by[-1] == "id"
+    assert len(consulta.query.order_by) == 2
+
+
 # --- parâmetros inválidos ------------------------------------------------------------------
 
 
