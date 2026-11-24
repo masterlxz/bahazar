@@ -4,7 +4,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 
 ## Aguardando o dono
 - [x] Arquitetura e ADRs 0001-0009 **aprovados** pelo dono em 2026-11-19. D8 confirmada: Django 5.2 LTS.
-- [ ] Responder D3 (antes do deploy), D7 (na PR 4.0, com simulação), D2 (depois da etapa 2), **D11** (fonte de preços em USD, na PR 3.0: medido em `MEDICAO-3.0-FONTE-DE-PRECOS.md`: Skinport por snapshot manual cobre 99,94%; **falta o dono ler os termos da Skinport** e decidir) e **D12** (anúncio real, etapa 6).
+- [ ] Responder D3 (antes do deploy), D7 (na PR 4.0, com simulação), D2 (depois da etapa 2), **D11** (fonte de preços em USD, na PR 3.0: **decidida em 2026-11-24: Skinport por snapshot manual**, medida em `MEDICAO-3.0-FONTE-DE-PRECOS.md` (cobre 99,94%); **falta o dono ler os termos da Skinport (`skinport.com/terms`) antes de publicar o jogo**) e **D12** (anúncio real, etapa 6).
 - [x] **Virada de produto** (2026-11-19): economia global por usuário, moeda virtual em USD na escala de preços reais, salas como grupos. ADR 0010 e 0011 gravados; 0003 e 0004 parcialmente substituídos. **Aguarda sua leitura/aprovação do PR**.
 - [x] Nome (D9): **bahazar**, confirmado pelo dono em 2026-11-18. Repo (D10): `masterlxz/bahazar`, público, AGPL-3.0.
 
@@ -47,6 +47,14 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [ ] `REVOKE UPDATE/DELETE` do ledger com dois papéis de banco (dono das migrations x aplicação): fica para o deploy; até lá só o trigger protege.
 - [ ] Teste concorrente do limite de 5 salas (`create_room` trava o usuário, mas nenhum teste o exercita em paralelo).
 - [ ] Teste de que `PATCH` por `admin` (não só `owner`) funciona, quando existir forma de promover alguém a `admin`.
+
+## Etapa 3 (aberta pela PR 3.0)
+- [ ] **Rodar o `import_catalog` com os arquivos reais** no PC do dono (Postgres local): `python manage.py import_catalog --catalog backend/data/skins.json --prices backend/data/skinport.json`; conferir ~1.455 criadas e, na 2ª execução, 0 criadas e 0 atualizadas (PR 3.1).
+- [ ] **Termos da Skinport** (`skinport.com/terms`): uso em jogo, exibição, guardar o dado, crédito. Bloqueia **publicar** o jogo, não o import local.
+- [ ] **D1 (imagens)** na PR 3.3, com os termos da Valve lidos. A PR 3.1 não importa imagens.
+- [ ] 4 variantes e 1 skin Restricted sem preço na Skinport (causa não confirmada: nome diferente ou item inexistente no mercado).
+- [ ] Facas e luvas (`★`), StatTrak e Souvenir ficaram fora do catálogo; decidir se entram numa fase futura.
+- [ ] Atualizar preços exige baixar o JSON da Skinport pelo navegador (o Cloudflare barra script); sem automação por ora.
 
 ## Verificações pendentes (antes da etapa 1)
 - Licença do repo-fonte do catálogo de skins e termos das imagens.

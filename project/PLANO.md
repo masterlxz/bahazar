@@ -28,7 +28,7 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 | PR | Conteúdo | Pronto quando |
 |---|---|---|
 | 3.0 (**medição**) | Medir a **fonte de preços em USD** (licença, limites, cobertura, itens sem preço): RISCOS D11 e R8. Resultado: relatório, sem código | decisão do dono sobre a fonte |
-| 3.1 | `skins` + import (fonte e licença verificadas; D1 das imagens) com `reference_price` em centavos de USD | 100-200 skins importadas, reexecutar é idempotente |
+| 3.1 | App `catalog` (`skins`) + comando `import_catalog` (catálogo ByMykel, MIT, e snapshot da Skinport, ambos por arquivo local fora do repo) com `reference_price` em centavos de USD. **Sem imagens** (D1 na 3.3) | ~1.455 skins importadas (todas com preço; antes eram 100-200), reexecutar é idempotente |
 | 3.2 | `skin_instances` (dono = usuário), float, desgaste derivado, inventário (filtros, ordenação, paginação) e **ver o inventário de um amigo** pela permissão central | testes de propriedade e de float; não-amigo recebe 404 |
 | 3.3 | Telas de inventário e coleção | revisão visual |
 

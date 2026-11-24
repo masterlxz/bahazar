@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 19 (Etapa 3, PR 3.1: app `catalog` e `import_catalog`)
+
+- **Pedido**: PR 3.1, em plan mode. Decisões do dono: D11 = Skinport por snapshot manual; imagens **não importadas** (D1 vai para a 3.3); `reference_price` = `suggested_price` do desgaste mais comum; importar todas as 1.456 skins.
+- **Feito** (branch `etapa-3-1-catalogo-de-skins`): `apps/catalog` com `Skin` (CHECK de float e de preço, UNIQUE em `external_id`), `rules.py` (centavos por `Decimal`, desgaste de referência, filtro de nomes), `importer.py` (transação única, tudo ou nada) e o comando `import_catalog --catalog --prices`. `backend/data/` no `.gitignore`.
+- **Decisões**: o repo é **público**, então catálogo e preços ficam em arquivos locais, e os testes usam skins inventadas. JSON lido com `parse_float=Decimal` (nenhum preço passa por float) e `NaN` recusado. Skin nova sem preço não é criada (o schema exige `reference_price > 0`); a existente que perde o preço fica `active=false` com o último valor.
+- **Testes**: escritos antes. Prova de que não passavam: o CI barrou no `mypy` por `apps.catalog` inexistente; o `pytest` nem chegou a rodar (prova fraca). Depois: **394 testes** (eram 324), `ruff` e `mypy` limpos.
+- **Mutações** (uma branch e um PR rascunho cada, #68 a #74, fechados), todas pegas por teste, com `ruff` e `mypy` passando: (1) FT e MW trocadas na ordem do desgaste: 15; (2) arredondar para baixo: 4; (3) Souvenir deixa de ser excluído: 2; (4) skin sem preço continua ativa: 1; (5) skin inativa não reativa: 1; (6) import sem transação: 1; (7) teto do preço com `>=`: 1. Uma rodada cada.
+- **Fraquezas dos testes**: as mutações 4 a 7 dependem de um teste cada.
+- **Não verificado**: o import com os arquivos **reais** (catálogo e Skinport) e contra um PostgreSQL local, que só o dono roda no PC dele; nada visto fora do CI. Os termos da Skinport seguem não lidos.
+
 ### 2026-11-24 — Sessão 18 (Etapa 3, PR 3.0: medição da fonte de preços)
 
 - **Atualização (mesma sessão):** o dono baixou o JSON da Skinport pelo navegador no PC Windows e rodou o cruzamento em PowerShell: **6.821 de 6.825 variantes** do catálogo (99,94%) têm `suggested_price`, 6.504 têm anúncio, 1.455 de 1.456 skins têm algum desgaste com preço; mediana US$ 2,13. O `curl` leva 403 do Cloudflare também no IP residencial (a hipótese "é o IP de datacenter" caiu). Aberto: termos da Skinport (não lidos) e decisão da D11. Vi só a saída colada, não o arquivo. Detalhe em `MEDICAO-3.0-FONTE-DE-PRECOS.md`.

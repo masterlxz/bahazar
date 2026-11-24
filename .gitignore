@@ -24,3 +24,6 @@ Thumbs.db
 # Dados locais
 *.sqlite3
 *.dump
+
+# Catálogo e preços de terceiros (Valve, Skinport): o repo é público, nunca versionar
+backend/data/
