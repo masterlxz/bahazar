@@ -158,7 +158,7 @@ export default function InventoryPage() {
   // Só um sucesso mostra itens. Um refetch que falha (ex.: o amigo me desfez e agora é 404) MANTÉM
   // `data` no TanStack Query; usar `inventario.data` aqui exibiria o inventário antigo dele junto
   // com a mensagem de erro.
-  const dados = inventario.isSuccess ? inventario.data : null;
+  const dados = inventario.data ?? null;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12">
