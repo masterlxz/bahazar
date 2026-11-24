@@ -18,7 +18,7 @@ WEAR_PREFERENCE = (
 )
 
 # Facas e luvas (★), StatTrak™ e Souvenir ficam fora do catálogo desta fase.
-_EXCLUDED_PREFIXES = ("★", "StatTrak™", "Souvenir")
+_EXCLUDED_PREFIXES = ("★", "StatTrak™")
 
 
 def usd_to_cents(usd: Decimal) -> int:
