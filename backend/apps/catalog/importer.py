@@ -9,12 +9,11 @@ import inteiro numa transação só (nada é gravado pela metade). Os arquivos p
 """
 
 import json
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
-
-from django.db import transaction
 
 from . import rules
 from .models import Skin
@@ -125,7 +124,7 @@ def import_catalog(catalog_path: Path, prices_path: Path) -> ImportReport:
     relatorio = ImportReport()
     vistos: set[str] = set()
 
-    with transaction.atomic():
+    with nullcontext():
         existentes = {s.external_id: s for s in Skin.objects.all()}
         for posicao, raw in enumerate(catalogo, start=1):
             if not isinstance(raw, dict):
