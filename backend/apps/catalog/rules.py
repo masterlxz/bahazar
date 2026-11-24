@@ -31,7 +31,7 @@ def usd_to_cents(usd: Decimal) -> int:
     # Os limites vêm antes da conta: um expoente enorme estouraria a precisão do quantize.
     if usd <= 0:
         raise ValueError(f"preço precisa ser de ao menos 1 centavo: {usd}")
-    if usd > Decimal(MAX_REFERENCE_PRICE_CENTS) / 100:
+    if usd >= Decimal(MAX_REFERENCE_PRICE_CENTS) / 100:
         raise ValueError(f"preço acima do teto: {usd}")
     cents = (usd * 100).quantize(Decimal(1), rounding=ROUND_HALF_UP)
     if cents <= 0:
