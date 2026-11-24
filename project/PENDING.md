@@ -49,6 +49,10 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 - [ ] Teste de que `PATCH` por `admin` (não só `owner`) funciona, quando existir forma de promover alguém a `admin`.
 
 ## Etapa 3 (aberta pela PR 3.0)
+- [ ] **Rodar o `grant_skin` no PC do dono** (depois do import real): `python manage.py migrate` e `python manage.py grant_skin --user <seu_usuario> --skin <external_id de uma skin importada>`; conferir a instância e o desgaste impresso (PR 3.2a). `--float` fora da faixa da skin deve ser recusado.
+- [ ] **Confirmar os cortes do desgaste** (0,07 / 0,15 / 0,38 / 0,45) e que o limite **inferior é inclusivo** (0,07 já é Minimal Wear): vêm do `MODELO-DE-DADOS`, a inclusividade é hipótese; conferir na fonte da Valve antes de mostrar o desgaste ao jogador (3.2b).
+- [ ] **3.2b** (API do inventário e visibilidade de amigo) precisa de plano e confirmação próprios (autorização). Toda ação sobre uma instância (Etapa 4) deve checar o **dono**: o id da instância passa a ser visível a amigos.
+- [ ] Se o import mudar a faixa (`min_float`/`max_float`) de uma skin que já tem instâncias, o trigger só confere na gravação: instâncias antigas podem ficar fora da nova faixa. Decidir o que fazer quando isso acontecer.
 - [ ] **Rodar o `import_catalog` com os arquivos reais** no PC do dono (Postgres local): `python manage.py import_catalog --catalog backend/data/skins.json --prices backend/data/skinport.json`; conferir ~1.455 criadas e, na 2ª execução, 0 criadas e 0 atualizadas (PR 3.1).
 - [ ] **Termos da Skinport** (`skinport.com/terms`): uso em jogo, exibição, guardar o dado, crédito. Bloqueia **publicar** o jogo, não o import local.
 - [ ] **D1 (imagens)** na PR 3.3, com os termos da Valve lidos. A PR 3.1 não importa imagens.
