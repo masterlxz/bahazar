@@ -166,7 +166,7 @@ def test_itens_com_a_mesma_chave_nao_repetem_nem_somem_entre_paginas(
 
     vistos: list[str] = []
     for pagina in (1, 2, 3):
-        params = {"ordering": ordenacao, "page_size": 3, "page": pagina}
+        params: dict[str, Any] = {"ordering": ordenacao, "page_size": 3, "page": pagina}
         vistos += _ids(cliente.get(INVENTORY_URL, params))
 
     assert len(vistos) == 7

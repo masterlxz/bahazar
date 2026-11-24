@@ -19,6 +19,9 @@ _WEAR_CUTS = (
 )
 _LAST_WEAR = "Battle-Scarred"
 
+# Do mais novo ao mais usado. Os rótulos que os filtros e a API aceitam.
+WEARS = (*(wear for wear, _ in _WEAR_CUTS), _LAST_WEAR)
+
 _ZERO = Decimal(0)
 _ONE = Decimal(1)
 
@@ -36,6 +39,22 @@ def wear_for(float_value: Decimal) -> str:
         if float_value < upper:
             return wear
     return _LAST_WEAR
+
+
+def wear_range(wear: str) -> tuple[Decimal, Decimal]:
+    """A faixa semiaberta `[início, fim)` de float de um desgaste.
+
+    Vem da MESMA tabela de cortes de `wear_for`, para o filtro nunca discordar do rótulo. O fim
+    do último desgaste é 1 + um passo, para o float 1 (que o banco aceita) entrar na faixa.
+    """
+    inicio = _ZERO
+    for nome, fim in _WEAR_CUTS:
+        if nome == wear:
+            return inicio, fim
+        inicio = fim
+    if wear == _LAST_WEAR:
+        return inicio, _ONE + FLOAT_STEP
+    raise ValueError(f"desgaste desconhecido: {wear}")
 
 
 def draw_float(minimum: Decimal, maximum: Decimal, unit: Decimal) -> Decimal:
