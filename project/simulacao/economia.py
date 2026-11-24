@@ -16,6 +16,9 @@ Limites que o leitor precisa saber:
 - A margem das caixas e a taxa do mercado são HIPÓTESES: as caixas (5.1) ainda não têm tabela
   de drop. O anúncio (R centavos por anúncio) também não existe no código.
 - Preço fixo (`reference_price`): não há descoberta de preço entre jogadores.
+- O tempo anda em dias inteiros: a janela de 24 h nunca bloqueia um resgate e não há deslize de
+  horário. O casual resgata em ~71% dos dias (5/7), sorteados de forma independente; qualquer
+  dia sem resgate zera a sequência. Não é um padrão semanal.
 - Dinheiro é inteiro em centavos; o único `float` é a probabilidade de o jogador resgatar a
   diária num dia (sorteio, não dinheiro).
 """
@@ -32,7 +35,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(RAIZ / "backend"))
 
-from apps.economy import rules  # noqa: E402  (regras puras: a diária vem do código real)
+from apps.economy import rules  # noqa: E402  (janela e sequência vêm do código real)
 
 HORIZONTE = 180
 MARCOS = (7, 30, 90, 180)
@@ -76,7 +79,10 @@ class Resultado:
 
 
 def diaria(p: Params, dia_da_sequencia: int) -> int:
-    """A diária do código real, com `passo` e `teto` parametrizáveis."""
+    """A mesma fórmula de `rules.daily_amount`, com `passo` e `teto` parametrizáveis.
+
+    Com os valores de `rules.py`, `verificar` confere que as duas dão o mesmo resultado.
+    """
     return p.passo_diaria * min(dia_da_sequencia, p.dia_teto)
 
 
@@ -144,6 +150,7 @@ def usd(centavos: int) -> str:
 
 
 def dias(valor: float) -> str:
+    """Dias inteiros: a mediana é truncada (37,5 aparece como 37)."""
     return f">{HORIZONTE}" if valor == INF else f"{int(valor)}"
 
 
@@ -253,34 +260,45 @@ def main() -> None:
         )
         for v in valores
     ]
-    def linha(nome: str, rotulo: str, params: Params) -> list[str]:
-        r = rodar(ativo, params, args.seed, 1)
+
+    def linha(perfil: Perfil, nome: str, rotulo: str, params: Params) -> list[str]:
+        r = rodar(perfil, params, args.seed, args.jogadores)
+        # A renda de regime só vale para quem resgata todo dia; o casual não a tem.
+        regime = usd(renda_em_regime(perfil, params)) if perfil.p_resgate >= 1.0 else "-"
         return [
             nome,
             rotulo,
-            usd(r[0].renda_acum[30]),
-            usd(r[0].renda_acum[180]),
+            usd(mediana_em(r, "renda_acum", 30)),
+            usd(mediana_em(r, "renda_acum", 180)),
             dias(dias_ate(r, precos["cara (p90)"])),
             dias(dias_ate(r, precos["muito cara (p99)"])),
             dias(dias_ate(r, precos["a mais cara (Contraband)"])),
-            usd(renda_em_regime(ativo, params)),
+            regime,
         ]
 
     cab = ["parâmetro", "valor", "renda 30 d", "renda 180 d", "p90", "p99", "mais cara"]
     cab.append("regime/dia")
-    tabela(cab, [linha(nome, rotulo, params) for nome, rotulo, params in variacoes])
+    tabela(cab, [linha(ativo, nome, rotulo, params) for nome, rotulo, params in variacoes])
 
-    print("## Combinações candidatas (perfil ativo; escolhidas por mim, só para discussão)\n")
+    print("## Combinações candidatas (todos os perfis; escolhidas por mim, só para discussão)\n")
     candidatas = [
         ("atual (rules.py)", "-", base),
         ("passo 1,00", "teto 30", replace(base, passo_diaria=100)),
         ("passo 1,00", "teto 30, saldo 25", replace(base, passo_diaria=100, saldo_inicial=2_500)),
         ("passo 0,50", "teto 30, saldo 25", replace(base, passo_diaria=50, saldo_inicial=2_500)),
-        ("passo 2,50", "teto 14", replace(base, passo_diaria=250, dia_teto=14)),
+        (
+            "passo 2,50",
+            "teto 14, saldo 25",
+            replace(base, passo_diaria=250, saldo_inicial=2_500, dia_teto=14),
+        ),
     ]
     tabela(
-        ["passo da diária", "outros", *cab[2:]],
-        [linha(nome, rotulo, params) for nome, rotulo, params in candidatas],
+        ["perfil", "passo da diária", "outros", *cab[2:]],
+        [
+            [pf.nome, *linha(pf, nome, rotulo, params)]
+            for pf in PERFIS
+            for nome, rotulo, params in candidatas
+        ],
     )
 
     print("## Queima observada por perfil (valores de rules.py + hipóteses)\n")
