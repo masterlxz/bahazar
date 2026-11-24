@@ -8,9 +8,14 @@ ficaria com mais salas que o teto.
 Estes testes descrevem o comportamento que já existe: passam na `main`. A mudança que os faria
 falhar é tirar a linha `User.objects.select_for_update().get(pk=user.pk)` de `create_room`
 (`apps/rooms/services.py`): aí mais de uma das N criações do primeiro caso poderia ter sucesso e
-a contagem final passar do teto (depende do agendamento), e o teste da trava segurada
-(`test_criar_sala_espera_a_trava_da_linha_do_dono_ser_solta`) falharia sempre, porque a criação
-terminaria sem esperar. Essa prova (mutação) NÃO foi rodada por quem escreveu os testes.
+a contagem final passar do teto, e o teste da trava segurada
+(`test_criar_sala_espera_a_trava_da_linha_do_dono_ser_solta`) falharia, porque a criação
+terminaria sem esperar.
+
+Mutação (remover o `select_for_update` de `create_room`) rodada no CI em 2026-11-24: falham os
+casos 1, 2 e o da trava segurada; o caso de donos diferentes passa. Os casos 1 e 2 dependem do
+agendamento das threads (podem passar por sorte sem a trava); o da trava segurada é o mais
+confiável, mas também depende de tempo (ver a docstring dele).
 """
 
 import threading
@@ -92,7 +97,7 @@ def test_dono_sem_salas_nunca_passa_do_teto_com_criacoes_simultaneas() -> None:
 
 @pytest.mark.django_db(transaction=True)
 def test_donos_diferentes_criam_cada_um_a_sua_sala() -> None:
-    """A trava é por usuário: a corrida de um dono não faz outro receber `room_limit_reached`."""
+    """Um dono não afeta a contagem de outro: ninguém recebe `room_limit_reached` indevido."""
     donos = [criar_usuario(f"dono_{i}") for i in range(N)]
     for dono in donos:
         for i in range(rules.MAX_ROOMS_AS_OWNER - 1):
@@ -107,11 +112,13 @@ def test_donos_diferentes_criam_cada_um_a_sua_sala() -> None:
 
 @pytest.mark.django_db(transaction=True)
 def test_criar_sala_espera_a_trava_da_linha_do_dono_ser_solta() -> None:
-    """Prova da trava sem depender de corrida: a thread principal segura a linha do dono e a
-    criação, em outra thread, tem de ficar parada até a trava cair.
+    """A thread principal segura a linha do dono e a criação, em outra thread, tem de ficar
+    parada até a trava cair.
 
-    Sem o `select_for_update` em `create_room`, a thread terminaria na hora e `done()` seria
-    verdadeiro durante a espera.
+    Sem o `select_for_update` em `create_room`, a thread terminaria sem esperar e `done()` seria
+    verdadeiro durante a espera. O teste depende de tempo (`sleep` de `ESPERA_BLOQUEIO_S`, 1 s):
+    com a trava presente nunca dá vermelho falso, porque a thread fica bloqueada no banco até o
+    commit; sem a trava só dá falso verde se a thread levar mais de 1 s para conectar e consultar.
 
     Por que `no_key=True` (`FOR NO KEY UPDATE`): a FK `Room.owner` faz o Postgres tomar
     `FOR KEY SHARE` na linha do usuário, que conflita com `FOR UPDATE` mas não com `NO KEY
