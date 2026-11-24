@@ -10,8 +10,8 @@ MAX_REFERENCE_PRICE_CENTS = 10_000_000_000
 # Do desgaste mais comum no mercado para o menos comum: o preço de referência de uma skin é o do
 # primeiro destes que ela tem.
 WEAR_PREFERENCE = (
-    "Field-Tested",
     "Minimal Wear",
+    "Field-Tested",
     "Well-Worn",
     "Battle-Scarred",
     "Factory New",
