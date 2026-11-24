@@ -1,7 +1,7 @@
 """Regras puras do catálogo: sem Django e sem I/O, testáveis sem banco."""
 
 from collections.abc import Iterable
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_DOWN, Decimal
 
 # Teto de sanidade do preço de uma skin: US$ 100 milhões. Só impede um valor absurdo de estourar
 # o bigint; o maior preço de uma skin comum medido na PR 3.0 foi de US$ 13.683.
@@ -33,7 +33,7 @@ def usd_to_cents(usd: Decimal) -> int:
         raise ValueError(f"preço precisa ser de ao menos 1 centavo: {usd}")
     if usd > Decimal(MAX_REFERENCE_PRICE_CENTS) / 100:
         raise ValueError(f"preço acima do teto: {usd}")
-    cents = (usd * 100).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+    cents = (usd * 100).quantize(Decimal(1), rounding=ROUND_DOWN)
     if cents <= 0:
         raise ValueError(f"preço precisa ser de ao menos 1 centavo: {usd}")
     return int(cents)
