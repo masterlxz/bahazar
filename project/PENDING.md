@@ -51,7 +51,10 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 ## Etapa 3 (aberta pela PR 3.0)
 - [ ] **Rodar o `grant_skin` no PC do dono** (depois do import real): `python manage.py migrate` e `python manage.py grant_skin --user <seu_usuario> --skin <external_id de uma skin importada>`; conferir a instância e o desgaste impresso (PR 3.2a). `--float` fora da faixa da skin deve ser recusado.
 - [ ] **Confirmar os cortes do desgaste** (0,07 / 0,15 / 0,38 / 0,45) e que o limite **inferior é inclusivo** (0,07 já é Minimal Wear): vêm do `MODELO-DE-DADOS`, a inclusividade é hipótese; conferir na fonte da Valve antes de mostrar o desgaste ao jogador (3.2b).
-- [ ] **3.2b** (API do inventário e visibilidade de amigo) precisa de plano e confirmação próprios (autorização). Toda ação sobre uma instância (Etapa 4) deve checar o **dono**: o id da instância passa a ser visível a amigos.
+- [ ] **Validar a visibilidade do inventário com 2 contas no PC do dono** (PR 3.2b): contas A e B amigas, `grant_skin` para A; B vê o item em `/api/v1/inventory/<A>/`; uma conta C sem amizade recebe 404, igual ao de um usuário que não existe.
+- [ ] **Etapa 4: toda ação sobre uma instância deve checar o dono.** O `id` da instância (UUID) passa a ser visível a amigos pela 3.2b; saber o id não pode dar poder nenhum.
+- [ ] O `can_view` ainda não cobre "membro do mesmo grupo"; o inventário só é visível ao dono e a amigos aceitos. Entra com o primeiro recurso visível a grupo.
+- [ ] Sem teste de concorrência da visibilidade (amizade desfeita no meio da requisição): a resposta reflete o instante da checagem.
 - [ ] Se o import mudar a faixa (`min_float`/`max_float`) de uma skin que já tem instâncias, o trigger só confere na gravação: instâncias antigas podem ficar fora da nova faixa. Decidir o que fazer quando isso acontecer.
 - [ ] **Rodar o `import_catalog` com os arquivos reais** no PC do dono (Postgres local): `python manage.py import_catalog --catalog backend/data/skins.json --prices backend/data/skinport.json`; conferir ~1.455 criadas e, na 2ª execução, 0 criadas e 0 atualizadas (PR 3.1).
 - [ ] **Termos da Skinport** (`skinport.com/terms`): uso em jogo, exibição, guardar o dado, crédito. Bloqueia **publicar** o jogo, não o import local.
