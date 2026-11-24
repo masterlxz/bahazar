@@ -105,6 +105,38 @@ export interface CreatedInvite extends RoomInvite {
   code: string;
 }
 
+/** A skin de um item: `SkinSummarySerializer` (apps/inventory/serializers.py, lido em 2026-11-24). */
+export interface InventorySkin {
+  id: string;
+  name: string;
+  weapon: string;
+  rarity: string;
+  /** Pode vir vazia. */
+  collection: string;
+}
+
+/**
+ * Um item do inventário: `InventoryItemSerializer` (lido em 2026-11-24). `float_value` vem como
+ * TEXTO (decimal de 9 casas); `wear` é derivado pelo servidor; `reference_price` é inteiro em
+ * centavos de USD. O cliente não calcula desgaste nem dinheiro (GUIDELINES 1 e 11).
+ */
+export interface InventoryItem {
+  id: string;
+  skin: InventorySkin;
+  float_value: string;
+  wear: string;
+  reference_price: number;
+  acquired_at: string;
+}
+
+/** Resposta paginada do DRF (`PageNumberPagination`, em apps/inventory/views.py). */
+export interface Paginated<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 /** O que o frontend guarda do usuário da sessão (o allauth devolve mais campos). */
 export interface SessionUser {
   id: string;

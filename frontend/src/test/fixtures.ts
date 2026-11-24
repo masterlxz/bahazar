@@ -228,3 +228,66 @@ export const ERRO_USERNAME_EXISTE = {
     },
   ],
 };
+
+/**
+ * Rotas do inventário (apps/inventory/urls.py, lido em 2026-11-24). `query` entra na URL na ORDEM
+ * em que as chaves são escritas, e o cliente emite sempre rarity, weapon, wear, q, ordering e page
+ * (nessa ordem, só o que tem valor); `username` entra como está, então passe-o já codificado.
+ */
+export const inventoryRoute = (query: Record<string, string> = {}, username?: string) => {
+  const base = username === undefined ? "/api/v1/inventory/" : `/api/v1/inventory/${username}/`;
+  const texto = new URLSearchParams(query).toString();
+  return `GET ${base}${texto ? `?${texto}` : ""}`;
+};
+
+/**
+ * Formato de `InventoryItemSerializer` e de `InventoryPagination` (apps/inventory/serializers.py e
+ * views.py, lidos em 2026-11-24; fixados pelo backend em tests/inventory/test_inventory_api.py):
+ * `float_value` é TEXTO, `reference_price` é inteiro em centavos de USD e `wear` já vem pronto.
+ */
+export const ITEM_AK = {
+  id: "i1",
+  skin: { id: "k1", name: "Redline", weapon: "AK-47", rarity: "Classified", collection: "Phoenix" },
+  float_value: "0.152300000",
+  wear: "Field-Tested",
+  reference_price: 2575,
+  acquired_at: "2026-11-20T12:00:00Z",
+};
+export const ITEM_AWP = {
+  id: "i2",
+  skin: { id: "k2", name: "Asiimov", weapon: "AWP", rarity: "Covert", collection: "" },
+  float_value: "0.440000000",
+  wear: "Well-Worn",
+  reference_price: 1999,
+  acquired_at: "2026-11-21T12:00:00Z",
+};
+/** Preço de 5 centavos: dividir errado ou tratar como dólar inteiro apareceria aqui. */
+export const ITEM_BARATO = {
+  id: "i3",
+  skin: { id: "k3", name: "Sand Dune", weapon: "P250", rarity: "Consumer Grade", collection: "" },
+  float_value: "0.912000000",
+  wear: "Battle-Scarred",
+  reference_price: 5,
+  acquired_at: "2026-11-22T12:00:00Z",
+};
+export const ITEM_DA_CARLA = {
+  id: "c1",
+  skin: { id: "k4", name: "Fade", weapon: "Glock-18", rarity: "Restricted", collection: "Dust" },
+  float_value: "0.030000000",
+  wear: "Factory New",
+  reference_price: 41_000,
+  acquired_at: "2026-11-19T12:00:00Z",
+};
+
+export const pagina = (
+  results: unknown[],
+  extras: { count?: number; next?: string | null; previous?: string | null } = {},
+) => ({
+  count: extras.count ?? results.length,
+  next: extras.next ?? null,
+  previous: extras.previous ?? null,
+  results,
+});
+
+/** 404 do nosso DRF para quem não pode ver (amigo não aceito, pendente, bloqueado, inexistente). */
+export const ERRO_NAO_ENCONTRADO = { detail: "Not found." };
