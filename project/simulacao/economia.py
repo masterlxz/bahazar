@@ -253,24 +253,35 @@ def main() -> None:
         )
         for v in valores
     ]
+    def linha(nome: str, rotulo: str, params: Params) -> list[str]:
+        r = rodar(ativo, params, args.seed, 1)
+        return [
+            nome,
+            rotulo,
+            usd(r[0].renda_acum[30]),
+            usd(r[0].renda_acum[180]),
+            dias(dias_ate(r, precos["cara (p90)"])),
+            dias(dias_ate(r, precos["muito cara (p99)"])),
+            dias(dias_ate(r, precos["a mais cara (Contraband)"])),
+            usd(renda_em_regime(ativo, params)),
+        ]
+
     cab = ["parâmetro", "valor", "renda 30 d", "renda 180 d", "p90", "p99", "mais cara"]
     cab.append("regime/dia")
-    linhas = []
-    for nome, rotulo, params in variacoes:
-        r = rodar(ativo, params, args.seed, 1)
-        linhas.append(
-            [
-                nome,
-                rotulo,
-                usd(r[0].renda_acum[30]),
-                usd(r[0].renda_acum[180]),
-                dias(dias_ate(r, precos["cara (p90)"])),
-                dias(dias_ate(r, precos["muito cara (p99)"])),
-                dias(dias_ate(r, precos["a mais cara (Contraband)"])),
-                usd(renda_em_regime(ativo, params)),
-            ]
-        )
-    tabela(cab, linhas)
+    tabela(cab, [linha(nome, rotulo, params) for nome, rotulo, params in variacoes])
+
+    print("## Combinações candidatas (perfil ativo; escolhidas por mim, só para discussão)\n")
+    candidatas = [
+        ("atual (rules.py)", "-", base),
+        ("passo 1,00", "teto 30", replace(base, passo_diaria=100)),
+        ("passo 1,00", "teto 30, saldo 25", replace(base, passo_diaria=100, saldo_inicial=2_500)),
+        ("passo 0,50", "teto 30, saldo 25", replace(base, passo_diaria=50, saldo_inicial=2_500)),
+        ("passo 2,50", "teto 14", replace(base, passo_diaria=250, dia_teto=14)),
+    ]
+    tabela(
+        ["passo da diária", "outros", *cab[2:]],
+        [linha(nome, rotulo, params) for nome, rotulo, params in candidatas],
+    )
 
     print("## Queima observada por perfil (valores de rules.py + hipóteses)\n")
     linhas = []
