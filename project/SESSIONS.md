@@ -2,6 +2,17 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 21 (Etapa 3, PR 3.2b: API do inventário e visibilidade de amigo)
+
+- **Pedido**: PR 3.2b, em plan mode. **Toca autorização** (AGENTS §4): o dono confirmou aprovando o plano. Decisões da 3.2a: rotas `/inventory/` e `/inventory/<username>/`, amigo vê o mesmo que o dono sem ids internos.
+- **Feito** (branch `etapa-3-2b-api-inventario`): `selectors.inventory_of` (escopo pelo dono, só não consumidos, `select_related("skin")`) e `search` (filtros `rarity`, `weapon`, `wear`, `q`; ordenação em lista branca; `id` de desempate), `serializers` com campos explícitos, `views` (`MyInventoryView`, `UserInventoryView`), `urls`, `rules.WEARS` e `rules.wear_range` (mesma tabela de cortes do `wear_for`).
+- **Decisões**: **autorizar antes de validar a query** (senão o código 400/404 denuncia a amizade); 404 idêntico em status e corpo para não amigo, pendente, bloqueado e inexistente; só `GET` (405 nos outros); paginação de 24 por página, máximo 100.
+- **Testes**: escritos antes. Prova de que não passavam: o `mypy` barrou (`WEARS` e `wear_range` inexistentes); o `pytest` não rodou (prova fraca, como nas 3.1 e 3.2a). Um erro de tipo do meu próprio teste (`dict` misto) apareceu no mesmo passo. Depois: **538 testes** (eram 465).
+- **Mutações** (uma branch e um PR rascunho cada, #83 a #92, fechados), com `ruff` e `mypy` passando: (1) view sem `can_view`: 7 testes; (2) `can_view` invertido: 10; (3) escopo pelo leitor em vez do dono: 1; (4) inclui itens consumidos: 1; (5) serializer expõe `acquired_via`: 2; (6) valida a query antes de autorizar: 1; (7) ordenação sem o `id`: **SOBREVIVEU** (CI verde); (8) filtro de desgaste com fim inclusivo: 4; (9) 403 no lugar do 404: 7.
+- **Mutação que sobreviveu**: a 7. O PostgreSQL devolve empates na mesma ordem numa tabela pequena, então o teste de paginação não a detecta. Consertei com um teste **estrutural** (a ordenação sempre termina em `id`, 8 casos); repetida (#92), foi pega por 8 testes.
+- **Fraquezas dos testes**: as mutações 3, 4 e 6 dependem de um teste cada; o desempate só é provado pelo SQL, não por uma corrida real de paginação.
+- **Não verificado**: nada visto num navegador nem com 2 contas reais; a visibilidade só foi exercitada pelo CI. `can_view` ainda não cobre grupo.
+
 ### 2026-11-24 — Sessão 20 (Etapa 3, PR 3.2a: app `inventory`, float e `grant_skin`)
 
 - **Pedido**: PR 3.2, **dividida em 3.2a (dados e regras) e 3.2b (API e visibilidade de amigo)** por tamanho e porque só a 3.2b toca autorização. Feita em plan mode; decisões do dono: skins entram por comando `grant_skin` (sem kit inicial), rotas `/inventory/` e `/inventory/<username>/`, amigo vê o mesmo que o dono sem ids internos.
