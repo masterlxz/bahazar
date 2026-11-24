@@ -47,9 +47,7 @@ def test_float_informado_e_usado_exatamente(ana: Any, skin: Any) -> None:
 
 
 @pytest.mark.parametrize("valor", ["0.09", "0.61", "abc", "NaN"])
-def test_float_invalido_ou_fora_da_faixa_sai_com_erro_e_nada_e_criado(
-    ana: Any, valor: str
-) -> None:
+def test_float_invalido_ou_fora_da_faixa_sai_com_erro_e_nada_e_criado(ana: Any, valor: str) -> None:
     faixa = criar_skin("skin-faixa", minimo="0.10", maximo="0.60")
 
     with pytest.raises(CommandError):
