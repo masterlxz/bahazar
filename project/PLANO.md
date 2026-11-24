@@ -36,7 +36,7 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 ## Etapa 4 · Economia e trocas
 | PR | Conteúdo | Pronto quando |
 |---|---|---|
-| 4.0 (**simulação**) | Planilha de simulação da economia (saldo inicial, diária, anúncio, taxa, valor esperado das caixas): decide a D7 com números | decisão do dono |
+| 4.0 (**simulação feita em 2026-11-24**; decisão do dono pendente) | Simulação da economia (saldo inicial, diária, anúncio, taxa, valor esperado das caixas): script `project/simulacao/economia.py` e relatório [SIMULACAO-4.0-ECONOMIA.md](SIMULACAO-4.0-ECONOMIA.md); decide a D7 com números. Os valores escolhidos entram numa **4.0b** (`rules.py` e testes; toca dinheiro, confirmação própria) | decisão do dono |
 | 4.1 | Idempotência (`idempotency_records`) + transferência entre jogadores | testes de concorrência e replay |
 | 4.2 | **Troca de itens entre amigos** (oferta, aceite atômico, cancelamento) | uma skin, uma oferta ativa (sob concorrência) |
 | 4.3 | `market_listings` global: criar/cancelar/listar; índice único parcial | uma skin, um anúncio ativo |

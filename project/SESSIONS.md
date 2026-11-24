@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 24 (PR 4.0: simulação da economia, e validação das telas do inventário)
+
+- **Validação do dono (PC)**: `migrate` sem `--skip-checks` passou (`friends.0002` sobre um banco que já tinha a `0001`); `import_catalog` com os arquivos reais (1.455 criadas e 1 sem preço; 2ª execução 0 e 1.455 sem mudança, fecha com as 790 ignoradas e as 2.246 do catálogo); contas `ana_01`/`bia_02`/`caio_03` e amizade criadas por script; `grant_skin` deu 3 skins (float 9 recusado). O dono disse "tudo funcionando" sobre as telas, **sem itemizar** a tabela de conferência.
+- **PR 4.0** (plan mode, sessão individual): `project/simulacao/economia.py` (biblioteca padrão; importa `apps.economy.rules`; 3 perfis, sensibilidade, combinações) e `SIMULACAO-4.0-ECONOMIA.md`. O dono rodou o script no PC (eu não); `verificações: OK` (diária idêntica à de `rules.py` nos dias 1 a 60; US$ 4.650 em 30 dias).
+- **Achados**: o saldo de US$ 100 já compra o p90 do catálogo (~US$ 60) no dia 0; renda de regime ~US$ 300 por dia (~188 skins medianas); os sumidouros plausíveis queimam 3% a 10%, e queimar a renda inteira exigiria ~US$ 3.010 por dia em caixas ou ~US$ 6.020 no mercado. Recomendação: diária US$ 1,00 (teto dia 30) e saldo US$ 25 (p90 em 7 dias, p99 em 42, a mais cara em 169). **Decisão (D7) pendente do dono.**
+- **Correção minha**: a mediana de preço por skin é ~US$ 1,60 (não US$ 2,13, que era sobre as variantes de desgaste).
+- **Entrada local**: `backend/data/precos_percentis.json` (fora do repo; termos da Skinport não lidos); o relatório cita só agregados arredondados.
+- **Não verificado**: comportamento de jogadores reais; caixa, taxa e anúncio são hipóteses; o anúncio não foi simulado junto do passo novo.
+- **Aberto**: decidir a D7 e fazer a 4.0b (`rules.py` e testes, dinheiro: confirmação própria); 3.4; termos da Skinport; validar a Etapa 2 inteira no navegador.
+
 ### 2026-11-24 — Sessão 23 (correção: índice de amizades com 31 caracteres impedia o `migrate`)
 
 - **Origem**: o dono foi validar as telas no PC e o **primeiro `migrate` real** falhou: `friends.Friendship: (models.E034) The index name 'friendship_addressee_status_idx' cannot be longer than 30 characters` (PR 2.3). Os testes (543) nunca viram: o pytest não roda os system checks e o CI não tem `manage.py check`. Os outros índices têm 29 caracteres ou menos (varridos).
