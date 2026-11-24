@@ -35,10 +35,6 @@ class SkinInstance(models.Model):
                 condition=Q(float_value__gte=0, float_value__lte=1),
                 name="skininstance_float_unit_range",
             ),
-            models.CheckConstraint(
-                condition=Q(acquired_via__in=AcquiredVia.values),
-                name="skininstance_acquired_via_valid",
-            ),
         ]
         indexes = [
             models.Index(

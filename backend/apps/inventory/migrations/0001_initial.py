@@ -66,11 +66,4 @@ class Migration(migrations.Migration):
                 name="skininstance_float_unit_range",
             ),
         ),
-        migrations.AddConstraint(
-            model_name="skininstance",
-            constraint=models.CheckConstraint(
-                condition=models.Q(("acquired_via__in", ["admin_grant"])),
-                name="skininstance_acquired_via_valid",
-            ),
-        ),
     ]
