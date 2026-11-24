@@ -112,6 +112,11 @@ def test_criar_sala_espera_a_trava_da_linha_do_dono_ser_solta() -> None:
 
     Sem o `select_for_update` em `create_room`, a thread terminaria na hora e `done()` seria
     verdadeiro durante a espera.
+
+    Por que `no_key=True` (`FOR NO KEY UPDATE`): a FK `Room.owner` faz o Postgres tomar
+    `FOR KEY SHARE` na linha do usuário, que conflita com `FOR UPDATE` mas não com `NO KEY
+    UPDATE`. Com `FOR UPDATE` aqui a criação pararia por causa da FK, mesmo sem a trava de
+    `create_room`; com `NO KEY UPDATE` só o `FOR UPDATE` de `create_room` bloqueia.
     """
     dono = criar_usuario("dono_01")
     for i in range(rules.MAX_ROOMS_AS_OWNER - 1):
@@ -126,7 +131,7 @@ def test_criar_sala_espera_a_trava_da_linha_do_dono_ser_solta() -> None:
 
     with ThreadPoolExecutor(1) as pool:
         with transaction.atomic():
-            User.objects.select_for_update().get(pk=dono.pk)
+            User.objects.select_for_update(no_key=True).get(pk=dono.pk)
             futuro = pool.submit(criar)
             time.sleep(ESPERA_BLOQUEIO_S)
             assert not futuro.done()  # a criação está parada na trava do dono
