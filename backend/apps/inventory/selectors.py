@@ -24,7 +24,7 @@ ORDERING_CHOICES = [*_ORDER_FIELDS, *(f"-{chave}" for chave in _ORDER_FIELDS)]
 
 def inventory_of(owner: User) -> QuerySet[SkinInstance]:
     """Os itens de `owner` que ainda estão em jogo (não consumidos), com a skin já carregada."""
-    itens = SkinInstance.objects.filter(owner=owner, consumed_at__isnull=True)
+    itens = SkinInstance.objects.filter(owner=owner)
     return itens.select_related("skin")
 
 
