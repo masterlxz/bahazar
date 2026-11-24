@@ -1,6 +1,6 @@
 from typing import cast
 
-from django.http import Http404
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -66,5 +66,5 @@ class UserInventoryView(APIView):
     def get(self, request: Request, username: str) -> Response:
         dono = friends_selectors.find_user(username)
         if dono is None or not friends_selectors.can_view(_eu(request), dono):
-            raise Http404
+            raise PermissionDenied
         return _listar(request, dono)
