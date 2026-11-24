@@ -109,3 +109,38 @@ def test_sorteio_recusa_unidade_fora_de_zero_a_um(unidade: str) -> None:
 )
 def test_float_dentro_da_faixa_da_skin(valor: str, dentro: bool) -> None:
     assert rules.float_in_range(Decimal(valor), Decimal("0.06"), Decimal("0.80")) is dentro
+
+
+# --- faixa de cada desgaste (usada nos filtros do inventário) -------------------------------
+
+
+def test_a_lista_de_desgastes_vai_do_mais_novo_ao_mais_usado() -> None:
+    assert list(rules.WEARS) == ORDEM
+
+
+@pytest.mark.parametrize(
+    ("desgaste", "inicio", "fim"),
+    [
+        ("Factory New", "0", "0.07"),
+        ("Minimal Wear", "0.07", "0.15"),
+        ("Field-Tested", "0.15", "0.38"),
+        ("Well-Worn", "0.38", "0.45"),
+        ("Battle-Scarred", "0.45", "1.000000001"),  # 1 entra: o fim é exclusivo
+    ],
+)
+def test_faixa_do_desgaste_e_semiaberta(desgaste: str, inicio: str, fim: str) -> None:
+    assert rules.wear_range(desgaste) == (Decimal(inicio), Decimal(fim))
+
+
+def test_toda_faixa_concorda_com_wear_for_em_cada_float() -> None:
+    """Uma só definição de corte: cada float cai em exatamente uma faixa, e é a de `wear_for`."""
+    pontos = [Decimal(i) / 1000 for i in range(1001)]
+    pontos += [Decimal("0.069999999"), Decimal("0.149999999"), Decimal("1.000000000")]
+    for f in pontos:
+        faixas = [w for w in rules.WEARS if rules.wear_range(w)[0] <= f < rules.wear_range(w)[1]]
+        assert faixas == [rules.wear_for(f)]
+
+
+def test_desgaste_desconhecido_nao_tem_faixa() -> None:
+    with pytest.raises(ValueError):
+        rules.wear_range("Inventado")
