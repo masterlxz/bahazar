@@ -47,9 +47,8 @@ class Friendship(models.Model):
                 name="friendship_unique_pair",
             ),
         ]
-        indexes = [
-            models.Index(fields=["addressee", "status"], name="friendship_addressee_status_idx")
-        ]
+        # O Django limita o nome do índice a 30 caracteres (models.E034).
+        indexes = [models.Index(fields=["addressee", "status"], name="friendship_addr_status_idx")]
 
     def __str__(self) -> str:
         return f"{self.requester_id} -> {self.addressee_id} ({self.status})"
