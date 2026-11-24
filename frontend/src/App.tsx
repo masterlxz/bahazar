@@ -6,6 +6,7 @@ import RequireAuth from "./features/auth/RequireAuth";
 import SignupPage from "./features/auth/SignupPage";
 import FriendsPage from "./features/friends/FriendsPage";
 import HomePage from "./features/home/HomePage";
+import InventoryPage from "./features/inventory/InventoryPage";
 import ProfilePage from "./features/profile/ProfilePage";
 import RoomDetailPage from "./features/rooms/RoomDetailPage";
 import RoomsPage from "./features/rooms/RoomsPage";
@@ -48,6 +49,22 @@ export default function App() {
           element={
             <RequireAuth>
               <RoomDetailPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/inventario"
+          element={
+            <RequireAuth>
+              <InventoryPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/inventario/:username"
+          element={
+            <RequireAuth>
+              <InventoryPage />
             </RequireAuth>
           }
         />

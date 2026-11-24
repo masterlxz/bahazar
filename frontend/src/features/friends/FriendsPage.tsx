@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router";
 
 import { Avatar } from "../../components/ui/avatar";
-import { Button } from "../../components/ui/button";
+import { Button, buttonVariants } from "../../components/ui/button";
 import { ConfirmButton } from "../../components/ui/ConfirmButton";
 import {
   acceptRequest,
@@ -157,6 +158,13 @@ export default function FriendsPage() {
                 {amigo.username}
               </span>
               <span className="flex gap-2">
+                <Link
+                  to={`/inventario/${encodeURIComponent(amigo.username)}`}
+                  aria-label={`Inventário de ${amigo.username}`}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  Inventário
+                </Link>
                 <ConfirmButton
                   label="Remover"
                   name={amigo.username}

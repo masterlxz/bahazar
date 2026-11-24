@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import { SESSION_KEY, useSession } from "../../features/auth/useSession";
 import { FRIENDS_ROOT_KEY } from "../../features/friends/useFriends";
+import { INVENTORY_ROOT_KEY } from "../../features/inventory/useInventory";
 import { ME_KEY } from "../../features/profile/useMe";
 import { ROOMS_ROOT_KEY } from "../../features/rooms/useRooms";
 import { WALLET_KEY } from "../../features/wallet/useWallet";
@@ -27,6 +28,8 @@ export default function Header() {
     queryClient.removeQueries({ queryKey: FRIENDS_ROOT_KEY });
     // E os grupos, os detalhes e os membros (mesma chave raiz).
     queryClient.removeQueries({ queryKey: ROOMS_ROOT_KEY });
+    // E o inventário, o meu e o dos amigos que chegou a ver (mesma chave raiz).
+    queryClient.removeQueries({ queryKey: INVENTORY_ROOT_KEY });
   }
 
   return (
@@ -43,6 +46,9 @@ export default function Header() {
               </Link>
               <Link to="/grupos" className="hover:underline">
                 Grupos
+              </Link>
+              <Link to="/inventario" className="hover:underline">
+                Inventário
               </Link>
               <Link to="/carteira" className="hover:underline">
                 Carteira
