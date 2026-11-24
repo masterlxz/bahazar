@@ -7,6 +7,7 @@ inferior ser inclusivo (0,07 já é Minimal Wear) é hipótese do projeto, não 
 from decimal import Decimal
 
 import pytest
+
 from apps.inventory import rules
 
 ORDEM = ["Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"]
