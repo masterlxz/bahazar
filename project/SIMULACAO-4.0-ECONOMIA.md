@@ -3,7 +3,7 @@
 **Data:** 2026-11-24. **Quem rodou:** o dono, no PC dele; eu vi a saída colada, não rodei o script (ADR 0017).
 **Reproduzir:** `python3 project/simulacao/economia.py` (só biblioteca padrão; importa `apps.economy.rules`). Entrada: `backend/data/precos_percentis.json`, gerado do banco local e **fora do repo** (o repo é público e os termos da Skinport não foram lidos). Semente 2026; 500 jogadores sorteados no perfil casual. `verificações: OK` na saída: o modelo reproduz `rules.daily_amount` nos dias 1 a 60 e a conta de US$ 4.650 em 30 dias do `PENDING.md`.
 
-**A decisão da D7 continua sendo do dono.** Este relatório traz números e uma recomendação; nenhum valor do código foi alterado. Os valores escolhidos entram na PR 4.0b (`rules.py` e testes), que mexe em dinheiro (AGENTS §4) e pede confirmação própria.
+**A decisão da D7 continua sendo do dono.** Este relatório traz números e uma candidata; nenhum valor do código foi alterado. Os valores escolhidos entram na PR 4.0b (`rules.py` e testes), que mexe em dinheiro (AGENTS §4) e pede confirmação própria.
 
 ## O que o modelo é, e o que não é
 - **Vem do código:** saldo inicial (US$ 100), diária (US$ 10 × dia, teto no dia 30), janela de 24 h e quebra da sequência em 48 h (`economy/rules.py`).
@@ -62,26 +62,74 @@
 
 (Valores em US$ nas colunas de renda e regime; p90, p99 e "mais cara" em dias.)
 
-## Combinações candidatas (perfil ativo; escolhidas por mim para discussão)
-| passo da diária | outros | renda 30 d | renda 180 d | p90 | p99 | mais cara | regime/dia |
-|---|---|---|---|---|---|---|---|
-| atual (`rules.py`) | - | 4.780 | 49.930 | 0 | 12 | 31 | 301 |
-| US$ 1,00 | teto 30 | 595 | 5.245 | 0 | 39 | 166 | 31 |
-| US$ 1,00 | teto 30, saldo 25 | 520 | 5.170 | 7 | 42 | 169 | 31 |
-| US$ 0,50 | teto 30, saldo 25 | 287,50 | 2.687,50 | 10 | 67 | >180 | 16 |
-| US$ 2,50 | teto 14 | 952,50 | 6.352,50 | 0 | 28 | 138 | 36 |
+## Combinações candidatas (os 3 perfis; escolhidas por mim para discussão)
+Renda e regime em US$; p90, p99 e "mais cara" em dias até poder comprar (poupando tudo).
 
-## Recomendação (ponto de partida, não verdade)
-**Diária de US$ 1,00 × dia até o dia 30 (teto US$ 30) e saldo inicial de US$ 25**, mantendo a janela de 24 h e a quebra em 48 h. Motivos, só com o que a tabela mostra:
-- Com saldo de US$ 25 a skin p90 leva ~1 semana; com US$ 100 era o dia 0.
-- A skin p99 sai em ~6 semanas e a mais cara em ~5,5 meses (169 dias): a progressão cabe no horizonte simulado de 180 dias.
-- A renda de regime cai de US$ 301 para US$ 31 por dia. Ainda é muito para o sumidouro queimar (cerca de US$ 310 por dia em caixas ou US$ 620 por dia no mercado), mas uma ordem de grandeza menor, e é aí que a margem das caixas e a taxa passam a pesar.
-- O passo de US$ 0,50 é lento demais: a mais cara passa de 180 dias. O de US$ 2,50 com teto no dia 14 tem renda de regime parecida (US$ 36 por dia), p99 em 28 dias e a mais cara em 138; é a alternativa mais próxima, e a diferença é só de ritmo.
+| perfil | passo da diária | outros | renda 30 d | renda 180 d | p90 | p99 | mais cara | regime/dia |
+|---|---|---|---|---|---|---|---|---|
+| casual | atual (`rules.py`) | - | 730 | 4.485 | 0 | 37 | >180 | - |
+| casual | US$ 1,00 | teto 30 | 163 | 538,50 | 0 | >180 | >180 | - |
+| casual | US$ 1,00 | teto 30, saldo 25 | 88 | 463,50 | 19 | >180 | >180 | - |
+| casual | US$ 0,50 | teto 30, saldo 25 | 56,50 | 244,25 | 34 | >180 | >180 | - |
+| casual | US$ 2,50 | teto 14, saldo 25 | 182,50 | 1.120 | 9 | 141 | >180 | - |
+| ativo | atual (`rules.py`) | - | 4.780 | 49.930 | 0 | 12 | 31 | 301 |
+| ativo | US$ 1,00 | teto 30 | 595 | 5.245 | 0 | 39 | 166 | 31 |
+| ativo | US$ 1,00 | teto 30, saldo 25 | 520 | 5.170 | 7 | 42 | 169 | 31 |
+| ativo | US$ 0,50 | teto 30, saldo 25 | 287,50 | 2.687,50 | 10 | 67 | >180 | 16 |
+| ativo | US$ 2,50 | teto 14, saldo 25 | 877,50 | 6.277,50 | 5 | 30 | 140 | 36 |
+| ávido | atual (`rules.py`) | - | 4.900 | 50.650 | 0 | 12 | 30 | 305 |
+| ávido | US$ 1,00 | teto 30 | 715 | 5.965 | 0 | 35 | 147 | 35 |
+| ávido | US$ 1,00 | teto 30, saldo 25 | 640 | 5.890 | 5 | 37 | 150 | 35 |
+| ávido | US$ 0,50 | teto 30, saldo 25 | 407,50 | 3.407,50 | 6 | 54 | >180 | 20 |
+| ávido | US$ 2,50 | teto 14, saldo 25 | 997,50 | 6.997,50 | 4 | 27 | 126 | 40 |
 
-**O que esta recomendação não prova:**
-- Não simulei o anúncio junto do passo novo. Com a diária de US$ 1,00 no início, um anúncio de US$ 1 vale tanto quanto o primeiro dia; o ávido (5 anúncios por dia) ganharia ~US$ 5 por dia de anúncio contra ~US$ 31 de diária. **O valor do anúncio precisa ficar bem abaixo da diária** e decidir antes de existir anúncio (D12).
-- Não há caixa nem mercado: margem e taxa seguem hipóteses.
-- A meta de progressão (quanto tempo "deve" levar) é decisão de produto sua. Se a meta for outra, o passo muda.
+### Leitura
+1. **O casual fica de 5 a 11 vezes abaixo do ativo em renda de 180 dias** (valores atuais: US$ 4.485 contra US$ 49.930, 11 vezes; passo US$ 1,00: 538 contra 5.245, 10 vezes; passo US$ 2,50 com teto no dia 14: 1.120 contra 6.277, 5,6 vezes). A diferença vem da regra da sequência: qualquer dia sem resgate zera a sequência, e a diária cresce com a sequência. Com o casual do modelo (resgata em ~71% dos dias, de forma independente), a sequência média é curta.
+2. **Passo de US$ 1,00 deixa o casual sem a skin p99 no horizonte** (US$ 538 em 180 dias contra ~US$ 870). O ativo a alcança em 39 a 42 dias.
+3. **Passo de US$ 0,50 é lento para todos**: o ativo leva 67 dias para a p99 e a mais cara passa de 180 dias.
+4. **A única candidata em que o casual chega à p99 antes de 180 dias é a de passo US$ 2,50 com teto no dia 14 e saldo US$ 25** (141 dias; ativo 30, ávido 27). A mais cara sai em 140 dias (ativo) e 126 (ávido); o casual não chega a ela em 180.
+5. **O saldo de US$ 25 em lugar de US$ 100** tira o p90 do dia 0: 9 dias (casual), 5 (ativo), 4 (ávido).
+6. A renda de regime cai de ~US$ 300 para US$ 36 a 40 por dia nessa candidata (ativo e ávido): uma ordem de grandeza menor, ainda acima do que os sumidouros plausíveis queimam, mas bem mais perto (queimá-la inteira exigiria ~US$ 360 por dia em caixas com margem de 10%, ou ~US$ 720 por dia no mercado com taxa de 5%, contas feitas à mão sobre a renda do ativo).
+
+## Candidata para a 4.0b (ponto de partida, não verdade)
+**Diária de US$ 2,50 × dia até o dia 14 (teto US$ 35) e saldo inicial de US$ 25**, mantendo a janela de 24 h e a quebra em 48 h. É a única das cinco testadas em que **os três perfis** chegam à skin p99 dentro de 180 dias (casual 141, ativo 30, ávido 27). Antes disso eu havia sugerido passo US$ 1,00; a revisão mostrou que isso só olhava o perfil ativo, e a tabela acima desmente: o casual não chega à p99.
+
+**O que esta candidata não prova:**
+- **O horizonte de 180 dias é um parâmetro da simulação**, não uma meta do produto. "Cabe em 180 dias" é só um critério de comparação entre as cinco.
+- **A meta de progressão é decisão de produto sua** (quanto tempo "deve" levar para o casual e para o ativo). Se a meta for outra, o passo e o teto mudam.
+- **A regra da sequência é a causa da diferença entre os perfis** e não foi simulada em variantes (por exemplo, não zerar a sequência numa falta, ou reduzi-la). Vale decidir isso junto com o passo, porque ela dá o fator ~10 entre casual e ativo.
+- **Anúncio:** não simulei o anúncio com o passo novo. O ávido (5 anúncios por dia de US$ 1) ganharia ~US$ 5 por dia contra ~US$ 40 de diária de regime. **O valor do anúncio precisa ficar bem abaixo da diária** e decidir antes de existir anúncio (D12).
+- **Margem das caixas e taxa do mercado** seguem hipóteses: não há caixa nem mercado ainda, e nenhuma queima foi simulada com o passo novo além da tabela "Queima observada" do script.
+- **O tempo anda em dias inteiros:** a janela de 24 h nunca bloqueia um resgate no modelo e não há deslize de horário.
+- **O perfil casual é pessimista:** resgates independentes, sem padrão semanal; um jogador real que resgata nos mesmos dias da semana teria sequências mais longas.
+
+## Como regenerar a entrada
+O arquivo `backend/data/precos_percentis.json` (fora do repo) tem o esquema `{"TODAS": {"n": 1455, "percentis_centavos": {"0.1": ..., "0.5": ..., "0.9": ..., "0.99": ...}}, "Contraband": {...}, ...}`, em centavos de USD, uma chave por raridade e uma `TODAS`. Foi gerado, no PC do dono, com o `reference_price` das skins ativas:
+
+```bash
+cd backend && python manage.py shell <<'EOF'
+import json
+from django.db import connection
+from apps.catalog.models import Skin
+
+PCTS = [0.10, 0.25, 0.50, 0.75, 0.90, 0.99]
+sql = f"""
+SELECT COALESCE(rarity, 'TODAS'), count(*),
+       percentile_cont(%s) WITHIN GROUP (ORDER BY reference_price)
+FROM {Skin._meta.db_table} WHERE active
+GROUP BY ROLLUP(rarity) ORDER BY 1
+"""
+with connection.cursor() as cur:
+    cur.execute(sql, [PCTS])
+    linhas = cur.fetchall()
+saida = {
+    r: {"n": n, "percentis_centavos": dict(zip(map(str, PCTS), map(round, p)))}
+    for r, n, p in linhas
+}
+with open("data/precos_percentis.json", "w") as f:
+    json.dump(saida, f, indent=2, ensure_ascii=False)
+EOF
+```
 
 ## O que NÃO foi verificado
 Comportamento de jogadores reais; os valores de caixa; a taxa e o anúncio (não existem no código); a execução do script por mim; os termos da Skinport (bloqueiam publicar o jogo).
