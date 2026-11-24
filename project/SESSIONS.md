@@ -2,6 +2,17 @@
 
 Mais recente no topo.
 
+### 2026-11-24 — Sessão 20 (Etapa 3, PR 3.2a: app `inventory`, float e `grant_skin`)
+
+- **Pedido**: PR 3.2, **dividida em 3.2a (dados e regras) e 3.2b (API e visibilidade de amigo)** por tamanho e porque só a 3.2b toca autorização. Feita em plan mode; decisões do dono: skins entram por comando `grant_skin` (sem kit inicial), rotas `/inventory/` e `/inventory/<username>/`, amigo vê o mesmo que o dono sem ids internos.
+- **Feito** (branch `etapa-3-2a-inventario-dados`): `apps/inventory` com `SkinInstance` (sem `room_id`; CHECK do float em 0..1, CHECK de `acquired_via`, índice parcial do dono), migração `0002` com **trigger** que recusa float fora de `[min_float, max_float]` da skin, `rules.py` (`wear_for`, `draw_float`, `float_in_range`, tudo em `Decimal`), `services.create_instance` (única porta de escrita) e o comando `grant_skin`.
+- **Decisões**: desgaste é derivado, não coluna; skin inativa não é dada; sem `hypothesis` (a "propriedade" virou varredura de 0 a 1 de 0,001 em 0,001); `wear_range` (para o filtro) fica para a 3.2b.
+- **Testes**: escritos antes. Prova de que não passavam: o `mypy` barrou por `apps.inventory` inexistente e o `pytest` nem rodou (prova fraca). 1ª rodada com código: 464 passaram e 1 falhou, um **falso positivo do meu teste de arquitetura** (`draw_float(` contém `float(`); corrigi o teste para procurar a chamada com `\bfloat\(`. Depois: **465 testes** (eram 394).
+- **CI**: um `ruff format` pediu uma assinatura em uma linha (cabia em 100 colunas); não há `ruff` na VM.
+- **Mutações** (uma branch e um PR rascunho cada, #76 a #81, fechados), todas pegas por teste, com `ruff` e `mypy` passando: (1) fronteira do desgaste com `<=`: 5; (2) migração sem o trigger: 6; (3) sorteio sem o mínimo da faixa: 5; (4) serviço aceita skin inativa: 2; (5) sem o CHECK de origem: 1; (6) serviço sem a checagem de faixa: 4. Uma rodada cada.
+- **Fraquezas dos testes**: a mutação 5 depende de um teste. Os cortes do desgaste e a inclusividade do limite são **hipótese** (ver `PENDING`).
+- **Não verificado**: `migrate` e `grant_skin` num PostgreSQL local (só o dono roda); a migração `0002` só foi exercitada no PostgreSQL do CI.
+
 ### 2026-11-24 — Sessão 19 (Etapa 3, PR 3.1: app `catalog` e `import_catalog`)
 
 - **Pedido**: PR 3.1, em plan mode. Decisões do dono: D11 = Skinport por snapshot manual; imagens **não importadas** (D1 vai para a 3.3); `reference_price` = `suggested_price` do desgaste mais comum; importar todas as 1.456 skins.
