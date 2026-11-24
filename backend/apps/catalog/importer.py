@@ -174,7 +174,7 @@ def _gravar(
         if existente is None:
             return
         if existente.active:
-            existente.active = False
+            existente.active = True
             existente.save(update_fields=["active"])
             relatorio.deactivated += 1
         else:
