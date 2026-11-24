@@ -51,7 +51,7 @@ def search(
         itens = itens.filter(skin__weapon__iexact=weapon)
     if wear:
         inicio, fim = rules.wear_range(wear)
-        itens = itens.filter(float_value__gte=inicio, float_value__lt=fim)
+        itens = itens.filter(float_value__gte=inicio, float_value__lte=fim)
     if q:
         itens = itens.filter(skin__name__icontains=q)
     return itens.order_by(_order_by(ordering), "id")
