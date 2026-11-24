@@ -59,7 +59,7 @@ erDiagram
 ### 3.3 Catálogo (global) e inventário (por usuário; ver o aviso no topo sobre `room_id`)
 | Tabela | Campos principais | Constraints e índices |
 |---|---|---|
-| `skins` | `id`, `external_id` (id do dado-fonte), `weapon`, `name`, `collection`, `rarity`, `min_float`, `max_float`, `reference_price` bigint, `image_url`, `image_source`, `active` | `UNIQUE(external_id)`; `0 <= min_float < max_float <= 1`; `reference_price > 0`; **global**, sem `room_id`; leitura por qualquer autenticado, escrita só por import administrativo |
+| `skins` | `id`, `external_id` (id do dado-fonte), `weapon`, `name`, `collection`, `rarity`, `min_float`, `max_float`, `reference_price` bigint, `image_url`, `image_source`, `active` | `UNIQUE(external_id)`; `0 <= min_float < max_float <= 1`; `reference_price > 0`; **global**, sem `room_id`; leitura por qualquer autenticado, escrita só por import administrativo. **Implementada na PR 3.1** (`apps/catalog`): `id` é UUID; `image_url` fica vazio e `image_source` = `none` até a D1; `collection` é a 1ª coleção do catálogo (vazia se não houver) |
 | `skin_instances` | `id`, `room_id`, `skin_id`, `owner_id`, `float_value` numeric(10,9), `acquired_via`, `acquired_at`, `acquired_ref_id`, `consumed_at` null, `consumed_ref_id` null | cada instância tem **um** dono (`owner_id NOT NULL`); FK composta `(room_id, owner_id)` → `room_members`; CHECK do float dentro de `[skin.min_float, skin.max_float]` (trigger, pois cruza tabelas); índices `(room_id, owner_id)` e `(room_id, skin_id)` |
 
 O **desgaste** (FN/MW/FT/WW/BS) não é coluna: é derivado de `float_value` por função pura (faixas padrão: 0-0,07-0,15-0,38-0,45-1). Evita inconsistência entre float e rótulo.
