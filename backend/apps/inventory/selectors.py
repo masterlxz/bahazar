@@ -54,4 +54,4 @@ def search(
         itens = itens.filter(float_value__gte=inicio, float_value__lt=fim)
     if q:
         itens = itens.filter(skin__name__icontains=q)
-    return itens.order_by(_order_by(ordering), "id")
+    return itens.order_by(_order_by(ordering))
