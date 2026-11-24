@@ -44,6 +44,7 @@ def test_so_inventory_services_escreve_instancias() -> None:
 def test_float_do_jogo_nao_usa_float_do_python() -> None:
     """O float da skin é `Decimal` de ponta a ponta (nunca `float(`), por exatidão."""
     codigo = _codigo()
+    chamada = re.compile(r"\bfloat\(")  # `draw_float(` não conta: o `_` é parte da palavra
 
     for arquivo in ("rules.py", "services.py"):
-        assert "float(" not in codigo[arquivo]
+        assert chamada.search(codigo[arquivo]) is None
