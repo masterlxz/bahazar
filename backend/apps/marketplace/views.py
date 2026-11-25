@@ -9,6 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
@@ -55,6 +56,8 @@ class ListingListCreateView(APIView):
     """GET: os anúncios ativos da vitrine. POST: anuncia um item do jogador."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "market_listing_create"
     http_method_names = ["get", "post", "head", "options"]
 
     def get(self, request: Request) -> Response:
@@ -103,6 +106,8 @@ class CancelListingView(APIView):
     """Cancela um anúncio ativo do vendedor."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "market_listing_cancel"
     http_method_names = ["post", "options"]
 
     def post(self, request: Request, listing_id: uuid.UUID) -> Response:

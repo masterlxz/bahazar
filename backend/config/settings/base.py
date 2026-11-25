@@ -139,5 +139,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     # Só vale em view com `throttle_classes = [ScopedRateThrottle]` e `throttle_scope`.
     # O limite mora no cache do Django: em produção, o cache em banco (ver prod.py).
-    "DEFAULT_THROTTLE_RATES": {"invite_redeem": "10/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "invite_redeem": "10/min",
+        "market_listing_create": "30/min",
+        "market_listing_cancel": "60/min",
+    },
 }
