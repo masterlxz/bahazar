@@ -22,5 +22,5 @@
 ## Consequências
 - Um pedido duplicado concorrente **espera** em vez de receber erro; o tempo de espera é o da operação (curta).
 - O registro nunca existe sem a operação confirmada: não há limpeza de "órfãos".
-- **Pendências:** expiração dos registros (hoje crescem sem fim); o header `Idempotency-Key` e o mapeamento para `422` entram com a primeira rota que usar `run_once` (4.2).
+- **Pendências:** ~~expiração dos registros~~ (comando manual `expire_idempotency`, PR #118; janela de 7 dias é hipótese); o header `Idempotency-Key` e o mapeamento para `422` entram com a primeira rota que usar `run_once` (4.2).
 - **Custo de reverter:** baixo agora (uma tabela e um módulo, sem rota).
