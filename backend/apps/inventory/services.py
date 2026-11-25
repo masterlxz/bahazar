@@ -61,8 +61,7 @@ def register_move_guard(guard: MoveGuard) -> None:
     Cada módulo registra a sua em `AppConfig.ready()`. Com 2 ou mais módulos, todas rodam, na
     ordem do registro, e a primeira que levantar `ItemLocked` desfaz a troca.
     """
-    if guard not in _MOVE_GUARDS:
-        _MOVE_GUARDS.append(guard)
+    _MOVE_GUARDS.append(guard)
 
 
 def create_instance(
