@@ -65,6 +65,7 @@ def criar_instancia(
 
 def anunciar(vendedor: Any, instancia: Any, price: int = 1000) -> Any:
     """Cria o anúncio pelo serviço, que é a porta da regra de negócio."""
+    # O import é local para o controle falhar nos casos, não na coleta do pytest.
     from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
 
     return services.create_listing(vendedor, instancia.pk, price)
