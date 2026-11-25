@@ -115,7 +115,7 @@ describe("SkinsFilters: select das facets", () => {
       weapon: "AWP",
       collection: "Phoenix",
       wear: "Factory New",
-      q: "asiimov",
+      q: "  asiimov  ",
       ordering: "name",
     }));
   });

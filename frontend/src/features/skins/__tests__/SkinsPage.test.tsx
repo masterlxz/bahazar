@@ -1,6 +1,8 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { mockFetch, type MockHandler } from "../../../test/fetchMock";
+import { pagina } from "../../../test/fixtures";
 import { renderApp } from "../../../test/renderApp";
 
 describe("SkinsPage: catálogo /skins", () => {
@@ -41,13 +43,6 @@ describe("SkinsPage: catálogo /skins", () => {
     image_source: "none",
   };
 
-  const pagina = (results: unknown[], extras: { count?: number; next?: string | null; previous?: string | null } = {}) => ({
-    count: extras.count ?? results.length,
-    next: extras.next ?? null,
-    previous: extras.previous ?? null,
-    results,
-  });
-
   const catalogRoute = (query: Record<string, string> = {}) => {
     const base = "/api/v1/catalog/";
     const texto = new URLSearchParams(query).toString();
@@ -70,7 +65,7 @@ describe("SkinsPage: catálogo /skins", () => {
     meta: { is_authenticated: true },
   };
 
-  function simular(rotas: Record<string, unknown>) {
+  function simular(rotas: Record<string, MockHandler>) {
     return mockFetch({
       [SESSION]: { status: 200, body: SESSION_AUTENTICADA },
       "GET /api/v1/catalog/facets/": { status: 200, body: facets },
@@ -106,10 +101,10 @@ describe("SkinsPage: catálogo /skins", () => {
     expect(within(ak!).getByText("classified")).toBeInTheDocument();
     expect(within(ak!).getByText("Phoenix")).toBeInTheDocument();
     expect(within(awp!).getByText("Asiimov")).toBeInTheDocument();
-    expect(within(awp!).getByText("Covert")).toBeInTheDocument();
+    expect(within(awp!).getByText("covert")).toBeInTheDocument();
     expect(within(awp!).getByText("Dust")).toBeInTheDocument();
     expect(within(p250!).getByText("Sand Dune")).toBeInTheDocument();
-    expect(within(p250!).getByText("Consumer Grade")).toBeInTheDocument();
+    expect(within(p250!).getByText("consumer grade")).toBeInTheDocument();
     expect(screen.getByText("3 skins")).toBeInTheDocument();
     expect(m.callsTo(catalogRoute())).toHaveLength(1);
   });
@@ -363,7 +358,6 @@ describe("SkinsPage: catálogo /skins", () => {
       renderApp("/skins");
       await screen.findByText("Consumer");
 
-      // Wait for all cards to render
       await waitFor(() => {
         const placeholders = screen.getAllByRole("img", { name: /placeholder da skin/i });
         expect(placeholders).toHaveLength(7);

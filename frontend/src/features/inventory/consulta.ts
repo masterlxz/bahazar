@@ -25,6 +25,7 @@ export function normalizar(consulta: InventoryQuery): InventoryQuery {
   return {
     rarity: texto(consulta.rarity),
     weapon: texto(consulta.weapon),
+    collection: texto(consulta.collection),
     wear: texto(consulta.wear),
     q: texto(consulta.q),
     ordering: ordering === DEFAULT_ORDERING ? undefined : ordering,
@@ -39,6 +40,7 @@ export function lerConsulta(params: URLSearchParams): InventoryQuery {
   return normalizar({
     rarity: params.get("rarity") ?? undefined,
     weapon: params.get("weapon") ?? undefined,
+    collection: params.get("collection") ?? undefined,
     wear: params.get("wear") ?? undefined,
     q: params.get("q") ?? undefined,
     ordering: params.get("ordering") ?? undefined,

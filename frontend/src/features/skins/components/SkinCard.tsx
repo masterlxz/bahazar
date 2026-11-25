@@ -12,10 +12,11 @@ const RARIDADE_CORES: Record<string, string> = {
   Contraband: "bg-orange-500",
 };
 
-/** Iniciais das armas para o placeholder (ex.: "AK-47" → "AK"). */
+/** Iniciais das armas para o placeholder (ex.: "AK-47" → "AK", "M4A4" → "MA"). */
 function inicialArma(weapon: string): string {
-  const partes = weapon.split(/[- ]/);
-  return partes.map((p) => p[0]).join("").toUpperCase().slice(0, 2);
+  // Extrai as duas primeiras letras do nome da arma (ignorando números e símbolos)
+  const letras = weapon.match(/[A-Za-z]/g) ?? [];
+  return letras.slice(0, 2).join("").toUpperCase();
 }
 
 interface SkinCardProps {
