@@ -8,7 +8,7 @@ teste não for sobre o próprio passo de montagem.
 import json
 import threading
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
 from types import SimpleNamespace
@@ -23,7 +23,7 @@ from rest_framework.test import APIClient
 from apps.economy.models import IdempotencyRecord
 from apps.friends.models import Friendship
 from apps.inventory.models import SkinInstance
-from apps.trades import rules
+from apps.trades import rules, services, views
 from apps.trades.models import TradeOffer, TradeOfferItem
 
 from .conftest import criar_instancia, criar_skin
@@ -690,6 +690,7 @@ def _caso(nome: str, corpo: Any, codigo: str) -> Any:
         _caso("corpo-lista", [], "invalid_body"),
         _caso("corpo-texto", "texto", "invalid_body"),
         _caso("corpo-numero", 42, "invalid_body"),
+        _caso("campo-extra", _com(price=1), "invalid_body"),
         _caso("objeto-vazio", {}, "invalid_recipient"),
         _caso("sem-recipient", _sem("recipient"), "invalid_recipient"),
         _caso("recipient-numero", _com(recipient=5), "invalid_recipient"),
@@ -747,6 +748,23 @@ def test_json_quebrado_da_400(cena: SimpleNamespace) -> None:
     assert TradeOffer.objects.count() == 0
 
 
+@pytest.mark.parametrize("extra", ["price", "proposer", "status", "id", "active"])
+def test_campo_desconhecido_no_corpo_da_400_e_nao_cria_nada(
+    cena: SimpleNamespace, extra: str
+) -> None:
+    """Corpo VÁLIDO (itens de verdade, amigo de verdade) mais um campo que a API não define."""
+    corpo = {**_corpo("bruno_02", [cena.a1], [cena.b1]), extra: "qualquer"}
+
+    resposta = _criar(_logado(cena.ana), corpo)
+
+    assert resposta.status_code == 400
+    assert resposta.json()["code"] == "invalid_body"
+    assert TradeOffer.objects.count() == 0
+    assert IdempotencyRecord.objects.count() == 0
+    # sem o campo extra, o mesmo corpo passa: era ele o motivo da recusa
+    assert _criar(_logado(cena.ana), _corpo("bruno_02", [cena.a1], [cena.b1])).status_code == 201
+
+
 def test_o_teto_de_20_por_lado_passa_da_view_e_cai_no_servico(cena: SimpleNamespace) -> None:
     """Exatamente 20 ids desconhecidos: a view deixa passar e o serviço diz que não são dela."""
     # fora de `_UM_ITEM` (int=7), que está do outro lado: um repetido daria 400 `duplicate_item`
@@ -783,7 +801,12 @@ def test_listar_devolve_so_as_ofertas_de_que_o_usuario_faz_parte_mais_novas_prim
     assert da_carla.json()["results"] == []
 
 
-def test_a_lista_e_paginada_como_o_inventario(cena: SimpleNamespace) -> None:
+def test_a_lista_e_paginada_e_page_size_invalido_ou_alto_e_ajustado_em_silencio(
+    cena: SimpleNamespace,
+) -> None:
+    """Diferente do inventário (que dá 400 para `page_size` inválido ou acima do teto), a lista
+    de trocas não valida: `page_size` fora da regra vira o padrão (20) ou o teto (100), sem erro.
+    O teto de 100 não é provado aqui (o limite de pendentes impede criar 100 ofertas)."""
     primeira = _a1_por_b1(cena)
     _criada(_logado(cena.bruno), _corpo("ana_01", [cena.b2], [cena.a2]))
     assert _agir(_logado(cena.ana), primeira["id"], "cancel").status_code == 200
@@ -797,7 +820,10 @@ def test_a_lista_e_paginada_como_o_inventario(cena: SimpleNamespace) -> None:
     assert pagina_1["next"] is not None
     assert len(pagina_2["results"]) == 1
     assert pagina_2["results"][0]["id"] == primeira["id"]  # a mais antiga fecha a lista
-    assert ana.get(TRADES_URL, {"page_size": "100000"}).json()["count"] == 3  # teto, não erro
+    for ajustado in ("100000", "abc", "0", "-1"):
+        resposta = ana.get(TRADES_URL, {"page_size": ajustado})
+        assert resposta.status_code == 200, ajustado
+        assert len(resposta.json()["results"]) == 3, ajustado
 
 
 def test_detalhe_mostra_a_oferta_para_os_dois_lados(cena: SimpleNamespace) -> None:
@@ -855,3 +881,115 @@ def test_o_numero_de_queries_do_detalhe_nao_cresce_com_o_numero_de_itens(
 
     assert len(grande["items"]) == 8
     assert _consultas(ana, _url(grande["id"])) == com_dois_itens
+
+
+# --- anti-enumeração: o custo também é igual -----------------------------------------------
+
+
+def _consultas_do_post(cliente: APIClient, corpo: Any) -> tuple[int, list[str]]:
+    with CaptureQueriesContext(connection) as contexto:
+        resposta = _criar(cliente, corpo)
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == "not_friends"
+    return len(contexto), [q["sql"] for q in contexto.captured_queries]
+
+
+def test_destinatario_inexistente_e_nao_amigo_fazem_o_mesmo_numero_de_consultas(
+    cena: SimpleNamespace,
+) -> None:
+    ana = _logado(cena.ana)
+    corpo_nao_amiga = _corpo("carla_03", [cena.a1], [cena.b1])
+    corpo_inexistente = _corpo("ninguem_99", [cena.a1], [cena.b1])
+
+    n_nao_amiga, sql_nao_amiga = _consultas_do_post(ana, corpo_nao_amiga)
+    n_inexistente, sql_inexistente = _consultas_do_post(ana, corpo_inexistente)
+
+    detalhe = "\n".join(["nao amiga:", *sql_nao_amiga, "inexistente:", *sql_inexistente])
+    assert n_nao_amiga == n_inexistente, detalhe
+
+
+# --- toda classe de erro do serviço tem status ----------------------------------------------
+
+
+def _sem_status(raiz: type, mapa: Mapping[Any, int]) -> list[str]:
+    """Os nomes das subclasses (em qualquer profundidade) de `raiz` que `mapa` não conhece."""
+    achados: list[str] = []
+    pendentes = list(raiz.__subclasses__())
+    while pendentes:
+        classe = pendentes.pop()
+        pendentes.extend(classe.__subclasses__())
+        if classe not in mapa:
+            achados.append(classe.__name__)
+    return sorted(achados)
+
+
+def test_toda_subclasse_de_trade_error_tem_status_na_view() -> None:
+    assert _sem_status(services.TradeError, views._STATUS_DO_ERRO) == []
+    assert services.TradeError not in views._STATUS_DO_ERRO  # a base não é um erro "de verdade"
+    assert set(views._STATUS_DO_ERRO.values()) <= {400, 403, 404, 409}
+
+
+def test_o_helper_acusa_uma_subclasse_nova_sem_status() -> None:
+    """Prova de que o teste acima cairia. Raiz LOCAL: não polui `TradeError.__subclasses__`."""
+
+    class Raiz(Exception):
+        pass
+
+    class Mapeada(Raiz):
+        pass
+
+    class Neta(Mapeada):  # profundidade 2: `__subclasses__` direto não a veria
+        pass
+
+    assert _sem_status(Raiz, {Mapeada: 400}) == ["Neta"]
+    assert _sem_status(Raiz, {Mapeada: 400, Neta: 409}) == []
+
+
+# --- CSRF: a API é de sessão, e o POST sem token tem de ser recusado -----------------------
+
+CONFIG_DO_ALLAUTH = "/_allauth/browser/v1/config"
+_POSTS = [("create", 201), ("accept", 200), ("decline", 200), ("cancel", 200)]
+
+
+def _post_de(cena: SimpleNamespace, acao: str) -> tuple[str, Any, Any]:
+    """A URL, o corpo e quem faz cada um dos quatro POST (a oferta, se precisa, já existe)."""
+    if acao == "create":
+        return TRADES_URL, _corpo("bruno_02", [cena.a1], [cena.b1]), cena.ana
+    oferta = _a1_por_b1(cena)
+    return _url(oferta["id"], acao), {}, cena.ana if acao == "cancel" else cena.bruno
+
+
+def _navegador(usuario: Any) -> tuple[APIClient, str]:
+    """Cliente que EXIGE CSRF e entra por sessão (`force_authenticate` pularia a checagem)."""
+    cliente = APIClient(enforce_csrf_checks=True)
+    cliente.force_login(usuario)
+    cliente.get(CONFIG_DO_ALLAUTH)  # o servidor entrega o cookie `csrftoken`, como ao frontend
+    return cliente, cliente.cookies["csrftoken"].value
+
+
+def _estado() -> tuple[int, int]:
+    return TradeOffer.objects.filter(status="pending").count(), IdempotencyRecord.objects.count()
+
+
+@pytest.mark.parametrize("acao", [a for a, _ in _POSTS])
+def test_post_sem_token_csrf_e_recusado_e_nada_muda(cena: SimpleNamespace, acao: str) -> None:
+    url, corpo, quem = _post_de(cena, acao)
+    cliente, _ = _navegador(quem)
+    antes = _estado()
+
+    resposta = _post(cliente, url, corpo, _nova_chave())
+
+    assert resposta.status_code == 403
+    assert _estado() == antes
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.pk, cena.bruno.pk)
+
+
+@pytest.mark.parametrize(("acao", "esperado"), _POSTS)
+def test_post_com_token_csrf_passa(cena: SimpleNamespace, acao: str, esperado: int) -> None:
+    url, corpo, quem = _post_de(cena, acao)
+    cliente, token = _navegador(quem)
+    cabecalhos = {CABECALHO: _nova_chave(), "X-CSRFToken": token}
+
+    resposta = cliente.post(url, corpo, format="json", headers=cabecalhos)
+
+    assert resposta.status_code == esperado, resposta.content
