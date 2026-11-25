@@ -26,7 +26,7 @@ from apps.inventory.models import SkinInstance
 from apps.trades import rules, services, views
 from apps.trades.models import TradeOffer, TradeOfferItem
 
-from .conftest import criar_instancia, criar_skin
+from .conftest import criar_instancia, criar_skin, tornar_amigos
 
 TRADES_URL = "/api/v1/trades/"
 CABECALHO = "Idempotency-Key"
@@ -306,6 +306,28 @@ def test_mesma_chave_com_outro_pedido_da_422_e_nao_cria_nada(cena: SimpleNamespa
         cena.a1.pk,
         cena.b1.pk,
     }
+
+
+def test_mesma_chave_e_mesmas_listas_com_outro_destinatario_da_422(cena: SimpleNamespace) -> None:
+    """O destinatário faz parte do pedido: sem ele no hash, isto seria um replay do 201.
+
+    carla vira amiga de ana e recebe os MESMOS ids (os itens pedidos são do bruno). Se o pedido
+    chegasse ao serviço, a resposta seria `item_not_owned`; a idempotência vem antes e recusa.
+    """
+    tornar_amigos(cena.ana, cena.carla)
+    chave = _nova_chave()
+    ana = _logado(cena.ana)
+    primeira = _criar(ana, _corpo("bruno_02", [cena.a1], [cena.b1]), chave)
+
+    outro = _criar(ana, _corpo("carla_03", [cena.a1], [cena.b1]), chave)
+
+    assert primeira.status_code == 201
+    assert outro.status_code == 422
+    assert outro.json()["code"] == "idempotency_key_reused"
+    assert outro.json() != primeira.json()  # não é um replay do 201
+    assert TradeOffer.objects.count() == 1
+    assert TradeOffer.objects.get().recipient_id == cena.bruno.pk
+    assert IdempotencyRecord.objects.count() == 1
 
 
 def test_a_mesma_chave_em_outra_oferta_ou_outra_acao_da_422(cena: SimpleNamespace) -> None:
