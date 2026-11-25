@@ -8,6 +8,10 @@
 - pedido simultâneo com a mesma chave: o PostgreSQL faz o `INSERT` duplicado ESPERAR a primeira
   transação terminar e só então falhar por unicidade; daí vem a resposta gravada. Por isso não
   existe estado "em andamento" (nem `409 Retry-After`).
+
+Contrato: assume o isolamento READ COMMITTED (o padrão do Django e deste projeto): o `SELECT`
+depois da falha de unicidade precisa enxergar a linha confirmada pela outra transação. Não chamar
+de dentro de uma transação REPEATABLE READ ou SERIALIZABLE sem rever isto.
 """
 
 from collections.abc import Callable

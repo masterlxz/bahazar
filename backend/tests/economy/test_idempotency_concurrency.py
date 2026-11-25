@@ -72,6 +72,47 @@ def test_a_mesma_chave_em_varias_threads_transfere_uma_unica_vez() -> None:
     assert audit.check_ledger() == []
 
 
+def test_a_mesma_chave_com_valores_diferentes_em_paralelo_so_um_pedido_vence() -> None:
+    ana, bruno = criar_usuario("ana_01"), criar_usuario("bruno_02")
+    chave = str(uuid.uuid4())
+    valores = [100, 200] * (N // 2)
+
+    resultados = _largar(
+        [lambda v=v: services.transfer(ana, bruno, v, idempotency_key=chave) for v in valores]
+    )
+
+    feitos = [r for r in resultados if isinstance(r, services.TransferResult)]
+    vencedores = [r for r in feitos if not r.replayed]
+    repetidos = [r for r in feitos if r.replayed]
+    recusados = [r for r in resultados if isinstance(r, idempotency.IdempotencyKeyReused)]
+    assert len(vencedores) == 1
+    assert len(repetidos) == N // 2 - 1  # os que pediram o mesmo valor do vencedor
+    assert len(recusados) == N // 2  # os que pediram o outro valor: chave reusada
+    assert _saldo(ana) == SALDO_INICIAL - vencedores[0].amount
+    assert _grupos_de_transferencia() == 1
+    assert IdempotencyRecord.objects.count() == 1
+    assert audit.check_ledger() == []
+
+
+def test_a_mesma_chave_acima_do_saldo_em_paralelo_recusa_todas_e_nao_queima_a_chave() -> None:
+    ana, bruno = criar_usuario("ana_01"), criar_usuario("bruno_02")
+    chave = str(uuid.uuid4())
+
+    resultados = _largar(
+        [
+            lambda: services.transfer(ana, bruno, SALDO_INICIAL + 1, idempotency_key=chave)
+            for _ in range(N)
+        ]
+    )
+
+    assert all(isinstance(r, services.InsufficientFunds) for r in resultados)
+    assert IdempotencyRecord.objects.count() == 0  # quem esperava não ficou preso a um registro
+    assert _grupos_de_transferencia() == 0
+    assert (_saldo(ana), _saldo(bruno)) == (SALDO_INICIAL, SALDO_INICIAL)
+    services.transfer(ana, bruno, 100, idempotency_key=chave)  # a chave segue valendo
+    assert _saldo(ana) == SALDO_INICIAL - 100
+
+
 def test_chaves_diferentes_em_paralelo_transferem_cada_uma() -> None:
     ana, bruno = criar_usuario("ana_01"), criar_usuario("bruno_02")
 

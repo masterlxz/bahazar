@@ -166,6 +166,8 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     - `ValueError`: a chave não é um UUID.
     - `InvalidTransfer`: valor inválido, ou remetente igual ao destinatário.
     - `InsufficientFunds`: o remetente não tem o valor; nada é gravado.
+
+    Não checa `is_active` do destinatário nem do remetente (pendência de produto, risco J4).
     """
     chave = rules.normalize_idempotency_key(idempotency_key)
     try:
@@ -175,10 +177,12 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     if sender.pk == recipient.pk:
         raise InvalidTransfer
     pedido = rules.request_fingerprint("transfer", str(sender.pk), str(recipient.pk), amount)
+    # As carteiras abrem ANTES da transação da idempotência: dentro dela, o `open_wallet` travaria
+    # a `system` fora da ordem de UUID que `post_entries` segue (risco de deadlock A↔B).
+    origem = ensure_wallet(sender)
+    destino = ensure_wallet(recipient)
 
     def operar() -> tuple[int, dict[str, Any]]:
-        origem = ensure_wallet(sender)
-        destino = ensure_wallet(recipient)
         grupo = post_entries(
             [Entry(origem.id, -amount), Entry(destino.id, amount)],
             kind=TransactionKind.TRANSFER,

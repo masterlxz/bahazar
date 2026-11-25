@@ -1,10 +1,12 @@
 """Transferência entre jogadores: uma vez por chave, soma zero, sem rota HTTP (PR 4.1)."""
 
 import uuid
+from pathlib import Path
 from typing import Any
 
 import pytest
 from django.db.models import Sum
+from pytest import MonkeyPatch
 
 from apps.economy import audit, idempotency, rules, services
 from apps.economy.models import IdempotencyRecord, Wallet, WalletTransaction
@@ -138,6 +140,28 @@ def test_chave_do_ledger_leva_o_remetente_para_nao_colidir_na_carteira_do_destin
     assert chaves_da_carla == {f"transfer:{ana.pk}:{chave}", f"transfer:{bruno.pk}:{chave}"}
 
 
+def test_destinatario_sem_carteira_ganha_uma_antes_de_receber(
+    ana: Any, monkeypatch: MonkeyPatch
+) -> None:
+    """Auto-cura: a carteira que faltava abre FORA da transação da idempotência (travas)."""
+
+    def falha(usuario: Any) -> None:
+        raise RuntimeError("falha simulada ao abrir a carteira")
+
+    with monkeypatch.context() as m:
+        m.setattr(services, "open_wallet", falha)
+        with pytest.raises(RuntimeError):
+            criar_usuario("sem_carteira")
+    sem = type(ana).objects.get(username="sem_carteira")
+    assert not Wallet.objects.filter(user=sem).exists()
+
+    services.transfer(ana, sem, 300, idempotency_key=_chave())
+
+    assert _saldo(sem) == SALDO_INICIAL + 300  # abriu a carteira (saldo inicial) e recebeu
+    assert _saldo(ana) == SALDO_INICIAL - 300
+    assert audit.check_ledger() == []
+
+
 def test_transferir_para_si_mesmo_e_recusado(ana: Any) -> None:
     with pytest.raises(services.InvalidTransfer):
         services.transfer(ana, ana, 100, idempotency_key=_chave())
@@ -171,6 +195,17 @@ def test_chave_em_maiusculas_e_a_mesma_chave(ana: Any, bruno: Any) -> None:
 
     assert repetida.replayed is True
     assert _saldo(ana) == SALDO_INICIAL - 100
+
+
+@pytest.mark.parametrize("arquivo", ["views.py", "urls.py"])
+def test_views_e_urls_da_economia_nao_mencionam_a_transferencia(arquivo: str) -> None:
+    """Teste estrutural: qualquer rota nova que use `transfer` falha aqui, com o nome que tiver.
+
+    Quem abrir a rota (4.2 em diante) troca este teste por um de autorização, de propósito.
+    """
+    texto = (Path(services.__file__).parent / arquivo).read_text(encoding="utf-8")
+
+    assert "transfer" not in texto.lower()
 
 
 @pytest.mark.parametrize(

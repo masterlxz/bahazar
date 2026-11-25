@@ -59,7 +59,7 @@ def request_fingerprint(*parts: object) -> str:
     É o que separa "o mesmo pedido de novo" (mesmo hash, devolve o resultado) de "a mesma chave
     para outra coisa" (hash diferente, recusa). O texto "100" e o número 100 dão hashes diferentes.
     """
-    canonico = json.dumps(parts, separators=(",", ":"), ensure_ascii=False, default=str)
+    canonico = json.dumps(parts, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canonico.encode("utf-8")).hexdigest()
 
 
