@@ -183,7 +183,7 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
             [Entry(origem.id, -amount), Entry(destino.id, amount)],
             kind=TransactionKind.TRANSFER,
             # Com o remetente no nome: o UNIQUE é por carteira, e a chave vem do cliente.
-            idempotency_key=f"transfer:{sender.pk}:{chave}",
+            idempotency_key=f"transfer:{chave}",
         )
         return 201, {"ledger_group_id": str(grupo), "amount": amount}
 
