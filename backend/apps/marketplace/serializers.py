@@ -3,6 +3,7 @@
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import cast
 
 from rest_framework import serializers
 
@@ -55,8 +56,7 @@ def parse_create_body(dados: object) -> CreateListingInput:
     if not rules.price_is_valid(price):
         raise InvalidInput("invalid_price", _PRECO_INVALIDO)
     # price_is_valid garante que price é int válido (não None, não bool)
-    assert price is not None
-    return CreateListingInput(instance_id=instance_id, price=price)
+    return CreateListingInput(instance_id=instance_id, price=cast(int, price))
 
 
 class SellerSerializer(serializers.ModelSerializer):
