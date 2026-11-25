@@ -9,8 +9,15 @@
   transação terminar e só então falhar por unicidade; daí vem a resposta gravada. Por isso não
   existe estado "em andamento" (nem `409 Retry-After`);
 - registro apagado pela expiração (`expire_idempotency`) entre o `INSERT` que falhou e o `SELECT`:
-  a chave ficou livre, então o `INSERT` é refeito (é pedido novo, mesmo com outro hash), até
-  `MAX_ATTEMPTS` vezes; esgotado o limite levanta `RuntimeError` (o pedido não executou).
+  a chave ficou livre, então o `INSERT` é refeito (para o `run_once` é pedido novo, mesmo com
+  outro hash), até `MAX_ATTEMPTS` vezes; esgotado o limite levanta `RuntimeError`, encadeado ao
+  último `IntegrityError` (o pedido não executou).
+
+Depois da expiração a segurança contra execução dupla é do CHAMADOR: "pedido novo" vale só para o
+`run_once`, não para quem o chama. Toda `operation` precisa de uma guarda própria e durável de
+unicidade além deste registro (no `transfer`, o UNIQUE `wallettx_unique_idempotency_key` do
+ledger; ver `test_transferencia_repetida_depois_de_expirar_nao_move_dinheiro_de_novo` em
+`tests/economy/test_expire_idempotency.py`).
 
 Contrato: assume o isolamento READ COMMITTED (o padrão do Django e deste projeto): o `SELECT`
 depois da falha de unicidade precisa enxergar a linha confirmada pela outra transação. Não chamar
@@ -53,6 +60,7 @@ def run_once(
 
     `operation` devolve `(status, corpo)`, com o corpo já serializável em JSON.
     """
+    ultimo_erro: IntegrityError | None = None
     with transaction.atomic():
         for _ in range(MAX_ATTEMPTS):
             try:
@@ -60,7 +68,8 @@ def run_once(
                     registro = IdempotencyRecord.objects.create(
                         scope=scope, key=key, request_hash=request_hash
                     )
-            except IntegrityError:
+            except IntegrityError as erro:
+                ultimo_erro = erro
                 try:
                     existente = IdempotencyRecord.objects.get(scope=scope, key=key)
                 except IdempotencyRecord.DoesNotExist:
@@ -73,8 +82,9 @@ def run_once(
             break
         else:
             raise RuntimeError(
-                f"registro de idempotência apagado a cada uma das {MAX_ATTEMPTS} tentativas"
-            )
+                "idempotência: não achou o registro apagado nem conseguiu inserir em "
+                f"{MAX_ATTEMPTS} tentativas"
+            ) from ultimo_erro
 
         status, body = operation()
         registro.response_status = status

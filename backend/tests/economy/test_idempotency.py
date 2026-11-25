@@ -216,10 +216,11 @@ def test_registro_que_some_a_cada_tentativa_esgota_o_limite_sem_executar_nem_pen
     gets = _expiracao_no_get(monkeypatch, sempre=True)
     chamadas: list[int] = []
 
-    with pytest.raises(RuntimeError, match="tentativas"):
+    with pytest.raises(RuntimeError, match="tentativas") as exc:
         idempotency.run_once(
             scope=ESCOPO, key=CHAVE, request_hash=HASH, operation=_operacao(chamadas, {"n": 1})
         )
 
     assert chamadas == []  # nunca chegou a executar a operação
-    assert 2 <= len(gets) <= 10  # tentou mais de uma vez e parou (sem laço infinito)
+    assert len(gets) == idempotency.MAX_ATTEMPTS  # tentou o máximo e parou (sem laço infinito)
+    assert isinstance(exc.value.__cause__, IntegrityError)  # a causa real não se perdeu
