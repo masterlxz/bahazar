@@ -36,6 +36,6 @@ def expire_records(*, days: int, now: datetime | None = None, dry_run: bool = Fa
     corte = (now if now is not None else _now()) - timedelta(days=days)
     expirados = IdempotencyRecord.objects.filter(created_at__lt=corte)
     if dry_run:
-        return expirados.count()
+        return expirados.delete()[0]
     apagados, _ = expirados.delete()
     return apagados
