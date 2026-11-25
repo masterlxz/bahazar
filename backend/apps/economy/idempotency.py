@@ -7,7 +7,10 @@
 - chave já usada com outro pedido: `IdempotencyKeyReused`;
 - pedido simultâneo com a mesma chave: o PostgreSQL faz o `INSERT` duplicado ESPERAR a primeira
   transação terminar e só então falhar por unicidade; daí vem a resposta gravada. Por isso não
-  existe estado "em andamento" (nem `409 Retry-After`).
+  existe estado "em andamento" (nem `409 Retry-After`);
+- registro apagado pela expiração (`expire_idempotency`) entre o `INSERT` que falhou e o `SELECT`:
+  a chave ficou livre, então o `INSERT` é refeito (é pedido novo, mesmo com outro hash), até
+  `MAX_ATTEMPTS` vezes; esgotado o limite levanta `RuntimeError` (o pedido não executou).
 
 Contrato: assume o isolamento READ COMMITTED (o padrão do Django e deste projeto): o `SELECT`
 depois da falha de unicidade precisa enxergar a linha confirmada pela outra transação. Não chamar
@@ -21,6 +24,9 @@ from typing import Any
 from django.db import IntegrityError, transaction
 
 from .models import IdempotencyRecord
+
+
+MAX_ATTEMPTS = 3  # INSERTs de `run_once` quando o registro some entre o INSERT e o SELECT
 
 
 class IdempotencyKeyReused(Exception):
@@ -49,18 +55,27 @@ def run_once(
     `operation` devolve `(status, corpo)`, com o corpo já serializável em JSON.
     """
     with transaction.atomic():
-        try:
-            with transaction.atomic():  # savepoint: a falha de unicidade não aborta a transação
-                registro = IdempotencyRecord.objects.create(
-                    scope=scope, key=key, request_hash=request_hash
-                )
-        except IntegrityError:
-            existente = IdempotencyRecord.objects.get(scope=scope, key=key)
-            if existente.request_hash != request_hash:
-                raise IdempotencyKeyReused from None
-            if existente.response_status is None or existente.response_body is None:
-                raise RuntimeError("registro de idempotência sem resposta") from None
-            return Outcome(existente.response_status, existente.response_body, True)
+        for _ in range(MAX_ATTEMPTS):
+            try:
+                with transaction.atomic():  # savepoint: a falha de unicidade não aborta a transação
+                    registro = IdempotencyRecord.objects.create(
+                        scope=scope, key=key, request_hash=request_hash
+                    )
+            except IntegrityError:
+                try:
+                    existente = IdempotencyRecord.objects.get(scope=scope, key=key)
+                except IdempotencyRecord.DoesNotExist:
+                    continue  # expirou entre o INSERT e o SELECT: a chave está livre, tenta de novo
+                if existente.request_hash != request_hash:
+                    raise IdempotencyKeyReused from None
+                if existente.response_status is None or existente.response_body is None:
+                    raise RuntimeError("registro de idempotência sem resposta") from None
+                return Outcome(existente.response_status, existente.response_body, True)
+            break
+        else:
+            raise RuntimeError(
+                f"registro de idempotência apagado a cada uma das {MAX_ATTEMPTS} tentativas"
+            )
 
         status, body = operation()
         registro.response_status = status
