@@ -4,7 +4,6 @@ O catálogo é global (não pertence a usuário). Filtros são combinados com E.
 """
 
 from decimal import Decimal
-from typing import Any
 from uuid import UUID
 
 from django.db.models import QuerySet
