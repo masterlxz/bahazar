@@ -174,7 +174,7 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
         raise InvalidTransfer from erro
     if sender.pk == recipient.pk:
         raise InvalidTransfer
-    pedido = rules.request_fingerprint("transfer", str(sender.pk), str(recipient.pk), amount)
+    pedido = rules.request_fingerprint("transfer", str(sender.pk), amount)
 
     def operar() -> tuple[int, dict[str, Any]]:
         origem = ensure_wallet(sender)
