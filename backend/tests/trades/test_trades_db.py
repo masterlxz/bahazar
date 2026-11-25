@@ -140,6 +140,14 @@ def test_banco_aceita_oferta_resolvida_com_data_de_fim(cena: SimpleNamespace, st
 # --- como o serviço reconhece a constraint violada ---------------------------------------------
 
 
+class _CausaComDiag(Exception):
+    """Imita a causa do driver: uma exceção com `diag.constraint_name`."""
+
+    def __init__(self, constraint_name: str | None) -> None:
+        super().__init__("causa")
+        self.diag = SimpleNamespace(constraint_name=constraint_name)
+
+
 def test_o_nome_da_constraint_vem_do_diag_do_driver_numa_violacao_real(
     cena: SimpleNamespace,
 ) -> None:
@@ -153,19 +161,18 @@ def test_o_nome_da_constraint_vem_do_diag_do_driver_numa_violacao_real(
 
 
 def test_o_diag_vence_o_texto_da_mensagem() -> None:
-    causa: Any = SimpleNamespace(diag=SimpleNamespace(constraint_name="no_diag"))
     erro = IntegrityError('violates unique constraint "so_no_texto"')
-    erro.__cause__ = causa
+    erro.__cause__ = _CausaComDiag("no_diag")
 
     assert services.violated_constraint(erro) == "no_diag"
 
 
 @pytest.mark.parametrize(
     "causa",
-    [None, SimpleNamespace(), SimpleNamespace(diag=SimpleNamespace(constraint_name=None))],
+    [None, ValueError("sem diag"), _CausaComDiag(None)],
     ids=["sem causa", "causa sem diag", "diag sem nome"],
 )
-def test_sem_diag_usa_o_nome_que_a_mensagem_cita(causa: Any) -> None:
+def test_sem_diag_usa_o_nome_que_a_mensagem_cita(causa: BaseException | None) -> None:
     erro = IntegrityError('duplicate key value violates unique constraint "so_no_texto"')
     erro.__cause__ = causa
 
