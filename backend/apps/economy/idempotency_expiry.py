@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from .models import IdempotencyRecord
 
-MAX_DAYS = 3650  # ~10 anos; acima disso `timedelta` e a subtração de datas estouram
+MAX_DAYS = 3650  # ~10 anos: teto arbitrário, muito abaixo de onde as datas estouram
 
 
 def _now() -> datetime:
