@@ -323,6 +323,7 @@ def test_import_catalog_from_api_cria_skin_com_preco(
 
     assert relatorio.created == 1
     from apps.catalog.models import Skin
+
     assert Skin.objects.get(external_id="skin-1").reference_price == 1234
 
 
@@ -359,9 +360,7 @@ def test_import_catalog_from_api_rate_limit_429_lanca_erro(
     mock_urlopen.side_effect = erro_429
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(
-            c, app_id=730, currency="USD", client_id=None, client_secret=None
-        )
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
     assert "rate limit excedido" in str(exc.value).lower()
 
 
@@ -376,9 +375,7 @@ def test_import_catalog_from_api_406_accept_encoding_obrigatorio(
     mock_urlopen.side_effect = erro_406
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(
-            c, app_id=730, currency="USD", client_id=None, client_secret=None
-        )
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
     assert "accept-encoding: br" in str(exc.value).lower()
 
 
@@ -393,9 +390,7 @@ def test_import_catalog_from_api_403_cloudflare_bloqueia(
     mock_urlopen.side_effect = erro_403
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(
-            c, app_id=730, currency="USD", client_id=None, client_secret=None
-        )
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
     assert "cloudflare" in str(exc.value).lower()
 
 
@@ -409,9 +404,7 @@ def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(
     mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response({"nao": "uma lista"})
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(
-            c, app_id=730, currency="USD", client_id=None, client_secret=None
-        )
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
     assert "não é uma lista" in str(exc.value)
 
 
@@ -425,9 +418,7 @@ def test_import_catalog_from_api_rede_erro_lanca_erro(
     mock_urlopen.side_effect = URLError("conexão recusada")
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(
-            c, app_id=730, currency="USD", client_id=None, client_secret=None
-        )
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
     assert "erro de rede" in str(exc.value).lower()
 
 
