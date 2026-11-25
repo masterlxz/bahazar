@@ -299,6 +299,7 @@ def test_o_comando_sai_com_erro_se_o_import_falha(escrever: Escrever) -> None:
 def _mock_skinport_response(items: list[dict[str, Any]]) -> MagicMock:
     """Cria um mock de resposta HTTP com brotli comprimido."""
     import brotli
+
     resposta = MagicMock()
     resposta.headers = {"Content-Encoding": "br"}
     resposta.read.return_value = brotli.compress(json.dumps(items).encode("utf-8"))
@@ -312,9 +313,9 @@ def test_import_catalog_from_api_cria_skin_com_preco(
     from apps.catalog.importer import import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
-    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response([
-        {"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 12.34}
-    ])
+    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response(
+        [{"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 12.34}]
+    )
 
     relatorio = import_catalog_from_api(
         c, app_id=730, currency="USD", client_id=None, client_secret=None
@@ -332,9 +333,9 @@ def test_import_catalog_from_api_envia_authorization_com_api_key(
     from apps.catalog.importer import import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
-    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response([
-        {"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 10.00}
-    ])
+    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response(
+        [{"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 10.00}]
+    )
 
     import_catalog_from_api(
         c, app_id=730, currency="USD", client_id="test-id", client_secret="test-secret"
