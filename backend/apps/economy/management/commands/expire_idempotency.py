@@ -9,8 +9,8 @@ DEFAULT_DAYS = 7
 
 class Command(BaseCommand):
     help = (
-        "Apaga os registros de idempotência com mais de N dias (padrão 7). APAGA DADO: use "
-        "--dry-run antes. Manual: nenhum agendamento chama este comando."
+        f"Apaga os registros de idempotência com mais de N dias (padrão {DEFAULT_DAYS}). "
+        "APAGA DADO: use --dry-run antes. Manual: nenhum agendamento chama este comando."
     )
 
     def add_arguments(self, parser: CommandParser) -> None:

@@ -28,8 +28,8 @@ def expire_records(*, days: int, now: datetime | None = None, dry_run: bool = Fa
     """Apaga os registros com `created_at < now - days` e devolve quantos (ou quantos apagaria).
 
     Com `dry_run=True` só conta, sem apagar. Fora de `1 <= days <= MAX_DAYS` levanta `ValueError`:
-    0 apagaria tudo (inclusive registros de agora), negativo teria o corte no futuro e um N
-    gigante estoura com `OverflowError`.
+    0 apagaria tudo que existe até agora, negativo teria o corte no futuro e um N gigante
+    estoura com `OverflowError`.
     """
     if not 1 <= days <= MAX_DAYS:
         raise ValueError(f"days deve estar entre 1 e {MAX_DAYS} (recebi {days})")

@@ -239,7 +239,7 @@ def test_transferencia_repetida_depois_de_expirar_nao_move_dinheiro_de_novo(
     operação de novo, mas o `UNIQUE(wallet, idempotency_key)` do ledger recusa a segunda
     gravação. Este teste cai se `post_entries` deixar de gravar a chave no ledger
     (`idempotency_key=...` em `transfer`) ou se a restrição `wallettx_unique_idempotency_key`
-    sair do modelo.
+    sair do banco (migração).
     """
     chave = str(uuid.uuid4())
     services.transfer(ana, bruno, 1_000, idempotency_key=chave)
@@ -251,5 +251,6 @@ def test_transferencia_repetida_depois_de_expirar_nao_move_dinheiro_de_novo(
         services.transfer(ana, bruno, 1_000, idempotency_key=chave)
 
     assert (_ledger(), _saldos()) == (ledger, saldos)
-    assert IdempotencyRecord.objects.count() == 0  # o registro novo desfez junto com a operação
+    # o registro novo foi desfeito junto com a operação
+    assert IdempotencyRecord.objects.count() == 0
     assert audit.check_ledger() == []
