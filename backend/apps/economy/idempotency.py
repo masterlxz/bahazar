@@ -56,7 +56,8 @@ def run_once(
                 raise IdempotencyKeyReused from None
             if existente.response_status is None or existente.response_body is None:
                 raise RuntimeError("registro de idempotência sem resposta") from None
-            return Outcome(existente.response_status, existente.response_body, True)
+            status, body = operation()
+            return Outcome(status, body, False)
 
         status, body = operation()
         registro.response_status = status
