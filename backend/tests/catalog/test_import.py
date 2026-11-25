@@ -9,6 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch, MagicMock
+from urllib.error import HTTPError, URLError
 
 import pytest
 from django.core.management import call_command
@@ -340,8 +341,6 @@ def test_import_catalog_from_api_envia_authorization_com_api_key(mock_urlopen: M
 
 @patch("apps.catalog.importer.urlopen")
 def test_import_catalog_from_api_rate_limit_429_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
-    from urllib.error import HTTPError
-
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -355,8 +354,6 @@ def test_import_catalog_from_api_rate_limit_429_lanca_erro(mock_urlopen: MagicMo
 
 @patch("apps.catalog.importer.urlopen")
 def test_import_catalog_from_api_406_accept_encoding_obrigatorio(mock_urlopen: MagicMock, escrever: Escrever) -> None:
-    from urllib.error import HTTPError
-
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -370,8 +367,6 @@ def test_import_catalog_from_api_406_accept_encoding_obrigatorio(mock_urlopen: M
 
 @patch("apps.catalog.importer.urlopen")
 def test_import_catalog_from_api_403_cloudflare_bloqueia(mock_urlopen: MagicMock, escrever: Escrever) -> None:
-    from urllib.error import HTTPError
-
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -397,8 +392,6 @@ def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(mock_urlopen: Mag
 
 @patch("apps.catalog.importer.urlopen")
 def test_import_catalog_from_api_rede_erro_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
-    from urllib.error import URLError
-
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
