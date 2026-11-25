@@ -20,6 +20,11 @@ select = ["E", "F", "I", "B", "UP", "S", "DJ"]
   "S105",  # senhas literais em testes são dado de teste, não segredo
   "S106",
 ]
+"apps/**/tests/**" = [
+  "S101",
+  "S105",
+  "S106",
+]
 
 [tool.mypy]
 python_version = "3.13"
