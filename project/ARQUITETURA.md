@@ -129,10 +129,10 @@ Corpo contém ids das instâncias **escolhidas pelo usuário** (entrada legítim
 
 ## 5. Idempotência (como funciona)
 1. Cliente gera `Idempotency-Key` ao **abrir o diálogo** de confirmação (uma por intenção; reusada em retries).
-2. Servidor, **dentro da transação**, faz `INSERT ... ON CONFLICT DO NOTHING` em `idempotency_records(scope, key, request_hash)`.
-3. Se inseriu → executa e grava a resposta. Se já existia com `response` → devolve-a. Existia sem resposta (outra requisição em andamento) → `409` com `Retry-After`.
-4. Mesma chave com `request_hash` diferente → `422`.
-5. Registros expiram (limpeza após N dias; o ledger guarda a chave própria, permanente).
+2. Servidor, **na mesma transação da operação** (`economy.idempotency.run_once`, ADR 0014), insere `idempotency_records(scope, key, request_hash)` num savepoint.
+3. Se inseriu → executa e grava a resposta no registro; tudo confirma junto. Se já existia com o mesmo hash → devolve a resposta gravada, sem executar. **Não existe o estado "em andamento" nem o `409 Retry-After`:** um pedido simultâneo com a mesma chave espera, no `INSERT`, a primeira transação terminar e então lê a resposta pronta. Operação que falha desfaz o registro junto (a chave não fica queimada).
+4. Mesma chave com `request_hash` diferente → `IdempotencyKeyReused` (a rota que usar isso responde `422`).
+5. Registros expiram (limpeza após N dias; o ledger guarda a chave própria, permanente). **Ainda não implementado** (PENDING).
 
 ## 6. API
 - REST + JSON sob `/api/`, versionada (`/api/v1/`). Recursos de jogo são **globais por usuário** (`/api/v1/wallet/`, `/api/v1/inventory/`, `/api/v1/friends/`); só os grupos ficam em `/api/v1/rooms/{room}/...`.

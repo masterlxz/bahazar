@@ -11,7 +11,7 @@ from typing import Any, NamedTuple
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from . import rules
+from . import idempotency, rules
 from .models import DailyClaim, TransactionKind, Wallet, WalletKind, WalletTransaction
 
 
@@ -32,6 +32,18 @@ class EconomyError(Exception):
 class InsufficientFunds(EconomyError):
     code = "insufficient_funds"
     message = "Saldo insuficiente."
+
+
+class InvalidTransfer(EconomyError):
+    code = "invalid_transfer"
+    message = "Transferência inválida."
+
+
+@dataclass(frozen=True)
+class TransferResult:
+    ledger_group_id: uuid.UUID
+    amount: int
+    replayed: bool
 
 
 class DailyNotReady(EconomyError):
@@ -142,6 +154,49 @@ def ensure_wallet(user: Any) -> Wallet:
     """Auto-cura: se a carteira não existe (falha no cadastro), abre agora."""
     carteira = Wallet.objects.filter(user=user).first()
     return carteira if carteira is not None else open_wallet(user)
+
+
+def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) -> TransferResult:
+    """Transfere `amount` centavos de `sender` para `recipient`, uma única vez por chave.
+
+    Repetir a mesma chave com o mesmo pedido devolve o resultado original (`replayed=True`) sem
+    mover dinheiro; a mesma chave com outro pedido levanta `IdempotencyKeyReused`. Não há rota
+    HTTP (decisão de 2026-11-25): é a base das trocas e do mercado.
+
+    - `ValueError`: a chave não é um UUID.
+    - `InvalidTransfer`: valor inválido, ou remetente igual ao destinatário.
+    - `InsufficientFunds`: o remetente não tem o valor; nada é gravado.
+
+    Não checa `is_active` do destinatário nem do remetente (pendência de produto, risco J4).
+    """
+    chave = rules.normalize_idempotency_key(idempotency_key)
+    try:
+        rules.validate_transfer_amount(amount)
+    except ValueError as erro:
+        raise InvalidTransfer from erro
+    if sender.pk == recipient.pk:
+        raise InvalidTransfer
+    pedido = rules.request_fingerprint("transfer", str(sender.pk), str(recipient.pk), amount)
+    # As carteiras abrem ANTES da transação da idempotência: dentro dela, o `open_wallet` travaria
+    # a `system` fora da ordem de UUID que `post_entries` segue (risco de deadlock A↔B).
+    origem = ensure_wallet(sender)
+    destino = ensure_wallet(recipient)
+
+    def operar() -> tuple[int, dict[str, Any]]:
+        grupo = post_entries(
+            [Entry(origem.id, -amount), Entry(destino.id, amount)],
+            kind=TransactionKind.TRANSFER,
+            # Com o remetente no nome: o UNIQUE é por carteira, e a chave vem do cliente.
+            idempotency_key=f"transfer:{sender.pk}:{chave}",
+        )
+        return 201, {"ledger_group_id": str(grupo), "amount": amount}
+
+    saida = idempotency.run_once(
+        scope=f"user:{sender.pk}", key=chave, request_hash=pedido, operation=operar
+    )
+    return TransferResult(
+        uuid.UUID(saida.body["ledger_group_id"]), saida.body["amount"], saida.replayed
+    )
 
 
 def claim_daily(user: Any, now: datetime | None = None) -> DailyClaim:

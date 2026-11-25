@@ -5,6 +5,9 @@ pelo dono em 2026-11-25 a partir da simulação da PR 4.0 (ADR 0013, RISCOS D7);
 segue em aberto (teto: ~10% da diária de regime).
 """
 
+import hashlib
+import json
+import uuid
 from collections.abc import Sequence
 from datetime import timedelta
 
@@ -35,6 +38,37 @@ def next_streak_day(previous: int | None, elapsed: timedelta | None) -> int:
     if previous is None or elapsed is None or elapsed >= STREAK_BREAK:
         return 1
     return previous + 1
+
+
+def normalize_idempotency_key(key: str) -> str:
+    """A chave de idempotência é um UUID gerado pelo cliente: devolve a forma canônica.
+
+    Qualquer outra coisa é `ValueError`. Isso fecha chave gigante e caractere estranho em logs.
+    """
+    if not isinstance(key, str):
+        raise ValueError("a chave de idempotência precisa ser um texto")
+    try:
+        return str(uuid.UUID(key))
+    except ValueError as erro:
+        raise ValueError("a chave de idempotência precisa ser um UUID") from erro
+
+
+def request_fingerprint(*parts: object) -> str:
+    """SHA-256 (hex) de uma lista JSON canônica das partes do pedido.
+
+    É o que separa "o mesmo pedido de novo" (mesmo hash, devolve o resultado) de "a mesma chave
+    para outra coisa" (hash diferente, recusa). O texto "100" e o número 100 dão hashes diferentes.
+    """
+    canonico = json.dumps(parts, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canonico.encode("utf-8")).hexdigest()
+
+
+def validate_transfer_amount(amount: int) -> None:
+    """O valor de uma transferência é um inteiro de 1 centavo até o máximo do `bigint`."""
+    if isinstance(amount, bool) or not isinstance(amount, int):
+        raise ValueError(f"valor não inteiro: {amount!r}")
+    if not 1 <= amount <= BIGINT_MAX:
+        raise ValueError("valor fora do intervalo permitido")
 
 
 def validate_entries(amounts: Sequence[int]) -> None:
