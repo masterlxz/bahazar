@@ -146,7 +146,6 @@ class TradeListCreateView(APIView):
         # A ordem dos ids no corpo não muda o pedido: as listas entram ordenadas no hash.
         pedido = request_fingerprint(
             "trade.create",
-            dados.recipient,
             sorted(str(i) for i in dados.offered),
             sorted(str(i) for i in dados.requested),
         )
