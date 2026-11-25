@@ -3,7 +3,7 @@
 import uuid
 from collections.abc import Iterable
 
-from django.db.models import Q
+from django.db.models import Prefetch, Q, QuerySet, prefetch_related_objects
 
 from apps.accounts.models import User
 
@@ -21,6 +21,25 @@ def offer_for_party(user: User, offer_id: uuid.UUID) -> TradeOffer | None:
         .select_related("proposer", "recipient")
         .first()
     )
+
+
+def offers_of(user: User) -> QuerySet[TradeOffer]:
+    """As ofertas de que `user` faz parte (enviadas e recebidas), das mais novas às mais antigas.
+
+    O `id` é o desempate: sem ele a paginação repete ou pula ofertas criadas no mesmo instante.
+    """
+    ofertas = TradeOffer.objects.filter(Q(proposer=user) | Q(recipient=user))
+    return ofertas.select_related("proposer", "recipient").order_by("-created_at", "id")
+
+
+def load_items(offers: Iterable[TradeOffer]) -> None:
+    """Carrega os itens das ofertas (com a instância e a skin) em UMA consulta extra.
+
+    Sem isto o serializer consultaria itens, instâncias e skins uma vez por oferta. Os itens
+    saem em ordem fixa (lado, depois id da instância), para a resposta não variar.
+    """
+    itens = TradeOfferItem.objects.select_related("instance__skin").order_by("side", "instance_id")
+    prefetch_related_objects(list(offers), Prefetch("items", queryset=itens))
 
 
 def pending_count(proposer: User) -> int:
