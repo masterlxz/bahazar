@@ -163,7 +163,9 @@ class TestSearch:
     def test_filtros_combinados_sao_e(self) -> None:
         qs = selectors.search(weapon="AK-47", rarity="Classified")
         assert qs.count() == 1
-        assert qs.first().name == "AK-47 | Redline"
+        first = qs.first()
+        assert first is not None
+        assert first.name == "AK-47 | Redline"
 
     def test_filtros_que_nao_combinam_retornam_vazio(self) -> None:
         assert selectors.search(weapon="AK-47", rarity="Covert").count() == 0

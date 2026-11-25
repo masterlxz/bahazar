@@ -11,18 +11,18 @@ class Skin(models.Model):
     atualizado por import. `image_*` ficam em branco até a decisão D1 (PR 3.3).
     """
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    external_id = models.CharField(max_length=64, unique=True)
-    weapon = models.CharField(max_length=64)
-    name = models.CharField(max_length=200)
-    collection = models.CharField(max_length=200, blank=True)
-    rarity = models.CharField(max_length=64)
-    min_float = models.DecimalField(max_digits=10, decimal_places=9)
-    max_float = models.DecimalField(max_digits=10, decimal_places=9)
-    reference_price = models.BigIntegerField()
-    image_url = models.CharField(max_length=500, blank=True, default="")
-    image_source = models.CharField(max_length=20, default="none")
-    active = models.BooleanField(default=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # type: ignore[var-annotated]
+    external_id = models.CharField(max_length=64, unique=True)  # type: ignore[var-annotated]
+    weapon = models.CharField(max_length=64)  # type: ignore[var-annotated]
+    name = models.CharField(max_length=200)  # type: ignore[var-annotated]
+    collection = models.CharField(max_length=200, blank=True)  # type: ignore[var-annotated]
+    rarity = models.CharField(max_length=64)  # type: ignore[var-annotated]
+    min_float = models.DecimalField(max_digits=10, decimal_places=9)  # type: ignore[var-annotated]
+    max_float = models.DecimalField(max_digits=10, decimal_places=9)  # type: ignore[var-annotated]
+    reference_price = models.BigIntegerField()  # type: ignore[var-annotated]
+    image_url = models.CharField(max_length=500, blank=True, default="")  # type: ignore[var-annotated]
+    image_source = models.CharField(max_length=20, default="none")  # type: ignore[var-annotated]
+    active = models.BooleanField(default=True)  # type: ignore[var-annotated]
 
     class Meta:
         constraints = [
