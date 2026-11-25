@@ -15,9 +15,12 @@ def _codigo() -> dict[str, str]:
     return {a.name: a.read_text(encoding="utf-8") for a in APP.rglob("*.py")}
 
 
-def test_inventory_nao_importa_rooms_nem_economy() -> None:
-    """Núcleo não importa núcleo sem motivo: o inventário não conhece grupo nem carteira."""
-    proibidos = ("apps.rooms", "apps.economy")
+def test_inventory_nao_importa_rooms_economy_nem_trades() -> None:
+    """Núcleo não importa núcleo sem motivo: o inventário não conhece grupo, carteira nem troca.
+
+    `trades` trava item pelo gancho `register_move_guard` (I-6), sem que o núcleo o importe.
+    """
+    proibidos = ("apps.rooms", "apps.economy", "apps.trades")
     assert "models.py" in _codigo(), "apps.inventory não existe"
     achados = [
         f"{nome}: {linha.strip()}"

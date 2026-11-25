@@ -259,6 +259,38 @@ def test_criar_detecta_a_troca_de_dono_ocorrida_enquanto_esperava_a_trava(
     assert TradeOffer.objects.count() == 0
 
 
+def test_change_owner_le_a_guarda_sob_a_trava_da_instancia(cena: SimpleNamespace) -> None:
+    """Uma vizinha segura a1, cria a oferta com a1 e comita; o `change_owner` já estava na fila.
+
+    O `change_owner` tem de obter a trava da instância ANTES de consultar a guarda: assim a guarda
+    enxerga a oferta confirmada e recusa (`ItemLocked`), e o dono não muda. Mutação que derruba
+    este teste: tirar o `select_for_update()` de `change_owner`. Ele leria a1 livre, a guarda não
+    veria oferta (a vizinha ainda não comitou), e só o `UPDATE` esperaria a vizinha; ao acordar,
+    moveria a1 para carla e deixaria a oferta pendente presa. Quem discrimina é o `ItemLocked`
+    do resultado, não o `esperou` (o `UPDATE` também espera).
+    """
+
+    def mover() -> Any:
+        # `_Disparo` só devolve `TradeError` como valor; `ItemLocked` é de `inventory`.
+        try:
+            return inventory_services.change_owner(
+                cena.a1.id, from_owner=cena.ana, to_owner=cena.carla
+            )
+        except inventory_services.ItemLocked as erro:
+            return erro
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_instancia(cena.a1),
+        depois=lambda: services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id]),
+        operacao=mover,
+    )
+
+    assert esperou, "o change_owner não chegou a esperar a vizinha"
+    assert isinstance(resultado, inventory_services.ItemLocked)
+    assert _dono(cena.a1) == cena.ana.id
+    assert TradeOffer.objects.filter(status="pending").count() == 1
+
+
 # --- ordem de trava das instâncias (criar e aceitar) --------------------------------------------
 
 
@@ -389,7 +421,8 @@ def test_aceite_confere_dono_e_consumo_sob_a_trava_das_instancias(
     oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
 
     def trocar_dono() -> None:
-        inventory_services.change_owner(cena.a1.id, from_owner=cena.ana, to_owner=cena.carla)
+        # Por fora da porta: o `change_owner` recusa item em oferta pendente (`ItemLocked`).
+        SkinInstance.objects.filter(pk=cena.a1.pk).update(owner=cena.carla)
 
     def consumir() -> None:
         SkinInstance.objects.filter(pk=cena.a1.pk).update(consumed_at=datetime.now(UTC))
