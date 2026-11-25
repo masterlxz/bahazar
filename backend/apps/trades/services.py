@@ -1,10 +1,14 @@
 """Casca transacional das trocas de itens: trava, revalida, troca os donos e grava o estado.
 
-Trava, sempre nesta ordem global (a mesma regra de `economy.post_entries`, para nunca cruzar
-esperas): os DOIS jogadores por id, depois a oferta, depois as instâncias por UUID. Recusar e
-cancelar só travam a oferta. A posse do item só muda em `inventory.services.change_owner`.
+Ordem global de trava: os DOIS jogadores por id (a mesma de `friends.services`, que trava o par
+antes de pedir, aceitar, bloquear ou remover), depois a oferta, depois as instâncias por UUID.
+Criar e aceitar seguem essa ordem inteira; recusar e cancelar só travam a oferta. Operações que
+seguem uma ordem global única não formam ciclo de espera entre si; isso vale também para as FKs
+dos inserts, que tomam KEY SHARE em linhas que a transação já travou. A posse do item só muda em
+`inventory.services.change_owner`.
 """
 
+import re
 import uuid
 from collections.abc import Sequence
 
@@ -100,13 +104,28 @@ class OfferNotPending(TradeError):
     message = "Esta troca já foi resolvida."
 
 
+_CONSTRAINT_NO_TEXTO = re.compile(r'constraint "([^"]+)"')
+
+
 def violated_constraint(erro: IntegrityError) -> str | None:
-    raise NotImplementedError
+    """O nome da constraint que o banco acusou, ou `None` se não der para saber.
+
+    Lê do `diag` do driver (`constraint_name`), que não depende do idioma nem do formato da
+    mensagem. Sem `diag`, cai para o texto da mensagem, que cita `constraint "nome"`.
+    """
+    diag = getattr(erro.__cause__, "diag", None)
+    nome = getattr(diag, "constraint_name", None)
+    if nome:
+        return str(nome)
+    achado = _CONSTRAINT_NO_TEXTO.search(str(erro))
+    return achado.group(1) if achado else None
 
 
 _FALHAS_DA_FORMA: dict[str, type[TradeError]] = {
     rules.SELF_TRADE: SelfTrade,
     rules.EMPTY_SIDE: EmptySide,
+    rules.INVALID_ID: InvalidItemId,
+    rules.TOO_MANY_ITEMS: TooManyItems,
     rules.DUPLICATE_ITEM: DuplicateItem,
 }
 
@@ -143,36 +162,39 @@ def create_offer(
 ) -> TradeOffer:
     """O proponente oferece itens seus e pede itens do destinatário (só entre amigos aceitos).
 
-    Não trava as instâncias: o dono é conferido de novo, sob trava, no aceite. Quem arbitra a
-    corrida de duas ofertas com a mesma instância é o índice único parcial do banco; a checagem
-    em Python só dá a resposta limpa no caso comum. Os itens entram em ordem de UUID: duas
-    ofertas concorrentes que dividem itens esperam uma à outra na MESMA direção, sem deadlock.
+    Segue a mesma ordem de trava do aceite: os dois jogadores por id, depois as instâncias por
+    UUID. Amizade, teto de pendentes, dono, consumo e ocupação são conferidos SOB essa trava,
+    antes de gravar: lendo antes dela, uma troca de dono no meio deixaria uma oferta obsoleta.
+    O índice único parcial do banco continua como rede de segurança (e é ele quem recusa se uma
+    checagem em Python deixar passar); o `IntegrityError` dele vira `ItemAlreadyOffered`.
     """
     problema = rules.offer_shape_problem(proposer.pk, recipient.pk, offered_ids, requested_ids)
     if problema is not None:
         raise _FALHAS_DA_FORMA[problema]
-    if not friends_selectors.can_view(proposer, recipient):
-        raise NotFriends
-    instancias = {
-        i.pk: i for i in SkinInstance.objects.filter(pk__in=[*offered_ids, *requested_ids])
-    }
-    _conferir_itens(
-        instancias,
-        [(i, proposer.pk) for i in offered_ids] + [(i, recipient.pk) for i in requested_ids],
-    )
-    if selectors.busy_instance_ids([*offered_ids, *requested_ids]):
-        raise ItemAlreadyOffered
-    lados = dict.fromkeys(offered_ids, TradeSide.OFFERED)
-    lados.update(dict.fromkeys(requested_ids, TradeSide.REQUESTED))
+    todos = [*offered_ids, *requested_ids]
+    esperados = [(i, proposer.pk) for i in offered_ids]
+    esperados += [(i, recipient.pk) for i in requested_ids]
     try:
         with transaction.atomic():
+            _travar_jogadores(proposer.pk, recipient.pk)
+            if not friends_selectors.can_view(proposer, recipient):
+                raise NotFriends
+            if rules.pending_limit_exceeded(selectors.pending_count(proposer)):
+                raise TooManyPendingOffers
+            travadas = SkinInstance.objects.select_for_update().filter(pk__in=todos)
+            instancias = {i.pk: i for i in travadas.order_by("pk")}
+            _conferir_itens(instancias, esperados)
+            if selectors.busy_instance_ids(todos):
+                raise ItemAlreadyOffered
+            lados = dict.fromkeys(offered_ids, TradeSide.OFFERED)
+            lados.update(dict.fromkeys(requested_ids, TradeSide.REQUESTED))
             oferta = TradeOffer.objects.create(proposer=proposer, recipient=recipient)
             for instance_id in sorted(lados):
                 TradeOfferItem.objects.create(
                     offer=oferta, instance_id=instance_id, side=lados[instance_id]
                 )
     except IntegrityError as erro:
-        if _ONE_ACTIVE_PER_INSTANCE not in str(erro):
+        if violated_constraint(erro) != _ONE_ACTIVE_PER_INSTANCE:
             raise
         raise ItemAlreadyOffered from erro
     return oferta
@@ -186,8 +208,9 @@ def _dono_declarado(oferta: TradeOffer, item: TradeOfferItem) -> uuid.UUID:
 def _travar_jogadores(*ids: uuid.UUID) -> None:
     """Trava as linhas dos jogadores em ordem de id, a mesma de `friends.services`.
 
-    Assim, aceitar uma troca e desfazer a amizade (ou aceitar duas ofertas cruzadas) nunca
-    esperam em ordem oposta.
+    Assim, criar ou aceitar uma troca e uma operação de `friends.services` sobre o mesmo par
+    (que também trava por id) nunca esperam em ordem oposta. Sem o `order_by`, o Postgres trava
+    na ordem em que lê, que não é a de id.
     """
     list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
 

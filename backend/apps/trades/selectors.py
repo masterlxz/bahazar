@@ -7,7 +7,7 @@ from django.db.models import Q
 
 from apps.accounts.models import User
 
-from .models import TradeOffer, TradeOfferItem
+from .models import TradeOffer, TradeOfferItem, TradeStatus
 
 
 def offer_for_party(user: User, offer_id: uuid.UUID) -> TradeOffer | None:
@@ -21,6 +21,11 @@ def offer_for_party(user: User, offer_id: uuid.UUID) -> TradeOffer | None:
         .select_related("proposer", "recipient")
         .first()
     )
+
+
+def pending_count(proposer: User) -> int:
+    """Quantas ofertas pendentes `proposer` tem como proponente (recusar e cancelar liberam)."""
+    return TradeOffer.objects.filter(proposer=proposer, status=TradeStatus.PENDING).count()
 
 
 def busy_instance_ids(instance_ids: Iterable[uuid.UUID]) -> set[uuid.UUID]:

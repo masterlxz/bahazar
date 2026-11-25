@@ -43,14 +43,20 @@ def offer_shape_problem(
 ) -> str | None:
     """O primeiro problema que a oferta tem só pela forma, ou `None`.
 
-    A ordem é parte do contrato: quem troca, depois o tamanho de cada lado, depois repetição.
-    Um item repetido vale tanto dentro de um lado quanto entre os dois lados.
+    A ordem é parte do contrato: quem troca, lado vazio, id que não é `uuid.UUID`, teto por lado
+    e, por último, repetição. Um item repetido vale tanto dentro de um lado quanto entre os dois.
+    Os ids chegam de fora (corpo de requisição), então o tipo é conferido aqui: um texto com
+    cara de UUID também é recusado, quem chama converte antes.
     """
     if proposer_id == recipient_id:
         return SELF_TRADE
     if not offered or not requested:
         return EMPTY_SIDE
     todos = [*offered, *requested]
+    if not all(isinstance(i, uuid.UUID) for i in todos):
+        return INVALID_ID
+    if max(len(offered), len(requested)) > MAX_ITEMS_PER_SIDE:
+        return TOO_MANY_ITEMS
     if len(set(todos)) != len(todos):
         return DUPLICATE_ITEM
     return None
@@ -71,7 +77,8 @@ def item_problem(
 
 
 def pending_limit_exceeded(pending: int) -> bool:
-    raise NotImplementedError
+    """Quem já tem `MAX_PENDING_PER_PROPOSER` ofertas pendentes não abre a próxima."""
+    return pending >= MAX_PENDING_PER_PROPOSER
 
 
 def can_resolve(status: str) -> bool:
