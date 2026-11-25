@@ -12,9 +12,11 @@ from typing import Any
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import IntegrityError
 from pytest import MonkeyPatch
 
 from apps.economy import audit, idempotency, idempotency_expiry, services
+from apps.economy.idempotency_expiry import MAX_DAYS
 from apps.economy.models import IdempotencyRecord, Wallet, WalletTransaction
 
 from .conftest import T0
@@ -63,7 +65,7 @@ def test_apaga_os_mais_velhos_que_o_corte_e_mantem_o_mais_novo() -> None:
     saida = _expirar("--days", "2")
 
     assert _ids() == {novo.pk}
-    assert "Apagados 2 registro(s)" in saida
+    assert "Apagados 2 registro(s) de idempotência com mais de 2 dia(s)" in saida
 
 
 def test_registro_exatamente_no_corte_e_mantido() -> None:
@@ -86,12 +88,12 @@ def test_dry_run_so_conta_e_nao_apaga() -> None:
 
     assert _ids() == antes
     assert "Dry-run" in saida
-    assert "3 registro(s)" in saida
+    assert "3 registro(s) de idempotência com mais de 2 dia(s)" in saida
     assert "Nada foi apagado" in saida
 
 
-@pytest.mark.parametrize("dias", ["0", "-3"])
-def test_days_menor_que_1_e_recusado_e_nao_apaga_nada(dias: str) -> None:
+@pytest.mark.parametrize("dias", ["0", "-3", str(MAX_DAYS + 1), str(10**9)])
+def test_days_fora_de_1_a_max_e_recusado_e_nao_apaga_nada(dias: str) -> None:
     _registro(30 * DIA)
     _registro(1 * DIA)
     antes = _ids()
@@ -110,7 +112,27 @@ def test_sem_argumento_a_retencao_padrao_e_de_7_dias() -> None:
     saida = _expirar()
 
     assert _ids() == {no_corte.pk, seis.pk}
-    assert "Apagados 1 registro(s)" in saida
+    assert "Apagados 1 registro(s) de idempotência com mais de 7 dia(s)" in saida
+
+
+def test_days_1_e_o_piso_aceito_apaga_acima_de_1_dia_e_mantem_o_de_exatamente_1() -> None:
+    no_corte = _registro(1 * DIA)  # created_at == T0 - 1 dia: mantido
+    _registro(1 * DIA + timedelta(microseconds=1))
+
+    saida = _expirar("--days", "1")
+
+    assert _ids() == {no_corte.pk}
+    assert "Apagados 1 registro(s) de idempotência com mais de 1 dia(s)" in saida
+
+
+def test_days_no_teto_e_aceito_sem_estourar() -> None:
+    recente = _registro(1 * DIA)
+    _registro((MAX_DAYS + 1) * DIA)  # um dia além do teto: expira
+
+    saida = _expirar("--days", str(MAX_DAYS))
+
+    assert _ids() == {recente.pk}
+    assert f"com mais de {MAX_DAYS} dia(s)" in saida
 
 
 def test_apagar_nao_toca_no_ledger_nem_nas_carteiras(ana: Any, bruno: Any) -> None:
@@ -180,11 +202,54 @@ def test_funcao_usa_o_now_recebido_e_devolve_a_contagem() -> None:
     assert (apagados, IdempotencyRecord.objects.count()) == (1, 0)
 
 
-@pytest.mark.parametrize("dias", [0, -1])
-def test_funcao_recusa_days_menor_que_1_e_nao_apaga(dias: int) -> None:
+def test_funcao_com_days_1_apaga_acima_de_1_dia_e_mantem_o_de_exatamente_1() -> None:
+    no_corte = _registro(1 * DIA)
+    _registro(1 * DIA + timedelta(microseconds=1))
+
+    apagados = idempotency_expiry.expire_records(days=1, now=T0)
+
+    assert (apagados, _ids()) == (1, {no_corte.pk})
+
+
+def test_funcao_com_days_no_teto_aceita_e_nao_estoura() -> None:
+    recente = _registro(1 * DIA)
+    _registro((MAX_DAYS + 1) * DIA)
+
+    apagados = idempotency_expiry.expire_records(days=MAX_DAYS, now=T0)
+
+    assert (apagados, _ids()) == (1, {recente.pk})
+
+
+@pytest.mark.parametrize("dias", [0, -1, MAX_DAYS + 1, 10**9])
+def test_funcao_recusa_days_fora_de_1_a_max_e_nao_apaga(dias: int) -> None:
     _registro(30 * DIA)
 
     with pytest.raises(ValueError, match="days"):
-        idempotency_expiry.expire_records(days=dias)
+        idempotency_expiry.expire_records(days=dias, now=T0)
 
     assert IdempotencyRecord.objects.count() == 1
+
+
+def test_transferencia_repetida_depois_de_expirar_nao_move_dinheiro_de_novo(
+    ana: Any, bruno: Any
+) -> None:
+    """A defesa real contra a dupla gravação é o UNIQUE do ledger, não o registro de idempotência.
+
+    Depois de expirar o registro, o mesmo `transfer` (mesma chave, mesmo pedido) executa a
+    operação de novo, mas o `UNIQUE(wallet, idempotency_key)` do ledger recusa a segunda
+    gravação. Este teste cai se `post_entries` deixar de gravar a chave no ledger
+    (`idempotency_key=...` em `transfer`) ou se a restrição `wallettx_unique_idempotency_key`
+    sair do modelo.
+    """
+    chave = str(uuid.uuid4())
+    services.transfer(ana, bruno, 1_000, idempotency_key=chave)
+    ledger, saldos = _ledger(), _saldos()
+    IdempotencyRecord.objects.update(created_at=T0 - 30 * DIA)
+
+    assert idempotency_expiry.expire_records(days=7, now=T0) == 1
+    with pytest.raises(IntegrityError, match="wallettx_unique_idempotency_key"):
+        services.transfer(ana, bruno, 1_000, idempotency_key=chave)
+
+    assert (_ledger(), _saldos()) == (ledger, saldos)
+    assert IdempotencyRecord.objects.count() == 0  # o registro novo desfez junto com a operação
+    assert audit.check_ledger() == []

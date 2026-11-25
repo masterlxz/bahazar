@@ -2,7 +2,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
-from apps.economy.idempotency_expiry import expire_records
+from apps.economy.idempotency_expiry import MAX_DAYS, expire_records
 
 DEFAULT_DAYS = 7
 
@@ -18,7 +18,7 @@ class Command(BaseCommand):
             "--days",
             type=int,
             default=DEFAULT_DAYS,
-            help="Retenção em dias, inteiro >= 1 (padrão: %(default)s).",
+            help=f"Retenção em dias, inteiro de 1 a {MAX_DAYS} (padrão: %(default)s).",
         )
         parser.add_argument(
             "--dry-run",
@@ -29,8 +29,8 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         days: int = options["days"]
         dry_run: bool = options["dry_run"]
-        if days < 1:
-            raise CommandError(f"--days deve ser um inteiro >= 1 (recebi {days}).")
+        if not 1 <= days <= MAX_DAYS:
+            raise CommandError(f"--days deve estar entre 1 e {MAX_DAYS} (recebi {days}).")
 
         total = expire_records(days=days, dry_run=dry_run)
         if dry_run:
