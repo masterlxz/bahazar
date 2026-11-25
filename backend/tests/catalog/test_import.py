@@ -322,7 +322,7 @@ def test_import_catalog_from_api_cria_skin_com_preco(mock_urlopen: MagicMock, es
 
 @patch("apps.catalog.importer.urlopen")
 def test_import_catalog_from_api_envia_authorization_com_api_key(mock_urlopen: MagicMock, escrever: Escrever) -> None:
-    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
+    from apps.catalog.importer import import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response([
