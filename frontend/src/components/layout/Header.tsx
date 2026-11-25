@@ -47,6 +47,9 @@ export default function Header() {
               <Link to="/grupos" className="hover:underline">
                 Grupos
               </Link>
+              <Link to="/skins" className="hover:underline">
+                Skins
+              </Link>
               <Link to="/inventario" className="hover:underline">
                 Inventário
               </Link>

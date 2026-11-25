@@ -6,6 +6,7 @@ import {
   BLOCKS,
   CARLA,
   ERRO_NAO_ENCONTRADO,
+  FACETS,
   FRIENDS,
   ITEM_AK,
   ITEM_AWP,
@@ -42,6 +43,7 @@ function simular(rotas: Record<string, MockHandler>) {
       logado = false;
       return { status: 401, body: SESSION_ANONIMA };
     },
+    "GET /api/v1/catalog/facets/": { status: 200, body: FACETS },
     ...rotas,
   });
 }
@@ -132,12 +134,13 @@ describe("InventoryPage: o meu inventário", () => {
 });
 
 describe("InventoryPage: filtros, ordenação e paginação", () => {
-  it("Aplicar monta a query com raridade, arma, desgaste e busca (sem espaços nas pontas)", async () => {
+  it("Aplicar monta a query com raridade, arma, coleção, desgaste e busca (sem espaços nas pontas)", async () => {
     const m = simular({
       [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK, ITEM_AWP]) },
       [inventoryRoute({
         rarity: "Mil-Spec Grade",
         weapon: "AWP",
+        collection: "Phoenix",
         wear: "Well-Worn",
         q: "dune",
       })]: { status: 200, body: pagina([ITEM_BARATO]) },
@@ -145,8 +148,11 @@ describe("InventoryPage: filtros, ordenação e paginação", () => {
     renderApp("/inventario");
     await screen.findByText("Redline");
 
+    await waitFor(() => expect(screen.getByLabelText("Raridade")).toBeInTheDocument());
+
     fireEvent.change(screen.getByLabelText("Raridade"), { target: { value: "Mil-Spec Grade" } });
     fireEvent.change(screen.getByLabelText("Arma"), { target: { value: "AWP" } });
+    fireEvent.change(screen.getByLabelText("Coleção"), { target: { value: "Phoenix" } });
     fireEvent.change(screen.getByLabelText("Desgaste"), { target: { value: "Well-Worn" } });
     fireEvent.change(screen.getByLabelText("Buscar por nome"), { target: { value: "  dune " } });
     fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
@@ -155,7 +161,7 @@ describe("InventoryPage: filtros, ordenação e paginação", () => {
     expect(screen.queryByText("Redline")).not.toBeInTheDocument();
     expect(
       m.callsTo(
-        inventoryRoute({ rarity: "Mil-Spec Grade", weapon: "AWP", wear: "Well-Worn", q: "dune" }),
+        inventoryRoute({ rarity: "Mil-Spec Grade", weapon: "AWP", collection: "Phoenix", wear: "Well-Worn", q: "dune" }),
       ),
     ).toHaveLength(1);
   });
@@ -182,6 +188,61 @@ describe("InventoryPage: filtros, ordenação e paginação", () => {
       "Field-Tested",
       "Well-Worn",
       "Battle-Scarred",
+    ]);
+  });
+
+  it("o filtro de raridade oferece as raridades das facets", async () => {
+    simular({ [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK]) } });
+    renderApp("/inventario");
+    await screen.findByText("Redline");
+
+    await waitFor(() => expect(screen.getByLabelText("Raridade")).toBeInTheDocument());
+
+    const opcoes = within(screen.getByLabelText("Raridade")).getAllByRole("option");
+    expect(opcoes.map((o) => o.textContent)).toEqual([
+      "Todas",
+      "Consumer Grade",
+      "Industrial Grade",
+      "Mil-Spec Grade",
+      "Restricted",
+      "Classified",
+      "Covert",
+      "Contraband",
+    ]);
+  });
+
+  it("o filtro de arma oferece as armas das facets", async () => {
+    simular({ [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK]) } });
+    renderApp("/inventario");
+    await screen.findByText("Redline");
+
+    await waitFor(() => expect(screen.getByLabelText("Arma")).toBeInTheDocument());
+
+    const opcoes = within(screen.getByLabelText("Arma")).getAllByRole("option");
+    expect(opcoes.map((o) => o.textContent)).toEqual([
+      "Todas",
+      "AK-47",
+      "AWP",
+      "Glock-18",
+      "M4A4",
+      "P250",
+    ]);
+  });
+
+  it("o filtro de coleção oferece as coleções das facets", async () => {
+    simular({ [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK]) } });
+    renderApp("/inventario");
+    await screen.findByText("Redline");
+
+    await waitFor(() => expect(screen.getByLabelText("Coleção")).toBeInTheDocument());
+
+    const opcoes = within(screen.getByLabelText("Coleção")).getAllByRole("option");
+    expect(opcoes.map((o) => o.textContent)).toEqual([
+      "Todas",
+      "Phoenix",
+      "Dust",
+      "Chroma",
+      "Gamma",
     ]);
   });
 
@@ -262,6 +323,7 @@ describe("InventoryPage: filtros, ordenação e paginação", () => {
     renderApp("/inventario?weapon=AWP&ordering=name");
 
     expect(await screen.findByText("Asiimov")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText("Arma")).toBeInTheDocument());
     expect(screen.getByLabelText("Arma")).toHaveValue("AWP");
     expect(screen.getByLabelText("Ordenar por")).toHaveValue("name");
     expect(m.callsTo(inventoryRoute({ weapon: "AWP", ordering: "name" }))).toHaveLength(1);
@@ -301,6 +363,7 @@ describe("InventoryPage: erros do servidor", () => {
     expect(m.callsTo(inventoryRoute({ wear: "Quebrado" }))).toHaveLength(1);
     // A tela continua inteira: título, formulário e o select já sem o valor inválido.
     expect(screen.getByRole("heading", { name: "Inventário" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText("Desgaste")).toBeInTheDocument());
     expect(screen.getByLabelText("Desgaste")).toHaveValue("");
     expect(screen.queryByRole("list", { name: "Itens do inventário" })).not.toBeInTheDocument();
 
@@ -322,6 +385,48 @@ describe("InventoryPage: erros do servidor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Voltar à primeira página" }));
 
     expect(await screen.findByText("Redline")).toBeInTheDocument();
+  });
+
+  it("usa as facets do catálogo para preencher os selects (raridade, arma, coleção, desgaste)", async () => {
+    const m = simular({
+      [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK, ITEM_AWP, ITEM_BARATO]) },
+    });
+
+    renderApp("/inventario");
+    await screen.findByText("Redline");
+
+    await waitFor(() => expect(screen.getByLabelText("Raridade")).toBeInTheDocument());
+
+    const raridade = within(screen.getByLabelText("Raridade")).getAllByRole("option");
+    expect(raridade.map((o) => o.textContent)).toEqual([
+      "Todas",
+      "Consumer Grade",
+      "Industrial Grade",
+      "Mil-Spec Grade",
+      "Restricted",
+      "Classified",
+      "Covert",
+      "Contraband",
+    ]);
+
+    const arma = within(screen.getByLabelText("Arma")).getAllByRole("option");
+    expect(arma.map((o) => o.textContent)).toEqual(["Todas", "AK-47", "AWP", "Glock-18", "M4A4", "P250"]);
+
+    const colecao = within(screen.getByLabelText("Coleção")).getAllByRole("option");
+    expect(colecao.map((o) => o.textContent)).toEqual(["Todas", "Phoenix", "Dust", "Chroma", "Gamma"]);
+
+    const desgaste = within(screen.getByLabelText("Desgaste")).getAllByRole("option");
+    expect(desgaste.map((o) => o.textContent)).toEqual([
+      "Todos",
+      "Factory New",
+      "Minimal Wear",
+      "Field-Tested",
+      "Well-Worn",
+      "Battle-Scarred",
+    ]);
+
+    // Verifica que a chamada de facets foi feita
+    expect(m.callsTo("GET /api/v1/catalog/facets/")).toHaveLength(1);
   });
 
   it.each([

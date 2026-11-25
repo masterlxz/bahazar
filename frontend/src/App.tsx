@@ -10,6 +10,7 @@ import InventoryPage from "./features/inventory/InventoryPage";
 import ProfilePage from "./features/profile/ProfilePage";
 import RoomDetailPage from "./features/rooms/RoomDetailPage";
 import RoomsPage from "./features/rooms/RoomsPage";
+import SkinsPage from "./features/skins/SkinsPage";
 import WalletPage from "./features/wallet/WalletPage";
 
 export default function App() {
@@ -49,6 +50,14 @@ export default function App() {
           element={
             <RequireAuth>
               <RoomDetailPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/skins"
+          element={
+            <RequireAuth>
+              <SkinsPage />
             </RequireAuth>
           }
         />

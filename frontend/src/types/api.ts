@@ -160,3 +160,43 @@ export interface AllauthErrorBody {
   status: number;
   errors?: AllauthError[];
 }
+
+/**
+ * Skin do catálogo (lista): `CatalogSkinSerializer` (apps/catalog/serializers.py, lido em 2026-11-25).
+ * `image_url` vem vazio (D1: placeholders por raridade); `image_source = "none"`.
+ */
+export interface CatalogSkin {
+  id: string;
+  name: string;
+  weapon: string;
+  rarity: string;
+  collection: string | null;
+  image_url: string | null;
+  image_source: "none" | "placeholder" | "steam";
+}
+
+/** Skin do catálogo (detalhe): `CatalogSkinDetailSerializer` (lido em 2026-11-25). */
+export interface CatalogSkinDetail extends CatalogSkin {
+  description: string;
+  min_float: number;
+  max_float: number;
+}
+
+/** Facets do catálogo para filtros: `CatalogFacetsView` (apps/catalog/views.py, lido em 2026-11-25). */
+export interface CatalogFacets {
+  rarities: string[];
+  weapons: string[];
+  collections: string[];
+  wears: string[];
+}
+
+/** Consulta ao catálogo (nomes iguais aos parâmetros da API). */
+export interface CatalogQuery {
+  rarity?: string;
+  weapon?: string;
+  collection?: string;
+  wear?: string;
+  q?: string;
+  ordering?: string;
+  page?: number;
+}
