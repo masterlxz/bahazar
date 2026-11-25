@@ -267,7 +267,9 @@ def accept_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
                 de, para = previa.proposer, previa.recipient
             else:
                 de, para = previa.recipient, previa.proposer
-            inventory_services.change_owner(item.instance_id, from_owner=de, to_owner=para)
+            inventory_services.change_owner(
+                item.instance_id, from_owner=de, to_owner=para, authorized_by=oferta.pk
+            )
         return _encerrar(oferta, rules.ACCEPT)
 
 

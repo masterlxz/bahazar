@@ -85,21 +85,20 @@ def test_os_erros_sao_de_inventario_com_codigo_estavel() -> None:
 
 
 # --- guardas de movimentação (I-6): um módulo pode travar o item, o núcleo não o conhece ---
-# Os nomes novos vêm de `getattr`: assim o commit só-de-teste passa no mypy e chega ao pytest.
 
 
 def _item_locked() -> Any:
-    return getattr(services, "ItemLocked")  # noqa: B009
+    return services.ItemLocked
 
 
 def _registrar(guarda: Any) -> None:
-    getattr(services, "register_move_guard")(guarda)  # noqa: B009
+    services.register_move_guard(guarda)
 
 
 @pytest.fixture
 def guardas_isoladas() -> Any:
     """Devolve o registro de guardas ao que era: a guarda falsa de um teste não vaza."""
-    registro: list[Any] = getattr(services, "_MOVE_GUARDS")  # noqa: B009
+    registro: list[Any] = services._MOVE_GUARDS
     salvo = list(registro)
     yield
     registro[:] = salvo

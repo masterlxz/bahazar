@@ -5,7 +5,6 @@ velha ficaria presa e o índice `tradeitem_one_active_per_instance` impediria o 
 oferecê-lo. O cenário (`cena`) é de `conftest.py`: ana tem a1 e a2, bruno tem b1 e b2.
 """
 
-import importlib
 import uuid
 from types import SimpleNamespace
 from typing import Any
@@ -14,19 +13,18 @@ import pytest
 
 from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
-from apps.trades import services
+from apps.trades import guards, services
 from apps.trades.models import TradeOffer, TradeStatus
 
 from .conftest import criar_instancia
 
 pytestmark = pytest.mark.django_db
 
-# Lidos por `getattr` para o commit só-de-teste passar no mypy e chegar ao pytest.
-mover: Any = inventory_services.change_owner
+mover = inventory_services.change_owner
 
 
 def _item_locked() -> Any:
-    return getattr(inventory_services, "ItemLocked")  # noqa: B009
+    return inventory_services.ItemLocked
 
 
 def _oferecer(cena: SimpleNamespace) -> TradeOffer:
@@ -40,10 +38,7 @@ def _dono(instancia: Any) -> uuid.UUID:
 
 def test_a_guarda_da_troca_esta_registrada() -> None:
     """Prova o `ready()` de `trades`: sem o registro, nada trava e o resto dos testes enganaria."""
-    guardas: list[Any] = getattr(inventory_services, "_MOVE_GUARDS")  # noqa: B009
-    guarda = importlib.import_module("apps.trades.guards").offer_guard
-
-    assert guarda in guardas
+    assert guards.offer_guard in inventory_services._MOVE_GUARDS
 
 
 @pytest.mark.parametrize("lado", ["oferecido", "pedido"])
