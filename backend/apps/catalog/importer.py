@@ -9,14 +9,13 @@ import inteiro numa transação só (nada é gravado pela metade). Os arquivos p
 """
 
 import json
-import os
 from base64 import b64encode
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from urllib.error import URLError, HTTPError
 
 from django.db import transaction
 

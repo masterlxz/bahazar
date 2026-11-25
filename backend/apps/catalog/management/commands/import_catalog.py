@@ -3,7 +3,6 @@ from base64 import b64encode
 from pathlib import Path
 from typing import Any
 from urllib.request import Request, urlopen
-from urllib.error import URLError, HTTPError
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
