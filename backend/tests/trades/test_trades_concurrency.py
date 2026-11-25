@@ -219,12 +219,10 @@ def test_criacoes_simultaneas_do_mesmo_proponente_respeitam_o_teto_de_pendentes(
     dar = [criar_instancia(cena.ana, skin) for _ in range(N)]
     pedir = [criar_instancia(cena.bruno, skin) for _ in range(N)]
 
-    resultados = _largar(
-        [
-            lambda i=i: services.create_offer(cena.ana, cena.bruno, [dar[i].id], [pedir[i].id])
-            for i in range(N)
-        ]
-    )
+    def propor(i: int) -> Callable[[], Any]:
+        return lambda: services.create_offer(cena.ana, cena.bruno, [dar[i].id], [pedir[i].id])
+
+    resultados = _largar([propor(i) for i in range(N)])
 
     nomes = sorted(type(r).__name__ for r in resultados)
     assert nomes == ["TooManyPendingOffers"] * (N - 2) + ["TradeOffer"] * 2
