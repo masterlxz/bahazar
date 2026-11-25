@@ -132,3 +132,95 @@ def test_banco_recusa_dois_registros_com_o_mesmo_escopo_e_chave() -> None:
 
     with pytest.raises(IntegrityError), transaction.atomic():
         IdempotencyRecord.objects.create(scope=ESCOPO, key=CHAVE, request_hash=OUTRO_HASH)
+
+
+# Expiração no meio da corrida: o `INSERT` de `run_once` falha porque o registro existe e, antes do
+# `SELECT` que o lê, `expire_idempotency` confirma o `DELETE` dele. Sem threads: o `get` trocado
+# apaga (ou finge ter apagado) o registro e só então delega ao `get` real.
+LIMITE_DE_SEGURANCA = 20  # se `run_once` insistir mais que isso, é laço sem limite
+
+
+def _expiracao_no_get(monkeypatch: pytest.MonkeyPatch, *, sempre: bool) -> list[int]:
+    """Troca `IdempotencyRecord.objects.get`; devolve a lista que ganha 1 item a cada chamada.
+
+    `sempre=False`: a 1ª chamada apaga o registro `(scope, key)` pedido e delega ao `get` real, que
+    então levanta `DoesNotExist`; as seguintes são o `get` real. `sempre=True`: toda chamada levanta
+    `DoesNotExist` sem apagar nada (o `INSERT` seguinte continua falhando).
+    """
+    get_real = IdempotencyRecord.objects.get
+    chamadas: list[int] = []
+
+    def get(*args: Any, **kwargs: Any) -> IdempotencyRecord:
+        chamadas.append(1)
+        if len(chamadas) > LIMITE_DE_SEGURANCA:
+            pytest.fail("run_once repetiu o get sem limite")
+        if sempre:
+            raise IdempotencyRecord.DoesNotExist
+        if len(chamadas) == 1:
+            IdempotencyRecord.objects.filter(**kwargs).delete()
+        return get_real(*args, **kwargs)
+
+    monkeypatch.setattr(IdempotencyRecord.objects, "get", get)
+    return chamadas
+
+
+def test_registro_expirado_entre_o_insert_e_o_select_refaz_o_insert_e_executa_uma_vez(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    IdempotencyRecord.objects.create(
+        scope=ESCOPO, key=CHAVE, request_hash=HASH, response_status=200, response_body={"velho": 1}
+    )
+    gets = _expiracao_no_get(monkeypatch, sempre=False)
+    chamadas: list[int] = []
+
+    saida = idempotency.run_once(
+        scope=ESCOPO, key=CHAVE, request_hash=HASH, operation=_operacao(chamadas, {"n": 1})
+    )
+
+    assert (saida.status, saida.body, saida.replayed) == (201, {"n": 1}, False)
+    assert chamadas == [1]  # a operação rodou exatamente uma vez
+    assert gets == [1]  # o get que perdeu o registro não foi repetido: o insert é que foi
+    registros = list(IdempotencyRecord.objects.all())
+    assert len(registros) == 1
+    registro = registros[0]
+    assert (registro.scope, registro.key, registro.request_hash) == (ESCOPO, CHAVE, HASH)
+    assert (registro.response_status, registro.response_body) == (201, {"n": 1})
+
+
+def test_registro_expirado_e_pedido_novo_mesmo_com_outro_hash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """O registro sumiu: a chave está livre, então o hash diferente não é `IdempotencyKeyReused`."""
+    IdempotencyRecord.objects.create(
+        scope=ESCOPO, key=CHAVE, request_hash=HASH, response_status=200, response_body={"velho": 1}
+    )
+    _expiracao_no_get(monkeypatch, sempre=False)
+    chamadas: list[int] = []
+
+    saida = idempotency.run_once(
+        scope=ESCOPO, key=CHAVE, request_hash=OUTRO_HASH, operation=_operacao(chamadas, {"n": 2})
+    )
+
+    assert (saida.status, saida.body, saida.replayed) == (201, {"n": 2}, False)
+    assert chamadas == [1]
+    registros = list(IdempotencyRecord.objects.all())
+    assert len(registros) == 1
+    assert registros[0].request_hash == OUTRO_HASH
+    assert (registros[0].response_status, registros[0].response_body) == (201, {"n": 2})
+
+
+def test_registro_que_some_a_cada_tentativa_esgota_o_limite_sem_executar_nem_pendurar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    IdempotencyRecord.objects.create(scope=ESCOPO, key=CHAVE, request_hash=HASH)
+    gets = _expiracao_no_get(monkeypatch, sempre=True)
+    chamadas: list[int] = []
+
+    with pytest.raises(RuntimeError, match="tentativas") as exc:
+        idempotency.run_once(
+            scope=ESCOPO, key=CHAVE, request_hash=HASH, operation=_operacao(chamadas, {"n": 1})
+        )
+
+    assert chamadas == []  # nunca chegou a executar a operação
+    assert len(gets) == idempotency.MAX_ATTEMPTS  # tentou o máximo e parou (sem laço infinito)
+    assert isinstance(exc.value.__cause__, IntegrityError)  # a causa real não se perdeu
