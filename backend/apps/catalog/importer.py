@@ -225,9 +225,9 @@ def _fetch_skinport_items(
         token = b64encode(f"{client_id}:{client_secret}".encode()).decode()
         headers["Authorization"] = f"Basic {token}"
 
-    req = Request(url, headers=headers)
+    req = Request(url, headers=headers)  # nosec B310 - URL is constant (Skinport API)
     try:
-        with urlopen(req, timeout=SKINPORT_TIMEOUT_SECONDS) as resp:
+        with urlopen(req, timeout=SKINPORT_TIMEOUT_SECONDS) as resp:  # nosec B310 - URL is constant (Skinport API)
             if resp.headers.get("Content-Encoding") == "br":
                 import brotli
                 data = brotli.decompress(resp.read())
