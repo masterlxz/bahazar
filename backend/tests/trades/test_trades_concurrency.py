@@ -17,6 +17,7 @@ import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -82,6 +83,10 @@ class _Disparo:
     GRAVADAS. Sem `ORDER BY`, o `FOR UPDATE` travaria nessa ordem; com `ORDER BY`, o Postgres
     ordena antes de travar. Os testes gravam o maior UUID primeiro, então tirar o `order_by` do
     serviço inverte a ordem de trava de forma certa, não por sorte do plano.
+
+    `enable_indexonlyscan` NÃO é desligado: hoje é irrelevante, porque o Django seleciona todas
+    as colunas e a varredura só de índice nunca se aplica. Se alguém trocar a leitura travada por
+    `.only("pk")`, a premissa muda e esse parâmetro também precisa ser desligado aqui.
     """
 
     def __init__(self, pool: ThreadPoolExecutor, operacao: Callable[[], Any]) -> None:
@@ -364,6 +369,86 @@ def test_aceite_espera_quem_segura_os_jogadores_e_depois_ve_a_amizade_desfeita(
     assert isinstance(resultado, services.NotFriends)
     assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.id, cena.bruno.id)
     assert TradeOffer.objects.get(pk=oferta.pk).status == "pending"
+
+
+# --- revalidação SOB trava (caracterização: o código já faz isto) --------------------------------
+
+
+@pytest.mark.parametrize("mudanca", ["dono", "consumo"])
+def test_aceite_confere_dono_e_consumo_sob_a_trava_das_instancias(
+    cena: SimpleNamespace, mudanca: str
+) -> None:
+    """A vizinha segura a1 e, antes de comitar, muda o dono ou consome o item; o aceite esperava.
+
+    O aceite tem de ler dono e consumo DEPOIS de obter a trava e recusar com o erro DA TROCA
+    (`ItemNotOwned`/`ItemConsumed`), sem mover nada. Mutação que derruba este teste: tirar o
+    `select_for_update()` da leitura das instâncias em `accept_offer`. O aceite então leria a1
+    sem esperar ou com o dono antigo, e o erro viria de dentro de `change_owner` (de
+    `inventory`, não de `trades`).
+    """
+    oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+
+    def trocar_dono() -> None:
+        inventory_services.change_owner(cena.a1.id, from_owner=cena.ana, to_owner=cena.carla)
+
+    def consumir() -> None:
+        SkinInstance.objects.filter(pk=cena.a1.pk).update(consumed_at=datetime.now(UTC))
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_instancia(cena.a1),
+        depois=trocar_dono if mudanca == "dono" else consumir,
+        operacao=lambda: services.accept_offer(cena.bruno, oferta.id),
+    )
+
+    esperado = services.ItemNotOwned if mudanca == "dono" else services.ItemConsumed
+    dono_de_a1 = cena.carla.id if mudanca == "dono" else cena.ana.id
+    assert esperou, "o aceite não esperou a trava da instância"
+    assert type(resultado) is esperado
+    assert (_dono(cena.a1), _dono(cena.b1)) == (dono_de_a1, cena.bruno.id)
+    assert TradeOffer.objects.get(pk=oferta.pk).status == "pending"
+
+
+def test_criar_confere_a_amizade_sob_a_trava_dos_jogadores(cena: SimpleNamespace) -> None:
+    """A vizinha segura os jogadores e desfaz a amizade antes de comitar; a criação esperava.
+
+    Mutação que derruba este teste: mover `can_view` para ANTES de `_travar_jogadores` em
+    `create_offer`. A criação leria a amizade ainda viva, esperaria a trava e gravaria a oferta
+    em vez de falhar com `NotFriends`.
+    """
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_usuarios(cena.ana, cena.bruno),
+        depois=lambda: friends_services.remove_friend(cena.ana, cena.bruno.username),
+        operacao=lambda: services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id]),
+    )
+
+    assert esperou, "a criação não esperou a trava dos jogadores"
+    assert type(resultado) is services.NotFriends
+    assert TradeOffer.objects.count() == 0
+
+
+def test_criar_confere_o_teto_de_pendentes_sob_a_trava_dos_jogadores(
+    cena: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A vizinha segura os jogadores e abre a 1a oferta de ana (teto 1); a criação esperava.
+
+    Mutação que derruba este teste: mover `selectors.pending_count` para ANTES de
+    `_travar_jogadores` em `create_offer`. A criação contaria 0 pendentes, esperaria a trava e
+    gravaria a oferta em vez de falhar com `TooManyPendingOffers`.
+    """
+    monkeypatch.setattr(rules, "MAX_PENDING_PER_PROPOSER", 1)
+
+    def abrir_outra() -> None:
+        services.create_offer(cena.ana, cena.bruno, [cena.a2.id], [cena.b2.id])
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_usuarios(cena.ana, cena.bruno),
+        depois=abrir_outra,
+        operacao=lambda: services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id]),
+    )
+
+    assert esperou, "a criação não esperou a trava dos jogadores"
+    assert type(resultado) is services.TooManyPendingOffers
+    assert TradeOffer.objects.count() == 1
 
 
 # --- aceites simultâneos (corrida pura) --------------------------------------------------------
