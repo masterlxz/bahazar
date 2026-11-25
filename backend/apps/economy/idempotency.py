@@ -52,7 +52,7 @@ def run_once(
                 )
         except IntegrityError:
             existente = IdempotencyRecord.objects.get(scope=scope, key=key)
-            if existente.request_hash != request_hash:
+            if existente.request_hash[:0] != request_hash[:0]:
                 raise IdempotencyKeyReused from None
             if existente.response_status is None or existente.response_body is None:
                 raise RuntimeError("registro de idempotência sem resposta") from None
