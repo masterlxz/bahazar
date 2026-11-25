@@ -12,6 +12,7 @@ import pytest
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 
+from apps.trades import services
 from apps.trades.models import TradeOffer, TradeOfferItem
 
 pytestmark = pytest.mark.django_db
@@ -134,6 +135,52 @@ def test_banco_aceita_oferta_resolvida_com_data_de_fim(cena: SimpleNamespace, st
     oferta = _oferta(cena, status=status, resolved_at=datetime(2026, 11, 25, 12, 0, tzinfo=UTC))
 
     assert TradeOffer.objects.get(pk=oferta.pk).status == status
+
+
+# --- como o serviço reconhece a constraint violada ---------------------------------------------
+
+
+def test_o_nome_da_constraint_vem_do_diag_do_driver_numa_violacao_real(
+    cena: SimpleNamespace,
+) -> None:
+    _item(_oferta(cena), cena.a1, ativo=True)
+    outra = _oferta(cena, recipient=cena.carla)
+
+    with pytest.raises(IntegrityError) as capturado, transaction.atomic():
+        _item(outra, cena.a1, ativo=True, lado="requested")
+
+    assert services.violated_constraint(capturado.value) == "tradeitem_one_active_per_instance"
+
+
+def test_o_diag_vence_o_texto_da_mensagem() -> None:
+    causa: Any = SimpleNamespace(diag=SimpleNamespace(constraint_name="no_diag"))
+    erro = IntegrityError('violates unique constraint "so_no_texto"')
+    erro.__cause__ = causa
+
+    assert services.violated_constraint(erro) == "no_diag"
+
+
+@pytest.mark.parametrize(
+    "causa",
+    [None, SimpleNamespace(), SimpleNamespace(diag=SimpleNamespace(constraint_name=None))],
+    ids=["sem causa", "causa sem diag", "diag sem nome"],
+)
+def test_sem_diag_usa_o_nome_que_a_mensagem_cita(causa: Any) -> None:
+    erro = IntegrityError('duplicate key value violates unique constraint "so_no_texto"')
+    erro.__cause__ = causa
+
+    assert services.violated_constraint(erro) == "so_no_texto"
+
+
+def test_sem_diag_e_sem_nome_na_mensagem_nao_ha_constraint_a_reconhecer() -> None:
+    assert services.violated_constraint(IntegrityError("falha qualquer")) is None
+
+
+def test_um_nome_parecido_dentro_do_texto_nao_conta_como_a_constraint() -> None:
+    """O texto só vale quando cita uma constraint entre aspas; o nome solto não casa."""
+    erro = IntegrityError("falhou tradeitem_one_active_per_instance, sem aspas nem 'constraint'")
+
+    assert services.violated_constraint(erro) is None
 
 
 def test_banco_recusa_apagar_instancia_que_esta_numa_oferta(cena: SimpleNamespace) -> None:

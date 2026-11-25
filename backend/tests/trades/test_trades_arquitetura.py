@@ -46,6 +46,17 @@ def test_rules_nao_importa_django_nem_outros_apps() -> None:
     assert achados == []
 
 
+def test_os_estados_de_rules_sao_os_mesmos_do_modelo() -> None:
+    """`rules` é puro e repete os textos dos estados; este teste impede que se separem."""
+    from apps.trades import rules
+    from apps.trades.models import TradeStatus
+
+    de_rules = (rules.PENDING, rules.ACCEPTED, rules.DECLINED, rules.CANCELLED)
+
+    assert de_rules == tuple(TradeStatus)
+    assert set(de_rules) == set(TradeStatus.values)
+
+
 def test_ninguem_fora_de_inventory_services_troca_dono_de_item() -> None:
     """GUIDELINES 2: `trades` chama `change_owner`; nunca escreve `owner` da instância."""
     escrita_direta = re.compile(r"\.owner\s*=[^=]|\.owner_id\s*=[^=]|\.update\([^)]*owner")

@@ -2,27 +2,46 @@
 
 Posse de item é área de risco (AGENTS §4): o que importa aqui é o INVARIANTE depois da corrida
 (um dono por item, uma oferta pendente por item), não só que ninguém recebeu erro 500.
+
+Dois tipos de teste, e a diferença importa:
+- corrida pura (`_largar`, N threads numa barreira): depende do agendamento; um verde não prova
+  que a trava existe, só que esta intercalação não quebrou nada;
+- disputa determinística (`_disputar`): uma transação "vizinha" segura uma trava, a operação
+  testada roda noutra thread e o teste PROVA, pela fila em `pg_locks` do backend dela, que a
+  operação esperou. A linha segurada usa `FOR NO KEY UPDATE` (`no_key=True`): com `FOR UPDATE`
+  a FK do filho (KEY SHARE) bloquearia sozinha e o teste passaria SEM a trava do serviço.
 """
 
 import threading
 import time
 import uuid
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from django.db import connection, transaction
 
+from apps.accounts.models import User
+from apps.friends import services as friends_services
+from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
-from apps.trades import services
+from apps.trades import rules, services
 from apps.trades.models import TradeOffer, TradeOfferItem
 
 from .conftest import criar_instancia, criar_usuario, tornar_amigos
 
 N = 6
 ESPERA_MAXIMA_S = 30
+JANELA_DA_FILA_S = 10
+
+# UUIDs fixos: o menor e o maior possíveis. A ordem de trava é a de UUID, então o teste precisa
+# saber qual vem primeiro, sem depender do `uuid4` do momento.
+MENOR = uuid.UUID(int=1)
+MAIOR = uuid.UUID(int=2**128 - 1)
+
+_SQL_NA_FILA = "SELECT count(*) FROM pg_locks WHERE pid = %s AND NOT granted"
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -55,6 +74,110 @@ def _dono(instancia: Any) -> uuid.UUID:
     return SkinInstance.objects.get(pk=instancia.pk).owner_id
 
 
+class _Disparo:
+    """Roda `operacao` numa thread com conexão própria e sabe o pid do backend dela.
+
+    A conexão desliga o índice e o bitmap (`enable_indexscan`/`enable_bitmapscan`): a leitura
+    `WHERE pk IN (...)` vira varredura sequencial, que devolve as linhas na ordem em que foram
+    GRAVADAS. Sem `ORDER BY`, o `FOR UPDATE` travaria nessa ordem; com `ORDER BY`, o Postgres
+    ordena antes de travar. Os testes gravam o maior UUID primeiro, então tirar o `order_by` do
+    serviço inverte a ordem de trava de forma certa, não por sorte do plano.
+    """
+
+    def __init__(self, pool: ThreadPoolExecutor, operacao: Callable[[], Any]) -> None:
+        self.pid = 0
+        self.conectada = threading.Event()
+        self.futuro: Future[Any] = pool.submit(self._rodar, operacao)
+
+    def _rodar(self, operacao: Callable[[], Any]) -> Any:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SET enable_indexscan = off")
+                cursor.execute("SET enable_bitmapscan = off")
+                cursor.execute("SELECT pg_backend_pid()")
+                linha = cursor.fetchone()
+                assert linha is not None
+                self.pid = linha[0]
+            self.conectada.set()
+            return operacao()
+        except services.TradeError as erro:
+            return erro
+        finally:
+            connection.close()
+
+    def na_fila(self) -> bool:
+        """O backend desta operação tem um pedido de trava não concedido (está esperando)?
+
+        Filtra pelo pid dela: espera de outra sessão do servidor não conta. Se a operação
+        terminar sem esperar nunca, devolve `False` na hora.
+        """
+        assert self.conectada.wait(ESPERA_MAXIMA_S)
+        limite = time.monotonic() + JANELA_DA_FILA_S
+        with connection.cursor() as cursor:
+            while time.monotonic() < limite and not self.futuro.done():
+                cursor.execute(_SQL_NA_FILA, [self.pid])
+                linha = cursor.fetchone()
+                if linha and linha[0] > 0:
+                    return True
+                time.sleep(0.05)
+        return False
+
+
+def _segurar(
+    pool: ThreadPoolExecutor,
+    trava: Callable[[], Any],
+    depois: Callable[[], Any],
+    segurando: threading.Event,
+    soltar: threading.Event,
+) -> Future[str]:
+    """Transação vizinha: toma `trava`, espera o sinal, roda `depois` e comita."""
+
+    def rodar() -> str:
+        try:
+            with transaction.atomic():
+                trava()
+                segurando.set()
+                assert soltar.wait(ESPERA_MAXIMA_S)
+                depois()
+            return "ok"
+        finally:
+            connection.close()
+
+    return pool.submit(rodar)
+
+
+def _disputar(
+    *, trava: Callable[[], Any], depois: Callable[[], Any], operacao: Callable[[], Any]
+) -> tuple[bool, Any]:
+    """Uma vizinha segura `trava`; `operacao` roda noutra thread; devolve `(esperou, resultado)`.
+
+    `esperou` é a prova de que a operação pediu uma trava em conflito com a da vizinha. Depois
+    de soltar, a vizinha roda `depois` (por exemplo, pedir outra linha, que daria deadlock se a
+    operação estivesse segurando essa) e comita. Erro da vizinha ou da operação propaga.
+    """
+    segurando, soltar = threading.Event(), threading.Event()
+    with ThreadPoolExecutor(2) as pool:
+        vizinha = _segurar(pool, trava, depois, segurando, soltar)
+        try:
+            assert segurando.wait(ESPERA_MAXIMA_S)
+            disparo = _Disparo(pool, operacao)
+            esperou = disparo.na_fila()
+        finally:
+            soltar.set()
+        resultado = disparo.futuro.result(timeout=ESPERA_MAXIMA_S)
+        assert vizinha.result(timeout=ESPERA_MAXIMA_S) == "ok"
+    return esperou, resultado
+
+
+def _travar_instancia(instancia: Any) -> None:
+    list(SkinInstance.objects.select_for_update(no_key=True).filter(pk=instancia.pk))
+
+
+def _travar_usuarios(*usuarios: Any) -> None:
+    ids = [u.pk for u in usuarios]
+    list(User.objects.select_for_update(no_key=True).filter(pk__in=ids))
+
+
 # --- duas ofertas com a mesma instância --------------------------------------------------------
 
 
@@ -63,8 +186,10 @@ def test_ofertas_diferentes_com_a_mesma_instancia_ao_mesmo_tempo_so_uma_vale(
 ) -> None:
     """a1 entra em N ofertas simultâneas (para bruno e para carla): uma vence, as outras recusam.
 
-    Quem decide a corrida é o índice único parcial; o serviço traduz a violação em
-    `ItemAlreadyOffered`, e as ofertas perdedoras não deixam linha nenhuma para trás.
+    Corrida pura. Quem serializa é a trava dos jogadores e das instâncias; a segunda criação, ao
+    obter a trava, vê a instância ocupada e recusa. O índice único é só rede de segurança aqui:
+    a prova de que ele fecha a corrida sozinho está em `test_trades_services.py`
+    (`test_o_indice_unico_do_banco_fecha_a_corrida_...`), que desliga as checagens em Python.
     """
     tornar_amigos(cena.carla, cena.ana)
     destinos = [(cena.bruno, cena.b1), (cena.carla, cena.c1)]
@@ -82,28 +207,168 @@ def test_ofertas_diferentes_com_a_mesma_instancia_ao_mesmo_tempo_so_uma_vale(
     assert TradeOfferItem.objects.filter(instance=cena.a1, active=True).count() == 1
 
 
-def test_ofertas_em_ordem_oposta_nao_dao_deadlock(cena: SimpleNamespace) -> None:
-    """Duas ofertas que disputam os mesmos três itens, listados em ordem oposta: sem deadlock.
+def test_criacoes_simultaneas_do_mesmo_proponente_respeitam_o_teto_de_pendentes(
+    cena: SimpleNamespace, skin: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Teto 2 com N pedidos juntos: exatamente 2 entram.
 
-    Os itens entram no banco em ordem de UUID, e o índice único espera a transação concorrente
-    em vez de cruzar a espera. Resultado esperado: uma oferta, a outra recusada.
+    Corrida pura (não prova a trava sozinha): a contagem de pendentes é lida com a linha do
+    proponente travada, e é isso que impede dois pedidos de verem "só 1 pendente" ao mesmo tempo.
     """
-    a1_a2, a2_a1 = [cena.a1.id, cena.a2.id], [cena.a2.id, cena.a1.id]
+    monkeypatch.setattr(rules, "MAX_PENDING_PER_PROPOSER", 2)
+    dar = [criar_instancia(cena.ana, skin) for _ in range(N)]
+    pedir = [criar_instancia(cena.bruno, skin) for _ in range(N)]
 
     resultados = _largar(
         [
-            lambda: services.create_offer(cena.ana, cena.bruno, a1_a2, [cena.b1.id]),
-            lambda: services.create_offer(cena.bruno, cena.ana, [cena.b1.id], a2_a1),
+            lambda i=i: services.create_offer(cena.ana, cena.bruno, [dar[i].id], [pedir[i].id])
+            for i in range(N)
         ]
     )
 
     nomes = sorted(type(r).__name__ for r in resultados)
-    assert nomes == ["ItemAlreadyOffered", "TradeOffer"]
-    assert TradeOffer.objects.count() == 1
-    assert TradeOfferItem.objects.filter(active=True).count() == 3
+    assert nomes == ["TooManyPendingOffers"] * (N - 2) + ["TradeOffer"] * 2
+    assert TradeOffer.objects.filter(status="pending").count() == 2
 
 
-# --- aceites simultâneos -----------------------------------------------------------------------
+# --- a criação revalida sob trava --------------------------------------------------------------
+
+
+def test_criar_detecta_a_troca_de_dono_ocorrida_enquanto_esperava_a_trava(
+    cena: SimpleNamespace,
+) -> None:
+    """Uma vizinha segura a1, passa a1 para carla e comita; a criação já estava na fila.
+
+    Se a criação lesse o dono ANTES da trava (ou sem trava), veria ana e gravaria uma oferta
+    obsoleta. Lendo sob trava, vê carla e recusa.
+    """
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_instancia(cena.a1),
+        depois=lambda: inventory_services.change_owner(
+            cena.a1.id, from_owner=cena.ana, to_owner=cena.carla
+        ),
+        operacao=lambda: services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id]),
+    )
+
+    assert esperou, "a criação não esperou a trava da instância"
+    assert isinstance(resultado, services.ItemNotOwned)
+    assert _dono(cena.a1) == cena.carla.id
+    assert TradeOffer.objects.count() == 0
+
+
+# --- ordem de trava das instâncias (criar e aceitar) --------------------------------------------
+
+
+def _gravar_maior_primeiro(skin: Any, donos: dict[uuid.UUID, Any]) -> dict[uuid.UUID, Any]:
+    """Cria os itens com UUID fixo, o MAIOR primeiro: é a ordem física que o teste explora."""
+    return {pk: criar_instancia(donos[pk], skin, pk=pk) for pk in (MAIOR, MENOR)}
+
+
+@pytest.mark.parametrize("menor_e_do", ["proponente", "destinatario"])
+def test_criar_trava_as_instancias_em_ordem_de_uuid(skin: Any, menor_e_do: str) -> None:
+    """A vizinha segura o item de MENOR UUID e só depois pede o de maior, como manda a regra.
+
+    A criação certa pede o menor primeiro: espera sem segurar nada, e a vizinha termina. Uma que
+    travasse o maior antes (leitura na ordem física, sem `order_by`, ou "oferecidos e depois
+    pedidos") esperaria o menor segurando o maior: a vizinha pediria o maior e daria deadlock.
+    """
+    ana, bruno = criar_usuario("ana_01"), criar_usuario("bruno_02")
+    tornar_amigos(ana, bruno)
+    pk_ana, pk_bruno = (MENOR, MAIOR) if menor_e_do == "proponente" else (MAIOR, MENOR)
+    itens = _gravar_maior_primeiro(skin, {pk_ana: ana, pk_bruno: bruno})
+    dar, pedir = [itens[pk_ana].id], [itens[pk_bruno].id]
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_instancia(itens[MENOR]),
+        depois=lambda: _travar_instancia(itens[MAIOR]),
+        operacao=lambda: services.create_offer(ana, bruno, dar, pedir),
+    )
+
+    assert esperou, "a criação não esperou a trava do item de menor UUID"
+    assert isinstance(resultado, TradeOffer)
+
+
+@pytest.mark.parametrize("menor_e_do", ["proponente", "destinatario"])
+def test_aceite_trava_as_instancias_em_ordem_de_uuid(skin: Any, menor_e_do: str) -> None:
+    """Mesma prova da criação, para o aceite (que revalida e troca os donos)."""
+    ana, bruno = criar_usuario("ana_01"), criar_usuario("bruno_02")
+    tornar_amigos(ana, bruno)
+    pk_ana, pk_bruno = (MENOR, MAIOR) if menor_e_do == "proponente" else (MAIOR, MENOR)
+    itens = _gravar_maior_primeiro(skin, {pk_ana: ana, pk_bruno: bruno})
+    oferta = services.create_offer(ana, bruno, [itens[pk_ana].id], [itens[pk_bruno].id])
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_instancia(itens[MENOR]),
+        depois=lambda: _travar_instancia(itens[MAIOR]),
+        operacao=lambda: services.accept_offer(bruno, oferta.id),
+    )
+
+    assert esperou, "o aceite não esperou a trava do item de menor UUID"
+    assert isinstance(resultado, TradeOffer)
+    assert (_dono(itens[pk_ana]), _dono(itens[pk_bruno])) == (bruno.id, ana.id)
+
+
+# --- ordem de trava dos jogadores --------------------------------------------------------------
+
+
+@pytest.mark.parametrize("operacao", ["criar", "aceitar"])
+def test_trava_dos_jogadores_e_em_ordem_de_id(skin: Any, operacao: str) -> None:
+    """A vizinha segura o jogador de MENOR id e só depois pede o de maior: sem deadlock.
+
+    O proponente é o jogador de MAIOR id, de propósito: quem travasse "proponente e depois
+    destinatário" (ou lesse na ordem física, o maior foi gravado primeiro) seguraria o maior e
+    esperaria o menor, e a vizinha pediria o maior. Vale para criar e para aceitar.
+    """
+    maior = criar_usuario("maior_01", pk=MAIOR)
+    menor = criar_usuario("menor_02", pk=MENOR)
+    tornar_amigos(maior, menor)
+    m1, m2 = criar_instancia(maior, skin), criar_instancia(maior, skin)
+    n1, n2 = criar_instancia(menor, skin), criar_instancia(menor, skin)
+    oferta = services.create_offer(maior, menor, [m1.id], [n1.id])
+
+    def criar_outra() -> Any:
+        return services.create_offer(maior, menor, [m2.id], [n2.id])
+
+    def aceitar() -> Any:
+        return services.accept_offer(menor, oferta.id)
+
+    executar = criar_outra if operacao == "criar" else aceitar
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_usuarios(menor),
+        depois=lambda: _travar_usuarios(maior),
+        operacao=executar,
+    )
+
+    assert esperou, "a operação não esperou a trava do jogador de menor id"
+    assert isinstance(resultado, TradeOffer)
+
+
+def test_aceite_espera_quem_segura_os_jogadores_e_depois_ve_a_amizade_desfeita(
+    cena: SimpleNamespace,
+) -> None:
+    """Aceitar x desfazer a amizade no mesmo par (`friends.services`), de forma determinística.
+
+    A vizinha segura os dois jogadores, desfaz a amizade e só então comita. O aceite tem de
+    ESPERAR na trava dos jogadores (provado pela fila do pid dele) e, ao acordar, ver a amizade
+    já desfeita: falha com `NotFriends` e nada muda de dono. Sem a trava dos jogadores o aceite
+    não esperaria, leria a amizade ainda viva e trocaria os itens.
+    """
+    oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_usuarios(cena.ana, cena.bruno),
+        depois=lambda: friends_services.remove_friend(cena.ana, cena.bruno.username),
+        operacao=lambda: services.accept_offer(cena.bruno, oferta.id),
+    )
+
+    assert esperou, "o aceite não esperou a trava dos jogadores"
+    assert isinstance(resultado, services.NotFriends)
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.id, cena.bruno.id)
+    assert TradeOffer.objects.get(pk=oferta.pk).status == "pending"
+
+
+# --- aceites simultâneos (corrida pura) --------------------------------------------------------
 
 
 def test_aceites_simultaneos_da_mesma_oferta_trocam_os_itens_uma_unica_vez(
@@ -144,11 +409,11 @@ def test_aceitar_e_cancelar_ao_mesmo_tempo_terminam_coerentes(cena: SimpleNamesp
     assert not TradeOfferItem.objects.filter(offer=oferta, active=True).exists()
 
 
-def test_aceites_cruzados_do_mesmo_par_nao_dao_deadlock(cena: SimpleNamespace) -> None:
-    """bruno aceita a oferta de ana enquanto ana aceita a de bruno: as duas valem, sem deadlock.
+def test_aceites_cruzados_do_mesmo_par_terminam_os_dois(cena: SimpleNamespace) -> None:
+    """Fumaça: duas ofertas independentes do mesmo par, aceitas ao mesmo tempo, valem as duas.
 
-    Cada aceite trava o par de jogadores; sem a mesma ordem (por id) nos dois, as esperas
-    cruzariam.
+    NÃO prova a ordem de trava dos jogadores (as instâncias são disjuntas e a intercalação não
+    é controlada): essa prova é `test_trava_dos_jogadores_e_em_ordem_de_id`.
     """
     de_ana = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
     de_bruno = services.create_offer(cena.bruno, cena.ana, [cena.b2.id], [cena.a2.id])
@@ -165,71 +430,24 @@ def test_aceites_cruzados_do_mesmo_par_nao_dao_deadlock(cena: SimpleNamespace) -
     assert donos == [cena.bruno.id, cena.bruno.id, cena.ana.id, cena.ana.id]
 
 
-# --- ordem de trava das instâncias -------------------------------------------------------------
+def test_criar_e_aceitar_ao_mesmo_tempo_no_mesmo_par_terminam_os_dois(
+    cena: SimpleNamespace,
+) -> None:
+    """Fumaça: bruno aceita a oferta de ana enquanto cria outra para ela; nenhum falha.
 
-
-def _alguem_esperando_trava() -> bool:
-    """Há algum pedido de trava na fila (não concedido)? Espera até a janela acabar."""
-    limite = time.monotonic() + ESPERA_MAXIMA_S
-    with connection.cursor() as cursor:
-        while time.monotonic() < limite:
-            cursor.execute("SELECT count(*) FROM pg_locks WHERE NOT granted")
-            linha = cursor.fetchone()
-            if linha and linha[0] > 0:
-                return True
-            time.sleep(0.05)
-    return False
-
-
-@pytest.mark.parametrize("menor_uuid_e_do", ["pedido", "oferecido"])
-def test_aceite_trava_as_instancias_em_ordem_de_uuid(skin: Any, menor_uuid_e_do: str) -> None:
-    """Prova da ordem de trava, de forma determinística.
-
-    Ofertas pendentes nunca compartilham instância (o índice único proíbe), então o cruzamento
-    real vem de OUTRA operação que trave as mesmas linhas (um trade-up, uma compra). Aqui o
-    "vizinho" trava primeiro o item de MENOR UUID, espera o aceite entrar na fila da trava e só
-    então pede o de maior UUID, como qualquer operação que siga a regra "em ordem de UUID".
-
-    O aceite certo pede o menor primeiro: fica esperando o vizinho, que termina e solta tudo.
-    Um aceite que travasse o maior antes (por exemplo, "oferecidos e depois pedidos") seguraria o
-    maior e esperaria o menor, e o vizinho pediria o maior: deadlock. O teste varia qual lado
-    tem o menor UUID para pegar as duas ordens erradas.
+    Corrida pura, sem prova de ordem de trava (essa é do teste determinístico acima).
     """
-    ana, bruno = criar_usuario("ana_01"), criar_usuario("bruno_02")
-    tornar_amigos(ana, bruno)
-    menor, maior = uuid.UUID(int=1), uuid.UUID(int=2**128 - 1)
-    pk_ana, pk_bruno = (menor, maior) if menor_uuid_e_do == "oferecido" else (maior, menor)
-    item_de_ana = criar_instancia(ana, skin, "0.1", pk=pk_ana)
-    item_de_bruno = criar_instancia(bruno, skin, "0.2", pk=pk_bruno)
-    oferta = services.create_offer(ana, bruno, [item_de_ana.id], [item_de_bruno.id])
-    item_menor, item_maior = sorted((item_de_ana, item_de_bruno), key=lambda i: i.pk)
-    segurando, soltar = threading.Event(), threading.Event()
+    de_ana = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
 
-    def vizinho() -> str:
-        try:
-            with transaction.atomic():
-                list(SkinInstance.objects.select_for_update().filter(pk=item_menor.pk))
-                segurando.set()
-                assert soltar.wait(ESPERA_MAXIMA_S)
-                list(SkinInstance.objects.select_for_update().filter(pk=item_maior.pk))
-            return "ok"
-        finally:
-            connection.close()
+    resultados = _largar(
+        [
+            lambda: services.accept_offer(cena.bruno, de_ana.id),
+            lambda: services.create_offer(cena.bruno, cena.ana, [cena.b2.id], [cena.a2.id]),
+        ]
+    )
 
-    def aceitar() -> str:
-        try:
-            assert segurando.wait(ESPERA_MAXIMA_S)
-            services.accept_offer(bruno, oferta.id)
-            return "ok"
-        finally:
-            connection.close()
-
-    with ThreadPoolExecutor(2) as pool:
-        futuros = [pool.submit(vizinho), pool.submit(aceitar)]
-        na_fila = _alguem_esperando_trava()
-        soltar.set()
-        resultados = [f.result(timeout=ESPERA_MAXIMA_S) for f in futuros]
-
-    assert na_fila, "o aceite não chegou a esperar a trava do vizinho: o teste não provou nada"
-    assert resultados == ["ok", "ok"]
-    assert (_dono(item_de_ana), _dono(item_de_bruno)) == (bruno.id, ana.id)
+    assert sorted(type(r).__name__ for r in resultados) == ["TradeOffer", "TradeOffer"]
+    assert TradeOffer.objects.get(pk=de_ana.pk).status == "accepted"
+    assert TradeOffer.objects.filter(status="pending").count() == 1
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.bruno.id, cena.ana.id)
+    assert (_dono(cena.a2), _dono(cena.b2)) == (cena.ana.id, cena.bruno.id)

@@ -48,6 +48,21 @@ class DuplicateItem(TradeError):
     message = "O mesmo item aparece mais de uma vez na troca."
 
 
+class InvalidItemId(TradeError):
+    code = "invalid_item_id"
+    message = "O identificador de um item é inválido."
+
+
+class TooManyItems(TradeError):
+    code = "too_many_items"
+    message = "Há itens demais em um dos lados da troca."
+
+
+class TooManyPendingOffers(TradeError):
+    code = "too_many_pending_offers"
+    message = "Você já tem trocas pendentes demais."
+
+
 class NotFriends(TradeError):
     code = "not_friends"
     message = "A troca só é possível entre amigos."
@@ -83,6 +98,10 @@ class NotAllowed(TradeError):
 class OfferNotPending(TradeError):
     code = "offer_not_pending"
     message = "Esta troca já foi resolvida."
+
+
+def violated_constraint(erro: IntegrityError) -> str | None:
+    raise NotImplementedError
 
 
 _FALHAS_DA_FORMA: dict[str, type[TradeError]] = {

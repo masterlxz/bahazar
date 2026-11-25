@@ -132,3 +132,72 @@ def test_estado_depois_de_cada_acao(acao: str, estado: str) -> None:
 )
 def test_so_a_oferta_pendente_muda_de_estado(estado: str, pode: bool) -> None:
     assert rules.can_resolve(estado) is pode
+
+
+# --- tetos: HIPÓTESE do coordenador (20 e 20), sem fonte no projeto -----------------------------
+
+
+def _ids(quantos: int, *, inicio: int = 1000) -> list[uuid.UUID]:
+    return [uuid.UUID(int=inicio + n) for n in range(quantos)]
+
+
+@pytest.mark.parametrize("lado", ["oferecidos", "pedidos"])
+def test_exatamente_no_teto_de_itens_por_lado_passa(lado: str) -> None:
+    cheio, um = _ids(rules.MAX_ITEMS_PER_SIDE), _ids(1, inicio=5000)
+    oferecidos, pedidos = (cheio, um) if lado == "oferecidos" else (um, cheio)
+
+    assert rules.offer_shape_problem(ANA, BRUNO, oferecidos, pedidos) is None
+
+
+@pytest.mark.parametrize("lado", ["oferecidos", "pedidos", "ambos"])
+def test_um_item_acima_do_teto_por_lado_e_recusado(lado: str) -> None:
+    demais = _ids(rules.MAX_ITEMS_PER_SIDE + 1)
+    outros = _ids(rules.MAX_ITEMS_PER_SIDE + 1, inicio=5000)
+    oferecidos = demais if lado in ("oferecidos", "ambos") else _ids(1, inicio=9000)
+    pedidos = outros if lado in ("pedidos", "ambos") else _ids(1, inicio=9500)
+
+    assert rules.offer_shape_problem(ANA, BRUNO, oferecidos, pedidos) == rules.TOO_MANY_ITEMS
+
+
+def test_o_teto_e_por_lado_e_nao_da_oferta_inteira() -> None:
+    """20 de cada lado são 40 itens no total e passam."""
+    oferecidos = _ids(rules.MAX_ITEMS_PER_SIDE)
+    pedidos = _ids(rules.MAX_ITEMS_PER_SIDE, inicio=5000)
+
+    assert rules.offer_shape_problem(ANA, BRUNO, oferecidos, pedidos) is None
+
+
+@pytest.mark.parametrize(
+    "ruim",
+    [str(X), 10, None, X.bytes, X.hex],
+    ids=["texto com cara de uuid", "inteiro", "nulo", "bytes", "hex"],
+)
+@pytest.mark.parametrize("lado", ["oferecidos", "pedidos"])
+def test_id_que_nao_e_uuid_e_erro_de_forma(ruim: object, lado: str) -> None:
+    oferecidos: list[object] = [X, ruim] if lado == "oferecidos" else [X]
+    pedidos: list[object] = [Y, ruim] if lado == "pedidos" else [Y]
+
+    assert rules.offer_shape_problem(ANA, BRUNO, oferecidos, pedidos) == rules.INVALID_ID
+
+
+def test_id_invalido_vence_a_repeticao_na_ordem_de_checagem() -> None:
+    assert rules.offer_shape_problem(ANA, BRUNO, ["a", "a"], [Y]) == rules.INVALID_ID
+
+
+def test_lado_vazio_vence_id_invalido_na_ordem_de_checagem() -> None:
+    assert rules.offer_shape_problem(ANA, BRUNO, [], ["a"]) == rules.EMPTY_SIDE
+
+
+@pytest.mark.parametrize(
+    ("pendentes", "estoura"),
+    [
+        (0, False),
+        (rules.MAX_PENDING_PER_PROPOSER - 1, False),
+        (rules.MAX_PENDING_PER_PROPOSER, True),
+        (rules.MAX_PENDING_PER_PROPOSER + 1, True),
+    ],
+    ids=["nenhuma", "uma abaixo do teto", "no teto", "acima do teto"],
+)
+def test_nova_oferta_so_cabe_abaixo_do_teto_de_pendentes(pendentes: int, estoura: bool) -> None:
+    """Quem já tem `MAX` pendentes não abre a próxima: o teto é de pendentes, não de total."""
+    assert rules.pending_limit_exceeded(pendentes) is estoura

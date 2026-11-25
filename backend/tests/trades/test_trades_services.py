@@ -15,10 +15,10 @@ import pytest
 from apps.friends.models import Friendship
 from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
-from apps.trades import selectors, services
+from apps.trades import rules, selectors, services
 from apps.trades.models import TradeOffer, TradeOfferItem
 
-from .conftest import criar_relacao, tornar_amigos
+from .conftest import criar_instancia, criar_relacao, tornar_amigos
 
 pytestmark = pytest.mark.django_db
 
@@ -211,6 +211,91 @@ def test_o_indice_unico_do_banco_fecha_a_corrida_que_a_checagem_em_python_perde(
 
     assert TradeOffer.objects.count() == 1
     assert TradeOfferItem.objects.count() == 2
+
+
+# --- tetos (HIPÓTESE do coordenador: 20 itens por lado, 20 pendentes por proponente) -----------
+
+
+def _itens(dono: Any, skin: Any, quantos: int) -> list[Any]:
+    return [criar_instancia(dono, skin) for _ in range(quantos)]
+
+
+def test_aceita_exatamente_o_teto_de_itens_em_cada_lado(cena: SimpleNamespace, skin: Any) -> None:
+    n = rules.MAX_ITEMS_PER_SIDE
+    dar, pedir = _itens(cena.ana, skin, n), _itens(cena.bruno, skin, n)
+
+    oferta = _oferecer(cena.ana, cena.bruno, dar, pedir)
+
+    assert oferta.items.count() == 2 * n
+
+
+@pytest.mark.parametrize("lado", ["oferecido", "pedido"])
+def test_recusa_um_item_acima_do_teto_em_um_lado_e_nao_grava_nada(
+    cena: SimpleNamespace, skin: Any, lado: str
+) -> None:
+    n = rules.MAX_ITEMS_PER_SIDE + 1
+    dar = _itens(cena.ana, skin, n if lado == "oferecido" else 1)
+    pedir = _itens(cena.bruno, skin, n if lado == "pedido" else 1)
+
+    with pytest.raises(services.TooManyItems):
+        _oferecer(cena.ana, cena.bruno, dar, pedir)
+
+    _nada_foi_criado()
+
+
+@pytest.mark.parametrize("ruim", ["texto", "00000000-0000-0000-0000-000000000001", 7, None])
+def test_recusa_id_que_nao_e_uuid_e_nao_grava_nada(cena: SimpleNamespace, ruim: Any) -> None:
+    """Até um texto com cara de UUID é recusado: a forma é do chamador, não do serviço."""
+    with pytest.raises(services.InvalidItemId):
+        services.create_offer(cena.ana, cena.bruno, [ruim], [cena.b1.id])
+
+    _nada_foi_criado()
+
+
+@pytest.fixture
+def teto_de_duas_pendentes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Teto de 2 pendentes por proponente, para o teste não precisar de 40 itens e 20 ofertas."""
+    monkeypatch.setattr(rules, "MAX_PENDING_PER_PROPOSER", 2)
+
+
+def _duas_ofertas_e_uma_a_mais(cena: SimpleNamespace, skin: Any) -> tuple[Any, Any]:
+    """ana enche o teto com 2 ofertas; a 3a é recusada. Devolve as duas e deixa a 3a pronta."""
+    primeira = _oferecer(cena.ana, cena.bruno, [cena.a1], [cena.b1])
+    segunda = _oferecer(cena.ana, cena.bruno, [cena.a2], [cena.b2])
+    with pytest.raises(services.TooManyPendingOffers):
+        _oferecer(cena.ana, cena.bruno, _itens(cena.ana, skin, 1), _itens(cena.bruno, skin, 1))
+    assert TradeOffer.objects.count() == 2
+    return primeira, segunda
+
+
+@pytest.mark.usefixtures("teto_de_duas_pendentes")
+@pytest.mark.parametrize("encerrar", ["recusar", "cancelar", "aceitar"])
+def test_o_teto_de_pendentes_so_conta_pendentes_e_encerrar_libera_vaga(
+    cena: SimpleNamespace, skin: Any, encerrar: str
+) -> None:
+    primeira, _ = _duas_ofertas_e_uma_a_mais(cena, skin)
+    if encerrar == "recusar":
+        services.decline_offer(cena.bruno, primeira.id)
+    elif encerrar == "cancelar":
+        services.cancel_offer(cena.ana, primeira.id)
+    else:
+        services.accept_offer(cena.bruno, primeira.id)
+
+    nova = _oferecer(cena.ana, cena.bruno, _itens(cena.ana, skin, 1), _itens(cena.bruno, skin, 1))
+
+    assert nova.status == "pending"
+    assert TradeOffer.objects.filter(status="pending").count() == 2
+
+
+@pytest.mark.usefixtures("teto_de_duas_pendentes")
+def test_o_teto_de_pendentes_e_de_quem_propoe(cena: SimpleNamespace, skin: Any) -> None:
+    """bruno recebeu 2 pendentes de ana; como proponente ele ainda tem as vagas dele."""
+    _duas_ofertas_e_uma_a_mais(cena, skin)
+    dar, pedir = _itens(cena.bruno, skin, 1), _itens(cena.ana, skin, 1)
+
+    de_volta = _oferecer(cena.bruno, cena.ana, dar, pedir)
+
+    assert de_volta.status == "pending"
 
 
 # --- aceitar -----------------------------------------------------------------------------------

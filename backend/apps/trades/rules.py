@@ -23,6 +23,13 @@ EMPTY_SIDE = "empty_side"
 DUPLICATE_ITEM = "duplicate_item"
 NOT_OWNER = "not_owner"
 CONSUMED = "consumed"
+INVALID_ID = "invalid_id"
+TOO_MANY_ITEMS = "too_many_items"
+
+# Tetos HIPÓTESE do coordenador (2026-11-25), sem fonte no projeto: limitam o tamanho de uma
+# oferta e quantas o mesmo proponente pode deixar pendentes. Mudar aqui muda a regra.
+MAX_ITEMS_PER_SIDE = 20
+MAX_PENDING_PER_PROPOSER = 20
 
 # O estado terminal que cada ação produz.
 _STATUS_AFTER = {ACCEPT: ACCEPTED, DECLINE: DECLINED, CANCEL: CANCELLED}
@@ -31,8 +38,8 @@ _STATUS_AFTER = {ACCEPT: ACCEPTED, DECLINE: DECLINED, CANCEL: CANCELLED}
 def offer_shape_problem(
     proposer_id: uuid.UUID,
     recipient_id: uuid.UUID,
-    offered: Sequence[uuid.UUID],
-    requested: Sequence[uuid.UUID],
+    offered: Sequence[object],
+    requested: Sequence[object],
 ) -> str | None:
     """O primeiro problema que a oferta tem só pela forma, ou `None`.
 
@@ -61,6 +68,10 @@ def item_problem(
     if consumed:
         return CONSUMED
     return None
+
+
+def pending_limit_exceeded(pending: int) -> bool:
+    raise NotImplementedError
 
 
 def can_resolve(status: str) -> bool:

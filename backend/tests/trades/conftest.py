@@ -11,9 +11,14 @@ from django.contrib.auth import get_user_model
 User: Any = get_user_model()
 
 
-def criar_usuario(username: str) -> Any:
+def criar_usuario(username: str, *, pk: uuid.UUID | None = None) -> Any:
+    """`pk` fixa o id para os testes de ordem de trava (o padrão é um UUID aleatório)."""
+    extra = {"id": pk} if pk else {}
     return User.objects.create_user(
-        username=username, email=f"{username}@exemplo.com", password="Tr0ub4dor&3-horse-battery"
+        username=username,
+        email=f"{username}@exemplo.com",
+        password="Tr0ub4dor&3-horse-battery",
+        **extra,
     )
 
 
