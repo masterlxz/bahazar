@@ -124,7 +124,7 @@ def change_owner(
     jogadores envolvidos, por id, e só então as instâncias, por UUID.
     """
     with transaction.atomic():
-        instancia = SkinInstance.objects.select_for_update().filter(pk=instance_id).first()
+        instancia = SkinInstance.objects.filter(pk=instance_id).first()
         if instancia is None or instancia.owner_id != from_owner.pk:
             raise NotOwner
         if instancia.consumed_at is not None:
