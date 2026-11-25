@@ -30,6 +30,9 @@ class TradeOffer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
 
+    def __str__(self) -> str:
+        return f"{self.proposer_id} -> {self.recipient_id} ({self.status})"
+
 
 class TradeOfferItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -39,3 +42,6 @@ class TradeOfferItem(models.Model):
     )
     side = models.CharField(max_length=10, choices=TradeSide.choices)
     active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return f"{self.instance_id} ({self.side}) na oferta {self.offer_id}"
