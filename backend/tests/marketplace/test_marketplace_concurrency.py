@@ -5,7 +5,7 @@ instância, um anúncio ativo), não só que ninguém recebeu erro 500.
 """
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import Any
@@ -21,7 +21,7 @@ ESPERA_MAXIMA_S = 30
 pytestmark = pytest.mark.django_db(transaction=True)
 
 
-def _largar(tarefas: list[Callable[[], Any]]) -> list[Any]:
+def _largar(tarefas: Sequence[Callable[[], Any]]) -> list[Any]:
     """Roda cada tarefa numa thread, todas soltas juntas por uma barreira; devolve os resultados.
 
     Um erro de negócio (`MarketError`) vira o resultado, para o teste contar; qualquer outra
