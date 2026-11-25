@@ -40,8 +40,8 @@ def test_rules_nao_importa_django_nem_outros_apps() -> None:
 
 def test_os_estados_de_rules_sao_os_mesmos_do_modelo() -> None:
     """`rules` é puro e repete os textos dos estados; este teste impede que se separem."""
-    from apps.marketplace import rules
-    from apps.marketplace.models import ListingStatus
+    from apps.marketplace import rules  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import ListingStatus  # type: ignore[import-not-found, unused-ignore]
 
     de_rules = (rules.ACTIVE, rules.SOLD, rules.CANCELLED)
 

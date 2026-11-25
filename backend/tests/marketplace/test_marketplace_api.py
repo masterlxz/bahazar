@@ -17,8 +17,6 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.inventory.models import SkinInstance
-from apps.marketplace import services, views
-from apps.marketplace.models import MarketListing
 from apps.trades import services as trades_services
 
 from .conftest import LISTINGS_URL, criar_instancia, criar_skin, logado
@@ -96,6 +94,8 @@ def test_metodos_fora_do_contrato_sao_recusados(
 def test_criar_devolve_201_com_o_anuncio_e_o_item_continua_do_vendedor(
     cena: SimpleNamespace,
 ) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     resposta = _criar(logado(cena.ana), cena.a1, price=1234)
 
     assert resposta.status_code == 201, resposta.content
@@ -144,6 +144,8 @@ def test_o_preco_e_inteiro_em_centavos_e_o_minimo_de_um_centavo_e_aceito(
     cena: SimpleNamespace,
 ) -> None:
     """Um centavo é o menor preço válido; o corpo da vitrine devolve o inteiro, não um texto."""
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     anuncio = _criada(logado(cena.ana), cena.a2, price=1)
 
     assert anuncio["price"] == 1
@@ -194,6 +196,8 @@ def _caso(nome: str, corpo: Any, codigo: str) -> Any:
 def test_corpo_malformado_da_400_sem_tocar_o_banco(
     cena: SimpleNamespace, django_assert_num_queries: Any, corpo: Any, codigo: str
 ) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     with django_assert_num_queries(0):
         resposta = logado(cena.ana).post(LISTINGS_URL, corpo, format="json")
 
@@ -204,6 +208,8 @@ def test_corpo_malformado_da_400_sem_tocar_o_banco(
 
 
 def test_json_quebrado_da_400(cena: SimpleNamespace) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     resposta = logado(cena.ana).post(LISTINGS_URL, "{nao e json", content_type="application/json")
 
     assert resposta.status_code == 400
@@ -213,6 +219,8 @@ def test_json_quebrado_da_400(cena: SimpleNamespace) -> None:
 def test_campo_desconhecido_no_corpo_valido_da_400_e_nao_cria_nada(
     cena: SimpleNamespace,
 ) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     corpo = {"instance_id": str(cena.a1.pk), "price": 1000, "seller": str(cena.carla.pk)}
 
     resposta = logado(cena.ana).post(LISTINGS_URL, corpo, format="json")
@@ -229,6 +237,8 @@ def test_campo_desconhecido_no_corpo_valido_da_400_e_nao_cria_nada(
 
 def test_item_de_outro_dono_da_404_igual_ao_de_item_inexistente(cena: SimpleNamespace) -> None:
     """c1 é da carla: ana não descobre nem que ele existe; b1 é do amigo e também não é dela."""
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     ana = logado(cena.ana)
     alheio = _criar(ana, cena.c1)
     do_amigo = _criar(ana, cena.b1)
@@ -245,6 +255,8 @@ def test_item_de_outro_dono_da_404_igual_ao_de_item_inexistente(cena: SimpleName
 
 def test_item_consumido_da_409_e_nao_cria(cena: SimpleNamespace) -> None:
     """O item é da própria ana: só o consumo o impede de ser anunciado."""
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     SkinInstance.objects.filter(pk=cena.a1.pk).update(consumed_at=timezone.now())
 
     resposta = _criar(logado(cena.ana), cena.a1)
@@ -255,6 +267,8 @@ def test_item_consumido_da_409_e_nao_cria(cena: SimpleNamespace) -> None:
 
 
 def test_o_mesmo_item_nao_ganha_dois_anuncios_ativos(cena: SimpleNamespace) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     ana = logado(cena.ana)
     primeiro = _criada(ana, cena.a1)
 
@@ -268,6 +282,8 @@ def test_o_mesmo_item_nao_ganha_dois_anuncios_ativos(cena: SimpleNamespace) -> N
 
 def test_item_em_oferta_pendente_do_trades_da_409_item_locked(cena: SimpleNamespace) -> None:
     """A guarda de `trades` vista de fora: o mercado não anuncia item preso em oferta."""
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     trades_services.create_offer(cena.ana, cena.bruno, [cena.a1.pk], [cena.b1.pk])
 
     resposta = _criar(logado(cena.ana), cena.a1)
@@ -282,6 +298,8 @@ def test_item_em_oferta_pendente_do_trades_da_409_item_locked(cena: SimpleNamesp
 
 
 def test_o_vendedor_cancela_e_o_item_volta_a_ser_anunciado(cena: SimpleNamespace) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     ana = logado(cena.ana)
     anuncio = _criada(ana, cena.a1)
 
@@ -305,6 +323,8 @@ def test_o_vendedor_cancela_e_o_item_volta_a_ser_anunciado(cena: SimpleNamespace
 def test_quem_nao_e_o_vendedor_recebe_404_igual_ao_de_anuncio_inexistente(
     cena: SimpleNamespace,
 ) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     anuncio = _criada(logado(cena.ana), cena.a1)
     bruno = logado(cena.bruno)
 
@@ -318,6 +338,8 @@ def test_quem_nao_e_o_vendedor_recebe_404_igual_ao_de_anuncio_inexistente(
 
 
 def test_cancelar_duas_vezes_da_409_e_o_primeiro_fechamento_fica(cena: SimpleNamespace) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     ana = logado(cena.ana)
     anuncio = _criada(ana, cena.a1)
     assert _cancelar(ana, anuncio["id"]).status_code == 200
@@ -355,6 +377,8 @@ def test_a_vitrine_so_mostra_ativos_mais_novos_primeiro(cena: SimpleNamespace) -
 
 def test_created_at_empatado_desempata_por_id_decrescente(cena: SimpleNamespace) -> None:
     """Sem o desempate, a paginação repete ou pula anúncios criados no mesmo instante."""
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     _criada(logado(cena.ana), cena.a1)
     _criada(logado(cena.ana), cena.a2)
     _criada(logado(cena.bruno), cena.b1)
@@ -455,6 +479,8 @@ def _sem_status(raiz: type, mapa: Mapping[Any, int]) -> list[str]:
 
 
 def test_toda_subclasse_de_market_error_tem_status_na_view() -> None:
+    from apps.marketplace import services, views  # type: ignore[import-not-found, unused-ignore]
+
     assert _sem_status(services.MarketError, views._STATUS_DO_ERRO) == []
     assert services.MarketError not in views._STATUS_DO_ERRO
     assert set(views._STATUS_DO_ERRO.values()) <= {400, 404, 409}
@@ -496,6 +522,8 @@ def _posts(cena: SimpleNamespace) -> dict[str, tuple[Any, Any, int]]:
 
 @pytest.mark.parametrize("acao", ["criar", "cancelar"])
 def test_post_sem_token_csrf_e_recusado_e_nada_muda(cena: SimpleNamespace, acao: str) -> None:
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     url, corpo, _ = _posts(cena)[acao]
     cliente, _ = _navegador(cena.ana)
     antes = MarketListing.objects.filter(status="active").count()

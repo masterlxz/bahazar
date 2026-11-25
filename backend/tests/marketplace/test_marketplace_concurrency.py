@@ -5,7 +5,7 @@ instância, um anúncio ativo), não só que ninguém recebeu erro 500.
 """
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import Any
@@ -13,21 +13,20 @@ from typing import Any
 import pytest
 from django.db import connection
 
-from apps.marketplace import services
-from apps.marketplace.models import ListingStatus, MarketListing
-
 ESPERA_MAXIMA_S = 30
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
 
-def _largar(tarefas: list[Callable[[], Any]]) -> list[Any]:
+def _largar(tarefas: Sequence[Callable[[], Any]]) -> list[Any]:
     """Roda cada tarefa numa thread, todas soltas juntas por uma barreira; devolve os resultados.
 
     Um erro de negócio (`MarketError`) vira o resultado, para o teste contar; qualquer outra
     exceção (deadlock, `IntegrityError` sem tradução) propaga e falha o teste. A conexão abre
     antes da barreira, para só a transação disputar.
     """
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+
     largada = threading.Barrier(len(tarefas), timeout=ESPERA_MAXIMA_S)
 
     def rodar(tarefa: Callable[[], Any]) -> Any:
@@ -51,6 +50,12 @@ def test_duas_criacoes_simultaneas_do_mesmo_item_so_uma_vale(cena: SimpleNamespa
     Corrida pura: um verde não prova a trava sozinho. A garantia de banco é provada à parte, em
     `test_marketplace_services.py` (checagem em Python desligada, índice único barra o INSERT).
     """
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import (  # type: ignore[import-not-found, unused-ignore]
+        ListingStatus,
+        MarketListing,
+    )
+
     precos = [111, 222]
     tarefas = [
         (lambda preco=preco: services.create_listing(cena.ana, cena.a1.pk, preco))

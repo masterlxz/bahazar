@@ -14,8 +14,6 @@ import pytest
 
 from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
-from apps.marketplace import guards, services
-from apps.marketplace.models import ListingStatus, MarketListing
 from apps.trades import services as trades_services
 
 from .conftest import anunciar
@@ -31,10 +29,17 @@ def _dono(instancia: Any) -> uuid.UUID:
 
 def test_a_guarda_do_mercado_esta_registrada() -> None:
     """Prova o `ready()` de `marketplace`: sem o registro, nada trava e o resto enganaria."""
+    from apps.marketplace import guards  # type: ignore[import-not-found, unused-ignore]
+
     assert guards.listing_guard in inventory_services._MOVE_GUARDS
 
 
 def test_item_anunciado_nao_muda_de_dono(cena: SimpleNamespace) -> None:
+    from apps.marketplace.models import (  # type: ignore[import-not-found, unused-ignore]
+        ListingStatus,
+        MarketListing,
+    )
+
     anuncio = anunciar(cena.ana, cena.a1)
 
     with pytest.raises(inventory_services.ItemLocked):
@@ -53,6 +58,8 @@ def test_item_sem_anuncio_continua_livre(cena: SimpleNamespace) -> None:
 
 
 def test_cancelar_o_anuncio_libera_o_item(cena: SimpleNamespace) -> None:
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+
     anuncio = anunciar(cena.ana, cena.a1)
     services.cancel_listing(cena.ana, anuncio.pk)
 
@@ -90,6 +97,9 @@ def test_assert_movable_roda_as_guardas_sem_mover_o_item(cena: SimpleNamespace) 
 
 
 def test_item_em_oferta_pendente_nao_pode_ser_anunciado(cena: SimpleNamespace) -> None:
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     trades_services.create_offer(cena.ana, cena.bruno, [cena.a1.pk], [cena.b1.pk])
 
     with pytest.raises(services.ItemLocked):
@@ -100,6 +110,8 @@ def test_item_em_oferta_pendente_nao_pode_ser_anunciado(cena: SimpleNamespace) -
 
 
 def test_item_de_oferta_ja_resolvida_volta_a_poder_ser_anunciado(cena: SimpleNamespace) -> None:
+    from apps.marketplace.models import ListingStatus  # type: ignore[import-not-found, unused-ignore]
+
     oferta = trades_services.create_offer(cena.ana, cena.bruno, [cena.a1.pk], [cena.b1.pk])
     trades_services.cancel_offer(cena.ana, oferta.pk)
 
@@ -111,6 +123,9 @@ def test_item_de_oferta_ja_resolvida_volta_a_poder_ser_anunciado(cena: SimpleNam
 
 def test_item_alheio_em_oferta_pendente_da_404_e_nunca_item_locked(cena: SimpleNamespace) -> None:
     """A posse vence a guarda: `item_locked` revelaria a quem não é dono que o item existe."""
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import MarketListing  # type: ignore[import-not-found, unused-ignore]
+
     trades_services.create_offer(cena.bruno, cena.ana, [cena.b1.pk], [cena.a1.pk])
 
     with pytest.raises(services.InstanceNotFound):
@@ -121,5 +136,7 @@ def test_item_alheio_em_oferta_pendente_da_404_e_nunca_item_locked(cena: SimpleN
 
 
 def test_item_locked_do_mercado_e_erro_de_mercado_com_codigo_estavel() -> None:
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+
     assert issubclass(services.ItemLocked, services.MarketError)
     assert services.ItemLocked.code == "item_locked"

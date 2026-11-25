@@ -65,7 +65,7 @@ def criar_instancia(
 
 def anunciar(vendedor: Any, instancia: Any, price: int = 1000) -> Any:
     """Cria o anúncio pelo serviço, que é a porta da regra de negócio."""
-    from apps.marketplace import services
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
 
     return services.create_listing(vendedor, instancia.pk, price)
 
