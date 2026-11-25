@@ -389,7 +389,8 @@ def test_aceite_confere_dono_e_consumo_sob_a_trava_das_instancias(
     oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
 
     def trocar_dono() -> None:
-        inventory_services.change_owner(cena.a1.id, from_owner=cena.ana, to_owner=cena.carla)
+        # Por fora da porta: o `change_owner` recusa item em oferta pendente (`ItemLocked`).
+        SkinInstance.objects.filter(pk=cena.a1.pk).update(owner=cena.carla)
 
     def consumir() -> None:
         SkinInstance.objects.filter(pk=cena.a1.pk).update(consumed_at=datetime.now(UTC))

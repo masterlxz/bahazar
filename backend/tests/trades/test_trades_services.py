@@ -13,7 +13,6 @@ from typing import Any
 import pytest
 
 from apps.friends.models import Friendship
-from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
 from apps.trades import rules, selectors, services
 from apps.trades.models import TradeOffer, TradeOfferItem
@@ -402,12 +401,15 @@ def test_aceite_depois_de_bloqueio_e_recusado(cena: SimpleNamespace) -> None:
 def test_aceite_depois_de_uma_instancia_mudar_de_dono_e_recusado(
     cena: SimpleNamespace, quem_mudou: str
 ) -> None:
-    """a1 (de ana) ou b1 (de bruno) vai para carla antes do aceite; a troca inteira é recusada."""
+    """a1 (de ana) ou b2 (de bruno) vai para carla antes do aceite; a troca inteira é recusada.
+
+    O `change_owner` já recusa mover item em oferta pendente (`ItemLocked`, I-6), então o item é
+    movido por fora da porta, direto no ORM: o que se prova aqui é que o aceite revalida o dono
+    mesmo assim (defesa em profundidade contra admin, shell ou bug).
+    """
     oferta = _oferecer(cena.ana, cena.bruno, [cena.a1, cena.a2], [cena.b1, cena.b2])
-    if quem_mudou == "oferecido":
-        inventory_services.change_owner(cena.a1.id, from_owner=cena.ana, to_owner=cena.carla)
-    else:
-        inventory_services.change_owner(cena.b2.id, from_owner=cena.bruno, to_owner=cena.carla)
+    item = cena.a1 if quem_mudou == "oferecido" else cena.b2
+    SkinInstance.objects.filter(pk=item.pk).update(owner=cena.carla)
     antes = _donos(cena.a1, cena.a2, cena.b1, cena.b2)
 
     with pytest.raises(services.ItemNotOwned):
