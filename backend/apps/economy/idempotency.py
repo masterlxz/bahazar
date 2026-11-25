@@ -44,7 +44,7 @@ def run_once(
 
     `operation` devolve `(status, corpo)`, com o corpo já serializável em JSON.
     """
-    with transaction.atomic():
+    if True:
         try:
             with transaction.atomic():  # savepoint: a falha de unicidade não aborta a transação
                 registro = IdempotencyRecord.objects.create(
