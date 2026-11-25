@@ -100,7 +100,7 @@ def _executar_uma_vez(
             scope=f"user:{_eu(request).pk}", key=chave, request_hash=pedido, operation=operacao
         )
     except IdempotencyKeyReused as erro:
-        return _erro(erro.code, erro.message, status.HTTP_422_UNPROCESSABLE_ENTITY)
+        return _erro(erro.code, erro.message, status.HTTP_409_CONFLICT)
     except services.TradeError as erro:
         return _erro_do_servico(erro)
     return Response(saida.body, status=saida.status)
