@@ -132,7 +132,7 @@ Corpo contém ids das instâncias **escolhidas pelo usuário** (entrada legítim
 2. Servidor, **na mesma transação da operação** (`economy.idempotency.run_once`, ADR 0014), insere `idempotency_records(scope, key, request_hash)` num savepoint.
 3. Se inseriu → executa e grava a resposta no registro; tudo confirma junto. Se já existia com o mesmo hash → devolve a resposta gravada, sem executar. **Não existe o estado "em andamento" nem o `409 Retry-After`:** um pedido simultâneo com a mesma chave espera, no `INSERT`, a primeira transação terminar e então lê a resposta pronta. Operação que falha desfaz o registro junto (a chave não fica queimada).
 4. Mesma chave com `request_hash` diferente → `IdempotencyKeyReused` (a rota que usar isso responde `422`).
-5. Registros expiram (limpeza após N dias; o ledger guarda a chave própria, permanente). **Ainda não implementado** (PENDING).
+5. Registros expiram: `manage.py expire_idempotency` (PR #118) apaga os mais antigos que N dias (padrão 7, **hipótese sem fonte**); é **manual**, sem agendamento. O ledger guarda a chave própria, permanente: é ele que barra a repetição de uma transferência depois da expiração (o `IntegrityError` do UNIQUE desfaz tudo). Operação futura sob `run_once` sem chave UNIQUE própria só tem a retenção como defesa (PENDING).
 
 ## 6. API
 - REST + JSON sob `/api/`, versionada (`/api/v1/`). Recursos de jogo são **globais por usuário** (`/api/v1/wallet/`, `/api/v1/inventory/`, `/api/v1/friends/`); só os grupos ficam em `/api/v1/rooms/{room}/...`.

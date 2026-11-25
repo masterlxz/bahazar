@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "apps.friends",
     "apps.catalog",
     "apps.inventory",
+    "apps.trades",
 ]
 
 MIDDLEWARE = [

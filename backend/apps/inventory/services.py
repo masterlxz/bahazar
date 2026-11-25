@@ -32,6 +32,16 @@ class InactiveSkin(InventoryError):
     message = "A skin está inativa e não pode ser entregue."
 
 
+class NotOwner(InventoryError):
+    code = "not_owner"
+    message = "O item não pertence a quem o está entregando."
+
+
+class ConsumedInstance(InventoryError):
+    code = "consumed_instance"
+    message = "O item já saiu do jogo."
+
+
 def create_instance(
     owner: User,
     skin: Skin,
@@ -58,3 +68,27 @@ def create_instance(
             acquired_via=acquired_via,
             acquired_ref_id=ref_id,
         )
+
+
+def change_owner(instance_id: uuid.UUID, *, from_owner: User, to_owner: User) -> SkinInstance:
+    """Passa o item de `from_owner` para `to_owner`: a ÚNICA porta que muda o dono (GUIDELINES 2).
+
+    Só o dono muda: id, float, skin e origem ficam como estão (nada é criado nem apagado).
+    Trava a linha e confere dono e consumo já sob a trava. Quem move vários itens (a troca)
+    trava todos antes, em ordem de UUID, para nunca cruzar esperas com outra operação.
+
+    ATENÇÃO a quem chamar FORA de `trades` (mercado, trade-up): `change_owner` sozinho trava só
+    a instância e toma KEY SHARE na linha do NOVO dono (a FK do `UPDATE`). `trades.create_offer`
+    e `accept_offer` seguram os jogadores com FOR UPDATE e DEPOIS as instâncias; quem travar a
+    instância antes dos jogadores pode formar um ciclo de espera com elas. Trave antes os
+    jogadores envolvidos, por id, e só então as instâncias, por UUID.
+    """
+    with transaction.atomic():
+        instancia = SkinInstance.objects.select_for_update().filter(pk=instance_id).first()
+        if instancia is None or instancia.owner_id != from_owner.pk:
+            raise NotOwner
+        if instancia.consumed_at is not None:
+            raise ConsumedInstance
+        instancia.owner = to_owner
+        instancia.save(update_fields=["owner"])
+        return instancia
