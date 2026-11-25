@@ -4,12 +4,12 @@ Dados inventados (ver conftest). O preço de referência é o `suggested_price` 
 comum (FT, depois MW, WW, BS, FN).
 """
 
-import json
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError, URLError
+import json
 
 import pytest
 from django.core.management import call_command
