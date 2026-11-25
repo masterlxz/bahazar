@@ -200,8 +200,8 @@ class TestSearch:
 
     def test_desempate_por_id(self) -> None:
         # Mesmo nome, mesmo preço: o id desempata
-        s_a = _skin(name="AK-47 | Teste", reference_price=1000)
-        s_b = _skin(name="AK-47 | Teste", reference_price=1000)
+        _skin(name="AK-47 | Teste", reference_price=1000)
+        _skin(name="AK-47 | Teste", reference_price=1000)
         qs = selectors.search(ordering="name")
         ids = [s.id for s in qs if s.name == "AK-47 | Teste"]
         assert ids == sorted(ids)
