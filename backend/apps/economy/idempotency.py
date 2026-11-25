@@ -69,7 +69,7 @@ def run_once(
                         scope=scope, key=key, request_hash=request_hash
                     )
             except IntegrityError as erro:
-                ultimo_erro = erro
+                del erro
                 try:
                     existente = IdempotencyRecord.objects.get(scope=scope, key=key)
                 except IdempotencyRecord.DoesNotExist:
@@ -84,7 +84,7 @@ def run_once(
             raise RuntimeError(
                 "idempotência: não achou o registro apagado nem conseguiu inserir em "
                 f"{MAX_ATTEMPTS} tentativas"
-            ) from None
+            ) from ultimo_erro
 
         status, body = operation()
         registro.response_status = status
