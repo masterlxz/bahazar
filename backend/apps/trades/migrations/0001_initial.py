@@ -91,4 +91,60 @@ class Migration(migrations.Migration):
                 ),
             ],
         ),
+        migrations.AddIndex(
+            model_name="tradeoffer",
+            index=models.Index(
+                fields=["recipient", "status"], name="tradeoffer_recip_status_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="tradeoffer",
+            index=models.Index(fields=["proposer", "status"], name="tradeoffer_prop_status_idx"),
+        ),
+        migrations.AddConstraint(
+            model_name="tradeoffer",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("proposer", models.F("recipient")), _negated=True),
+                name="tradeoffer_no_self",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="tradeoffer",
+            constraint=models.CheckConstraint(
+                condition=models.Q(
+                    ("status__in", ["pending", "accepted", "declined", "cancelled"])
+                ),
+                name="tradeoffer_status_valid",
+            ),
+        ),
+        # `resolved_at` nulo se, e só se, a oferta está pendente: mesma expressão do modelo.
+        migrations.AddConstraint(
+            model_name="tradeoffer",
+            constraint=models.CheckConstraint(
+                condition=models.Q(status="pending", resolved_at__isnull=True)
+                | (~models.Q(status="pending") & models.Q(resolved_at__isnull=False)),
+                name="tradeoffer_resolved_matches_status",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="tradeofferitem",
+            constraint=models.UniqueConstraint(
+                fields=("offer", "instance"), name="tradeitem_unique_offer_instance"
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="tradeofferitem",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("active", True)),
+                fields=("instance",),
+                name="tradeitem_one_active_per_instance",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="tradeofferitem",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("side__in", ["offered", "requested"])),
+                name="tradeitem_side_valid",
+            ),
+        ),
     ]

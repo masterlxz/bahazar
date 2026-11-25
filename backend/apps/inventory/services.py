@@ -71,4 +71,18 @@ def create_instance(
 
 
 def change_owner(instance_id: uuid.UUID, *, from_owner: User, to_owner: User) -> SkinInstance:
-    raise NotImplementedError
+    """Passa o item de `from_owner` para `to_owner`: a ÚNICA porta que muda o dono (GUIDELINES 2).
+
+    Só o dono muda: id, float, skin e origem ficam como estão (nada é criado nem apagado).
+    Trava a linha e confere dono e consumo já sob a trava. Quem move vários itens (a troca)
+    trava todos antes, em ordem de UUID, para nunca cruzar esperas com outra operação.
+    """
+    with transaction.atomic():
+        instancia = SkinInstance.objects.select_for_update().filter(pk=instance_id).first()
+        if instancia is None or instancia.owner_id != from_owner.pk:
+            raise NotOwner
+        if instancia.consumed_at is not None:
+            raise ConsumedInstance
+        instancia.owner = to_owner
+        instancia.save(update_fields=["owner"])
+        return instancia
