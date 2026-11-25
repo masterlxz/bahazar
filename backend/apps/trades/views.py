@@ -147,8 +147,8 @@ class TradeListCreateView(APIView):
         pedido = request_fingerprint(
             "trade.create",
             dados.recipient,
-            sorted(str(i) for i in dados.offered),
-            sorted(str(i) for i in dados.requested),
+            [str(i) for i in dados.offered],
+            [str(i) for i in dados.requested],
         )
 
         def operar() -> tuple[int, dict[str, Any]]:
