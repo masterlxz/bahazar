@@ -259,6 +259,28 @@ def test_criar_detecta_a_troca_de_dono_ocorrida_enquanto_esperava_a_trava(
     assert TradeOffer.objects.count() == 0
 
 
+def test_change_owner_le_a_guarda_sob_a_trava_da_instancia(cena: SimpleNamespace) -> None:
+    """Uma vizinha segura a1, cria a oferta com a1 e comita; o `change_owner` já estava na fila.
+
+    O `change_owner` tem de ESPERAR a trava da instância e só então consultar a guarda, que
+    enxerga a oferta confirmada: `ItemLocked`, e o dono não muda. Mutação que derruba este teste:
+    tirar o `select_for_update()` de `change_owner` (ele não esperaria, leria a1 livre e a moveria
+    para carla, deixando a oferta pendente presa).
+    """
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_instancia(cena.a1),
+        depois=lambda: services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id]),
+        operacao=lambda: inventory_services.change_owner(
+            cena.a1.id, from_owner=cena.ana, to_owner=cena.carla
+        ),
+    )
+
+    assert esperou, "o change_owner não esperou a trava da instância"
+    assert isinstance(resultado, inventory_services.ItemLocked)
+    assert _dono(cena.a1) == cena.ana.id
+    assert TradeOffer.objects.filter(status="pending").count() == 1
+
+
 # --- ordem de trava das instâncias (criar e aceitar) --------------------------------------------
 
 

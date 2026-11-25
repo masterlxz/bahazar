@@ -125,16 +125,15 @@ def test_guarda_que_trava_impede_a_troca_de_dono(
     assert SkinInstance.objects.get(pk=item.pk).owner_id == ana.id
 
 
-def test_guarda_recebe_a_instancia_ja_dentro_da_transacao_e_o_authorized_by(
+def test_guarda_recebe_a_instancia_e_o_authorized_by(
     ana: Any, bruno: Any, skin: Any, guardas_isoladas: Any
 ) -> None:
-    from django.db import connection
-
+    """Que a guarda roda SOB a trava da linha é provado em `tests/trades/test_trades_guard.py`."""
     item = criar_instancia(ana, skin)
-    chamadas: list[tuple[Any, Any, bool]] = []
+    chamadas: list[tuple[Any, Any]] = []
 
     def espia(instancia: Any, authorized_by: Any) -> None:
-        chamadas.append((instancia.pk, authorized_by, connection.in_atomic_block))
+        chamadas.append((instancia.pk, authorized_by))
 
     _registrar(espia)
     cracha = uuid.uuid4()
@@ -143,7 +142,7 @@ def test_guarda_recebe_a_instancia_ja_dentro_da_transacao_e_o_authorized_by(
     mover(item.id, from_owner=ana, to_owner=bruno, authorized_by=cracha)
     mover(criar_instancia(ana, skin, "0.7").id, from_owner=ana, to_owner=bruno)
 
-    assert chamadas[0] == (item.pk, cracha, True)
+    assert chamadas[0] == (item.pk, cracha)
     assert chamadas[1][1] is None  # sem `authorized_by`, a guarda recebe None
 
 

@@ -51,6 +51,9 @@ class ItemLocked(InventoryError):
 # Guarda de movimentação: um módulo (hoje `trades`) pode travar um item sem que este núcleo o
 # conheça. Recebe a instância (já travada, dentro da transação) e o `authorized_by` que o chamador
 # passou ao `change_owner` (opaco aqui); levanta `ItemLocked` para recusar a troca de dono.
+# CONTRATO: a guarda só LÊ (SELECT simples), sem `select_for_update`, sem I/O externo. Uma guarda
+# que travasse jogador ou oferta aqui dentro inverteria a ordem jogadores -> oferta -> instâncias
+# e daria deadlock com `trades.accept_offer`.
 MoveGuard = Callable[[SkinInstance, uuid.UUID | None], None]
 _MOVE_GUARDS: list[MoveGuard] = []
 
@@ -110,7 +113,9 @@ def change_owner(
     e está em uso), roda as guardas registradas (`register_move_guard`): se alguma levantar
     `ItemLocked`, o dono não muda. `authorized_by` identifica a operação que está movendo o item
     (para `trades`, o id da própria oferta que está sendo aceita) e só é repassado às guardas:
-    sem ele, um item travado por qualquer módulo não anda.
+    sem ele, um item travado por qualquer módulo não anda. Não é uma capacidade verificada: nunca
+    o preencha com dado vindo de fora (corpo ou cabeçalho de requisição); só código de servidor
+    que JÁ executa a operação dona da trava (o aceite) o passa.
 
     ATENÇÃO a quem chamar FORA de `trades` (mercado, trade-up): `change_owner` sozinho trava só
     a instância e toma KEY SHARE na linha do NOVO dono (a FK do `UPDATE`). `trades.create_offer`
