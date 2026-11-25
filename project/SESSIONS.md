@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-25 — Sessão 25 (PR 4.0b: aplica a D7)
+
+- **Decisão do dono (2026-11-25)**: candidata da simulação (diária US$ 2,50 × dia até o dia 14, saldo inicial US$ 25), regra da sequência mantida, anúncio para depois com teto de ~10% da diária de regime. Confirmou o plano em plan mode (dinheiro, AGENTS §4).
+- **Feito** (PR #107, sessão individual): `rules.py` (`STARTING_BALANCE = 2_500`, `DAILY_STEP = 250`, `DAILY_CAP_DAY = 14`), testes de `test_rules`, `test_wallet_creation`, `test_wallet_api`, `test_daily`, `test_daily_concurrency` e **`test_ledger`**, e o ADR 0013. Frontend sem mudança (o valor vem do servidor).
+- **Erro meu no plano**: eu disse que `test_ledger.py` não dependia do saldo inicial; dependia (chegar a zero com `-10_000`, recusar `-10_001`, `balance_after`, os valores do teste de auditoria). Achei antes do commit ao reler o arquivo inteiro; o PR de controle confirmou (3 falhas lá).
+- **Provas**: PR de controle só com os testes (constantes antigas): 35 falhas, todas em `tests/economy/` (6 arquivos), 508 passaram; ruff e mypy limpos. PR final: 543 passaram. **3 mutações** (um PR rascunho cada, sobre o commit final, fechados): teto no dia 15 (3 falhas: `test_daily` e `test_rules` dias 15 e 45), passo da diária x10 (20 falhas), saldo inicial x10 (25 falhas). Todas compilam e passam ruff e mypy, então as falhas são dos testes.
+- **Não verificado**: execução no PostgreSQL local (só o CI); jogadores reais; a economia sem sumidouros. As contas de desenvolvimento do dono mantêm US$ 100.
+- **Aberto**: valor do anúncio (D12), sumidouros (taxa e caixa) e rever a D7 quando existirem; 3.4; termos da Skinport; validar a Etapa 2 no navegador.
+
 ### 2026-11-24 — Sessão 24 (PR 4.0: simulação da economia, e validação das telas do inventário)
 
 - **Validação do dono (PC)**: `migrate` sem `--skip-checks` passou (`friends.0002` sobre um banco que já tinha a `0001`); `import_catalog` com os arquivos reais (1.455 criadas e 1 sem preço; 2ª execução 0 e 1.455 sem mudança, fecha com as 790 ignoradas e as 2.246 do catálogo); contas `ana_01`/`bia_02`/`caio_03` e amizade criadas por script; `grant_skin` deu 3 skins (float 9 recusado). O dono disse "tudo funcionando" sobre as telas, **sem itemizar** a tabela de conferência.

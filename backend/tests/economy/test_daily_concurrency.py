@@ -34,7 +34,7 @@ def test_requisicoes_simultaneas_geram_um_unico_credito() -> None:
 
     assert sorted(resultados) == ["ok"] + ["recusado"] * (N - 1)
     assert DailyClaim.objects.filter(user=ana).count() == 1
-    assert Wallet.objects.get(user=ana).balance == 11_000
+    assert Wallet.objects.get(user=ana).balance == 2_750
     assert audit.check_ledger() == []
 
 
@@ -54,5 +54,5 @@ def test_cadastros_simultaneos_mantem_uma_unica_carteira_system() -> None:
             f.result()
 
     assert Wallet.objects.filter(kind="system").count() == 1
-    assert Wallet.objects.get(kind="system").balance == -10_000 * N
+    assert Wallet.objects.get(kind="system").balance == -2_500 * N
     assert audit.check_ledger() == []

@@ -10,7 +10,7 @@ O dono quer que "a moeda seja real": os preços das skins no jogo devem refletir
 2. O preço de uma skin vem de `skins.reference_price` (dado **nosso**, atualizado por import), em centavos de USD.
 3. **Não há conversão para dinheiro real**: sem depósito, saque, compra de moeda ou transferência para fora. A fronteira de pagamento, se um dia existir, é uma decisão separada com análise jurídica.
 4. Moeda nova entra **só pela carteira `system`**: saldo inicial, recompensa diária e recompensa por anúncio. Anúncio é **simulado** nesta fase (sem SDK, receita nem rastreamento).
-5. Os valores de saldo inicial, diária e recompensa são **provisórios** e saem de uma simulação antes de abrir caixas (D7).
+5. Os valores de saldo inicial, diária e recompensa são **provisórios** e saem de uma simulação antes de abrir caixas (D7). **Atualização (2026-11-25):** saldo inicial e diária foram decididos no [ADR 0013](0013-parametros-economicos-iniciais.md); o valor da recompensa por anúncio segue em aberto.
 
 ## Alternativas descartadas
 - **BRL como referência:** exige converter preços de fontes em dólar e decidir a frequência de atualização do câmbio; mais uma fonte de erro.

@@ -1,4 +1,8 @@
-"""Regras puras da economia (sem banco): valores provisórios, diária em sequência e validação."""
+"""Regras puras da economia (sem banco): valores da D7, diária em sequência e validação.
+
+Os valores esperados vêm da decisão do dono (2026-11-25, ADR 0013 e SIMULACAO-4.0-ECONOMIA.md):
+saldo inicial US$ 25,00, diária de US$ 2,50 por dia da sequência até o dia 14 (US$ 35,00).
+"""
 
 from datetime import timedelta
 
@@ -9,15 +13,17 @@ from apps.economy import rules
 H = timedelta(hours=1)
 
 
-def test_saldo_inicial_e_100_dolares_em_centavos() -> None:
-    assert rules.STARTING_BALANCE == 10_000
+def test_saldo_inicial_e_25_dolares_em_centavos() -> None:
+    assert rules.STARTING_BALANCE == 2_500
 
 
 @pytest.mark.parametrize(
     ("dia", "esperado"),
-    [(1, 1_000), (2, 2_000), (3, 3_000), (29, 29_000), (30, 30_000), (31, 30_000), (45, 30_000)],
+    [(1, 250), (2, 500), (3, 750), (13, 3_250), (14, 3_500), (15, 3_500), (45, 3_500)],
 )
-def test_diaria_cresce_10_dolares_por_dia_ate_o_teto_do_dia_30(dia: int, esperado: int) -> None:
+def test_diaria_cresce_2_dolares_e_meio_por_dia_ate_o_teto_do_dia_14(
+    dia: int, esperado: int
+) -> None:
     assert rules.daily_amount(dia) == esperado
 
 
