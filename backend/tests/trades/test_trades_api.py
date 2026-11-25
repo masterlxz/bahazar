@@ -462,7 +462,7 @@ def test_a_chave_de_um_usuario_nao_colide_com_a_de_outro(cena: SimpleNamespace) 
     }
 
 
-# --- item travado por outro módulo (`inventory.ItemLocked`) ----------------------------------
+# --- item travado (`inventory.ItemLocked`) ---------------------------------------------------
 
 
 def _aceite_que_levanta(monkeypatch: Any, erro: Exception) -> None:
@@ -482,21 +482,30 @@ def _aceite_que_levanta(monkeypatch: Any, erro: Exception) -> None:
 def test_item_travado_no_aceite_da_409_item_locked_e_nao_queima_a_chave(
     cena: SimpleNamespace, monkeypatch: Any
 ) -> None:
-    """`ItemLocked` é erro de negócio de outro módulo: 409 `item_locked`, nunca 500."""
+    """A tradução preventiva de `ItemLocked` responde 409; hoje a trava é simulada."""
     oferta = _a1_por_b1(cena)
-    _aceite_que_levanta(monkeypatch, ItemLocked("travado por uma oferta pendente"))
+    chave = _nova_chave()
+    bruno = _logado(cena.bruno)
 
-    resposta = _agir(_logado(cena.bruno), oferta["id"], "accept")
+    with monkeypatch.context() as contexto:
+        _aceite_que_levanta(contexto, ItemLocked("travado por outra operação"))
+        primeira = _agir(bruno, oferta["id"], "accept", chave)
 
-    assert resposta.status_code == 409
-    assert resposta.json() == {
+    assert primeira.status_code == 409
+    assert primeira.json() == {
         "code": "item_locked",
-        "message": "travado por uma oferta pendente",
+        "message": "travado por outra operação",
     }
-    # o aceite não aconteceu e a transação desfez a chave: o dono não mudou e ela ainda serve
-    assert TradeOffer.objects.get(pk=oferta["id"]).status == "pending"
-    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.pk, cena.bruno.pk)
-    assert IdempotencyRecord.objects.count() == 1  # só a da criação
+
+    segunda = _agir(bruno, oferta["id"], "accept", chave)
+
+    assert segunda.status_code == 200
+    corpo = segunda.json()
+    assert corpo["id"] == oferta["id"]
+    assert corpo["status"] == "accepted"
+    assert corpo["resolved_at"] is not None
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.bruno.pk, cena.ana.pk)
+    assert TradeOfferItem.objects.filter(active=True).count() == 0
 
 
 def test_trade_error_comum_continua_com_o_status_do_mapa(
