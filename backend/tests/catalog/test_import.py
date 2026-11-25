@@ -435,8 +435,21 @@ def test_comando_com_fetch_chama_import_catalog_from_api(escrever: Escrever, cap
 
     c = escrever([skin("skin-1", NOME)], [])[0]
 
+    report = type(
+        "R",
+        (),
+        {
+            "created": 1,
+            "updated": 0,
+            "unchanged": 0,
+            "deactivated": 0,
+            "excluded": 0,
+            "no_price": [],
+        },
+    )()
+
     with patch("apps.catalog.importer.import_catalog_from_api") as mock_import:
-        mock_import.return_value = type("R", (), {"created": 1, "updated": 0, "unchanged": 0, "deactivated": 0, "excluded": 0, "no_price": []})()
+        mock_import.return_value = report
 
         call_command("import_catalog", catalog=str(c), fetch=True, app_id=730, currency="USD")
 
@@ -453,7 +466,9 @@ def test_comando_fetch_sem_catalog_falha(escrever: Escrever) -> None:
     c = escrever([skin("skin-1", NOME)], [])[0]
 
     with pytest.raises(CommandError) as exc:
-        call_command("import_catalog", catalog=str(c), fetch=True, prices=str(c))  # --prices com --fetch
+        call_command(
+            "import_catalog", catalog=str(c), fetch=True, prices=str(c)
+        )  # --prices com --fetch
     assert "--prices não deve ser usado com --fetch" in str(exc.value)
 
 
