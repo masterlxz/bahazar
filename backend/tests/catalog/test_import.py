@@ -401,7 +401,9 @@ def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
-    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response([{"nao": "uma lista"}])
+    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response(
+        [{"nao": "uma lista"}]
+    )
 
     with pytest.raises(CatalogImportError) as exc:
         import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
