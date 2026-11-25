@@ -1,4 +1,4 @@
-"""Import do catálogo de skins a partir de dois arquivos LOCAIS (PR 3.1).
+"""Import do catálogo de skins a partir de dois arquivos LOCAIS (PR 3.1) ou da API da Skinport.
 
 - `catalog`: JSON no formato do ByMykel/CSGO-API (uma lista de skins).
 - `prices`: JSON no formato da Skinport `/v1/items` (uma lista de itens de mercado).
@@ -9,10 +9,13 @@ import inteiro numa transação só (nada é gravado pela metade). Os arquivos p
 """
 
 import json
+from base64 import b64encode
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from django.db import transaction
 
@@ -195,3 +198,116 @@ def _gravar(
         setattr(existente, chave, novos[chave])
     existente.save(update_fields=mudou)
     relatorio.updated += 1
+
+
+SKINPORT_ITEMS_URL = "https://api.skinport.com/v1/items"
+SKINPORT_TIMEOUT_SECONDS = 30
+
+
+def _build_skinport_url(app_id: int, currency: str) -> str:
+    return f"{SKINPORT_ITEMS_URL}?app_id={app_id}&currency={currency}"
+
+
+def _fetch_skinport_items(
+    app_id: int,
+    currency: str,
+    client_id: str | None,
+    client_secret: str | None,
+) -> list[Any]:
+    """Baixa /v1/items da Skinport. Requer Accept-Encoding: br. Retorna lista de dicts."""
+    url = _build_skinport_url(app_id, currency)
+    headers = {
+        "Accept-Encoding": "br",
+        "Accept": "application/json",
+        "User-Agent": "bahazar-import-catalog/1.0 (+https://github.com/masterlxz/bahazar)",
+    }
+    if client_id and client_secret:
+        token = b64encode(f"{client_id}:{client_secret}".encode()).decode()
+        headers["Authorization"] = f"Basic {token}"
+
+    req = Request(url, headers=headers)  # noqa: S310 - URL is constant (Skinport API)
+    try:
+        with urlopen(req, timeout=SKINPORT_TIMEOUT_SECONDS) as resp:  # noqa: S310 - URL is constant (Skinport API)
+            if resp.headers.get("Content-Encoding") == "br":
+                import brotli  # type: ignore[import-untyped]
+
+                data = brotli.decompress(resp.read())
+            else:
+                data = resp.read()
+    except HTTPError as erro:
+        if erro.code == 429:
+            raise CatalogImportError(
+                "Skinport API: rate limit excedido (429). "
+                "Use API key própria (SKINPORT_CLIENT_ID/SECRET) e aguarde a janela resetar."
+            ) from erro
+        if erro.code == 406:
+            raise CatalogImportError(
+                "Skinport API: Accept-Encoding: br é obrigatório (406)."
+            ) from erro
+        if erro.code == 403:
+            raise CatalogImportError(
+                "Skinport API: acesso negado (403). Cloudflare pode estar bloqueando. "
+                "Tente novamente ou use arquivo local (--prices)."
+            ) from erro
+        raise CatalogImportError(f"Skinport API: HTTP {erro.code}: {erro.reason}") from erro
+    except URLError as erro:
+        raise CatalogImportError(f"Skinport API: erro de rede: {erro.reason}") from erro
+
+    try:
+        itens = json.loads(data.decode("utf-8"), parse_float=Decimal)
+    except (json.JSONDecodeError, UnicodeDecodeError) as erro:
+        raise CatalogImportError(f"Skinport API: resposta não é JSON válido: {erro}") from erro
+
+    if not isinstance(itens, list):
+        raise CatalogImportError("Skinport API: resposta não é uma lista")
+    return itens
+
+
+def import_catalog_from_api(
+    catalog_path: Path,
+    app_id: int,
+    currency: str,
+    client_id: str | None,
+    client_secret: str | None,
+) -> ImportReport:
+    """Importa catálogo local + preços da API da Skinport."""
+    catalogo = _load_list(catalog_path, "catálogo")
+    precos_raw = _fetch_skinport_items(app_id, currency, client_id, client_secret)
+    precos = _price_index(precos_raw)
+    relatorio = ImportReport()
+    vistos: set[str] = set()
+
+    with transaction.atomic():
+        existentes = {s.external_id: s for s in Skin.objects.all()}
+        for posicao, raw in enumerate(catalogo, start=1):
+            if not isinstance(raw, dict):
+                raise CatalogImportError(f"catálogo, entrada {posicao}: não é um objeto")
+            ext_id = _text(raw, "id", f"entrada {posicao}", 64)
+            quem = f"skin {ext_id}"
+            nome = _text(raw, "name", quem, 200)
+            if not rules.is_importable_name(nome):
+                relatorio.excluded += 1
+                continue
+            if ext_id in vistos:
+                raise CatalogImportError(f"catálogo, {quem}: id repetido no arquivo")
+            vistos.add(ext_id)
+
+            campos: dict[str, Any] = {
+                "weapon": _nested_name(raw, "weapon", quem, 64),
+                "name": nome,
+                "collection": _collection(raw, quem),
+                "rarity": _nested_name(raw, "rarity", quem, 64),
+                "min_float": _decimal(raw, "min_float", quem),
+                "max_float": _decimal(raw, "max_float", quem),
+            }
+            if not 0 <= campos["min_float"] < campos["max_float"] <= 1:
+                raise CatalogImportError(f"catálogo, {quem}: faixa de float inválida")
+
+            desgaste = rules.reference_wear(_wears(raw, quem))
+            centavos = (
+                _cents(precos.get(rules.market_name(nome, desgaste)), quem)
+                if desgaste is not None
+                else None
+            )
+            _gravar(existentes.get(ext_id), ext_id, nome, campos, centavos, relatorio)
+    return relatorio

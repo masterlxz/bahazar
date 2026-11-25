@@ -8,6 +8,8 @@ import json
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from unittest.mock import MagicMock, patch
+from urllib.error import HTTPError, URLError
 
 import pytest
 from django.core.management import call_command
@@ -289,3 +291,187 @@ def test_o_comando_sai_com_erro_se_o_import_falha(escrever: Escrever) -> None:
 
     with pytest.raises(CommandError):
         call_command("import_catalog", catalog=str(c), prices=str(p))
+
+
+# --- Testes do modo API (import_catalog_from_api) ---
+
+
+def _mock_skinport_response(items: Any) -> MagicMock:
+    """Cria um mock de resposta HTTP com brotli comprimido."""
+    import brotli  # type: ignore[import-untyped]
+
+    resposta = MagicMock()
+    resposta.headers = {"Content-Encoding": "br"}
+    resposta.read.return_value = brotli.compress(json.dumps(items).encode("utf-8"))
+    return resposta
+
+
+@patch("apps.catalog.importer.urlopen")
+def test_import_catalog_from_api_cria_skin_com_preco(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
+    from apps.catalog.importer import import_catalog_from_api
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response(
+        [{"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 12.34}]
+    )
+
+    relatorio = import_catalog_from_api(
+        c, app_id=730, currency="USD", client_id=None, client_secret=None
+    )
+
+    assert relatorio.created == 1
+    from apps.catalog.models import Skin
+
+    assert Skin.objects.get(external_id="skin-1").reference_price == 1234
+
+
+@patch("apps.catalog.importer.urlopen")
+def test_import_catalog_from_api_envia_authorization_com_api_key(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
+    from apps.catalog.importer import import_catalog_from_api
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response(
+        [{"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 10.00}]
+    )
+
+    import_catalog_from_api(
+        c, app_id=730, currency="USD", client_id="test-id", client_secret="test-secret"
+    )
+
+    # Verifica se o header Authorization foi enviado
+    args, kwargs = mock_urlopen.call_args
+    request = args[0]
+    assert "Authorization" in request.headers
+    assert request.headers["Authorization"].startswith("Basic ")
+
+
+@patch("apps.catalog.importer.urlopen")
+def test_import_catalog_from_api_rate_limit_429_lanca_erro(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+    erro_429 = HTTPError("url", 429, "Too Many Requests", {}, None)  # type: ignore[arg-type]
+    mock_urlopen.side_effect = erro_429
+
+    with pytest.raises(CatalogImportError) as exc:
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+    assert "rate limit excedido" in str(exc.value).lower()
+
+
+@patch("apps.catalog.importer.urlopen")
+def test_import_catalog_from_api_406_accept_encoding_obrigatorio(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+    erro_406 = HTTPError("url", 406, "Not Acceptable", {}, None)  # type: ignore[arg-type]
+    mock_urlopen.side_effect = erro_406
+
+    with pytest.raises(CatalogImportError) as exc:
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+    assert "accept-encoding: br" in str(exc.value).lower()
+
+
+@patch("apps.catalog.importer.urlopen")
+def test_import_catalog_from_api_403_cloudflare_bloqueia(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+    erro_403 = HTTPError("url", 403, "Forbidden", {}, None)  # type: ignore[arg-type]
+    mock_urlopen.side_effect = erro_403
+
+    with pytest.raises(CatalogImportError) as exc:
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+    assert "cloudflare" in str(exc.value).lower()
+
+
+@patch("apps.catalog.importer.urlopen")
+def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response({"nao": "uma lista"})
+
+    with pytest.raises(CatalogImportError) as exc:
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+    assert "não é uma lista" in str(exc.value)
+
+
+@patch("apps.catalog.importer.urlopen")
+def test_import_catalog_from_api_rede_erro_lanca_erro(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+    mock_urlopen.side_effect = URLError("conexão recusada")
+
+    with pytest.raises(CatalogImportError) as exc:
+        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+    assert "erro de rede" in str(exc.value).lower()
+
+
+def test_comando_com_fetch_chama_import_catalog_from_api(escrever: Escrever, capsys: Any) -> None:
+    from django.core.management import call_command
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+
+    report = type(
+        "R",
+        (),
+        {
+            "created": 1,
+            "updated": 0,
+            "unchanged": 0,
+            "deactivated": 0,
+            "excluded": 0,
+            "no_price": [],
+        },
+    )()
+
+    with patch(
+        "apps.catalog.management.commands.import_catalog.import_catalog_from_api"
+    ) as mock_import:
+        mock_import.return_value = report
+
+        call_command("import_catalog", catalog=str(c), fetch=True, app_id=730, currency="USD")
+
+        mock_import.assert_called_once()
+        assert mock_import.call_args[1]["catalog_path"] == c
+        assert mock_import.call_args[1]["app_id"] == 730
+        assert mock_import.call_args[1]["currency"] == "USD"
+
+
+def test_comando_fetch_sem_catalog_falha(escrever: Escrever) -> None:
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+
+    with pytest.raises(CommandError) as exc:
+        call_command(
+            "import_catalog", catalog=str(c), fetch=True, prices=str(c)
+        )  # --prices com --fetch
+    assert "--prices não deve ser usado com --fetch" in str(exc.value)
+
+
+def test_comando_sem_fetch_sem_prices_falha(escrever: Escrever) -> None:
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    c = escrever([skin("skin-1", NOME)], [])[0]
+
+    with pytest.raises(CommandError) as exc:
+        call_command("import_catalog", catalog=str(c), fetch=False)
+    assert "--prices é obrigatório sem --fetch" in str(exc.value)
