@@ -7,6 +7,7 @@ const base = "/api/v1/inventory/";
 export interface InventoryQuery {
   rarity?: string;
   weapon?: string;
+  collection?: string;
   wear?: string;
   q?: string;
   ordering?: string;
@@ -20,7 +21,7 @@ export interface InventoryQuery {
  */
 export function inventoryParams(query: InventoryQuery): URLSearchParams {
   const params = new URLSearchParams();
-  for (const campo of ["rarity", "weapon", "wear", "q", "ordering"] as const) {
+  for (const campo of ["rarity", "weapon", "collection", "wear", "q", "ordering"] as const) {
     const valor = query[campo];
     if (valor) params.set(campo, valor);
   }

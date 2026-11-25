@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { ApiError } from "../../services/http";
 import { getInventory, type InventoryQuery } from "../../services/inventory";
+import { fetchFacets, type CatalogFacets } from "../../services/skins";
+import { FACETS_KEY } from "../../features/skins/useSkins";
 
 // Chave hierárquica: um único `removeQueries(INVENTORY_ROOT_KEY)` no logout apaga o inventário
 // de todos os jogadores que esta sessão chegou a ver.
@@ -38,6 +40,15 @@ export function useInventory(username: string | undefined, query: InventoryQuery
     queryKey: inventoryKey(username, query),
     queryFn: () => getInventory(username, query),
     enabled: !usernameImpossivel(username),
+    retry: tentarDeNovo,
+  });
+}
+
+/** Facets do catálogo para os selects de filtro do inventário (mesma chave do catálogo). */
+export function useInventoryFacets() {
+  return useQuery<CatalogFacets>({
+    queryKey: FACETS_KEY,
+    queryFn: fetchFacets,
     retry: tentarDeNovo,
   });
 }

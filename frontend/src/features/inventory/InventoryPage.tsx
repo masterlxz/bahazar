@@ -7,8 +7,9 @@ import { formatUsd } from "../../lib/money";
 import { ApiError } from "../../services/http";
 import { inventoryParams, type InventoryQuery } from "../../services/inventory";
 import type { InventoryItem } from "../../types/api";
-import { DEFAULT_ORDERING, ORDENACOES, WEARS, lerConsulta, normalizar } from "./consulta";
-import { useInventory, usernameImpossivel } from "./useInventory";
+import type { CatalogFacets } from "../../types/api";
+import { DEFAULT_ORDERING, ORDENACOES, lerConsulta, normalizar, opcoesRarity, opcoesWeapon, opcoesCollection, opcoesWear } from "./consulta";
+import { useInventory, useInventoryFacets, usernameImpossivel } from "./useInventory";
 
 // Uma mensagem só para "não pode ver" (não amigo, pedido pendente, bloqueado ou inexistente): o
 // servidor devolve o mesmo 404 para todos, e a tela não pode distingui-los (ADR 0010).
@@ -32,49 +33,82 @@ function Campo({ id, rotulo, children }: { id: string; rotulo: string; children:
 
 interface FiltrosProps {
   consulta: InventoryQuery;
+  facets: CatalogFacets | undefined;
   onAplicar: (consulta: InventoryQuery) => void;
   onLimpar: () => void;
 }
 
 /** Os filtros ficam num rascunho local e só valem ao clicar em Aplicar (uma requisição por vez,
  * não uma por tecla). O `key` do chamador recria o rascunho quando a URL muda. */
-function Filtros({ consulta, onAplicar, onLimpar }: FiltrosProps) {
+function Filtros({ consulta, facets, onAplicar, onLimpar }: FiltrosProps) {
   const [rarity, setRarity] = useState(consulta.rarity ?? "");
   const [weapon, setWeapon] = useState(consulta.weapon ?? "");
-  // Um valor da URL que não é opção do select (ex.: editado à mão) começa como "Todos".
-  const [wear, setWear] = useState<string>(WEARS.find((w) => w === consulta.wear) ?? "");
+  const [collection, setCollection] = useState(consulta.collection ?? "");
+  const [wear, setWear] = useState(consulta.wear ?? "");
   const [q, setQ] = useState(consulta.q ?? "");
   const [ordering, setOrdering] = useState<string>(
     ORDENACOES.find((o) => o.value === consulta.ordering)?.value ?? DEFAULT_ORDERING,
   );
 
+  const raridades = opcoesRarity(facets);
+  const armas = opcoesWeapon(facets);
+  const colecoes = opcoesCollection(facets);
+  const desgastes = opcoesWear(facets);
+
   function aplicar(evento: FormEvent) {
     evento.preventDefault();
-    onAplicar({ rarity, weapon, wear, q, ordering });
+    onAplicar({ rarity, weapon, collection, wear, q, ordering });
   }
 
   return (
     <form
       onSubmit={aplicar}
-      className="grid gap-4 rounded-lg border border-border bg-card p-6 sm:grid-cols-2"
+      className="grid gap-4 rounded-lg border border-border bg-card p-6 sm:grid-cols-2 lg:grid-cols-3"
     >
       <Campo id="filtro-raridade" rotulo="Raridade">
-        <input
+        <select
           id="filtro-raridade"
           value={rarity}
-          maxLength={64}
           onChange={(e) => setRarity(e.target.value)}
           className={CLASSE_CAMPO}
-        />
+        >
+          <option value="">Todas</option>
+          {raridades.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
       </Campo>
       <Campo id="filtro-arma" rotulo="Arma">
-        <input
+        <select
           id="filtro-arma"
           value={weapon}
-          maxLength={64}
           onChange={(e) => setWeapon(e.target.value)}
           className={CLASSE_CAMPO}
-        />
+        >
+          <option value="">Todas</option>
+          {armas.map((w) => (
+            <option key={w} value={w}>
+              {w}
+            </option>
+          ))}
+        </select>
+      </Campo>
+      <Campo id="filtro-colecao" rotulo="Coleção">
+        <select
+          id="filtro-colecao"
+          value={collection}
+          onChange={(e) => setCollection(e.target.value)}
+          className={CLASSE_CAMPO}
+        >
+          <option value="">Todas</option>
+          {colecoes.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </Campo>
       <Campo id="filtro-desgaste" rotulo="Desgaste">
         <select
@@ -84,7 +118,7 @@ function Filtros({ consulta, onAplicar, onLimpar }: FiltrosProps) {
           className={CLASSE_CAMPO}
         >
           <option value="">Todos</option>
-          {WEARS.map((w) => (
+          {desgastes.map((w) => (
             <option key={w} value={w}>
               {w}
             </option>
@@ -114,7 +148,7 @@ function Filtros({ consulta, onAplicar, onLimpar }: FiltrosProps) {
           ))}
         </select>
       </Campo>
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-2 lg:col-span-3">
         <Button type="submit">Aplicar</Button>
         <Button type="button" variant="outline" onClick={onLimpar}>
           Limpar filtros
@@ -150,6 +184,7 @@ export default function InventoryPage() {
   const consulta = lerConsulta(searchParams);
   const pagina = consulta.page ?? 1;
   const inventario = useInventory(username, consulta);
+  const facets = useInventoryFacets();
 
   // A consulta mora na URL: voltar do navegador desfaz um filtro, e o link é compartilhável.
   const ir = (nova: InventoryQuery) => setSearchParams(inventoryParams(normalizar(nova)));
@@ -169,6 +204,7 @@ export default function InventoryPage() {
       <Filtros
         key={`${username ?? ""}?${searchParams.toString()}`}
         consulta={consulta}
+        facets={facets.data}
         onAplicar={ir}
         onLimpar={() => ir({})}
       />
