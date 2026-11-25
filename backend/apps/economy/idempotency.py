@@ -73,7 +73,7 @@ def run_once(
                 try:
                     existente = IdempotencyRecord.objects.get(scope=scope, key=key)
                 except IdempotencyRecord.DoesNotExist:
-                    continue  # expirou entre o INSERT e o SELECT: a chave está livre, tenta de novo
+                    raise
                 if existente.request_hash != request_hash:
                     raise IdempotencyKeyReused from None
                 if existente.response_status is None or existente.response_body is None:
