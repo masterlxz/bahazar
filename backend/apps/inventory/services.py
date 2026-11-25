@@ -96,6 +96,20 @@ def create_instance(
         )
 
 
+def assert_movable(
+    instance: SkinInstance,
+    *,
+    authorized_by: uuid.UUID | None = None,
+) -> None:
+    """Roda as guardas de movimento do item, sem mover o item.
+
+    A guarda só lê e não trava: quem chama precisa travar a instância antes, se a regra exigir a
+    mesma trava. `authorized_by` é repassado às guardas como crachá opaco da operação em curso.
+    """
+    for guarda in _MOVE_GUARDS:
+        guarda(instance, authorized_by)
+
+
 def change_owner(
     instance_id: uuid.UUID,
     *,
@@ -129,8 +143,7 @@ def change_owner(
             raise NotOwner
         if instancia.consumed_at is not None:
             raise ConsumedInstance
-        for guarda in _MOVE_GUARDS:
-            guarda(instancia, authorized_by)
+        assert_movable(instancia, authorized_by=authorized_by)
         instancia.owner = to_owner
         instancia.save(update_fields=["owner"])
         return instancia
