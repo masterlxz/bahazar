@@ -23,6 +23,7 @@ from rest_framework.test import APIClient
 from apps.economy.models import IdempotencyRecord
 from apps.friends.models import Friendship
 from apps.inventory.models import SkinInstance
+from apps.inventory.services import ItemLocked
 from apps.trades import rules, services, views
 from apps.trades.models import TradeOffer, TradeOfferItem
 
@@ -459,6 +460,66 @@ def test_a_chave_de_um_usuario_nao_colide_com_a_de_outro(cena: SimpleNamespace) 
         f"user:{cena.ana.pk}",
         f"user:{cena.bruno.pk}",
     }
+
+
+# --- item travado (`inventory.ItemLocked`) ---------------------------------------------------
+
+
+def _aceite_que_levanta(monkeypatch: Any, erro: Exception) -> None:
+    """Substitui o aceite por um que levanta `erro` antes de tocar o banco.
+
+    A view guarda os serviços em `_RESOLVEDORES` no import: trocar só
+    `services.accept_offer` não chegaria à rota, então trocamos a entrada da tabela que o
+    `AcceptOfferView` de fato chama.
+    """
+
+    def falhar(ator: Any, offer_id: Any) -> Any:
+        raise erro
+
+    monkeypatch.setitem(views._RESOLVEDORES, "accept", falhar)
+
+
+def test_item_travado_no_aceite_da_409_item_locked_e_nao_queima_a_chave(
+    cena: SimpleNamespace, monkeypatch: Any
+) -> None:
+    """A tradução preventiva de `ItemLocked` responde 409; hoje a trava é simulada."""
+    oferta = _a1_por_b1(cena)
+    chave = _nova_chave()
+    bruno = _logado(cena.bruno)
+
+    with monkeypatch.context() as contexto:
+        _aceite_que_levanta(contexto, ItemLocked("travado por outra operação"))
+        primeira = _agir(bruno, oferta["id"], "accept", chave)
+
+    assert primeira.status_code == 409
+    assert primeira.json() == {
+        "code": "item_locked",
+        "message": "travado por outra operação",
+    }
+
+    segunda = _agir(bruno, oferta["id"], "accept", chave)
+
+    assert segunda.status_code == 200
+    corpo = segunda.json()
+    assert corpo["id"] == oferta["id"]
+    assert corpo["status"] == "accepted"
+    assert corpo["resolved_at"] is not None
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.bruno.pk, cena.ana.pk)
+    assert TradeOfferItem.objects.filter(active=True).count() == 0
+
+
+def test_trade_error_comum_continua_com_o_status_do_mapa(
+    cena: SimpleNamespace, monkeypatch: Any
+) -> None:
+    """O tratamento novo não engole os `TradeError`: `NotAllowed` continua 403, não 409."""
+    oferta = _a1_por_b1(cena)
+    _aceite_que_levanta(monkeypatch, services.NotAllowed())
+
+    resposta = _agir(_logado(cena.bruno), oferta["id"], "accept")
+
+    assert resposta.status_code == 403
+    assert resposta.json()["code"] == "not_allowed"
+    assert TradeOffer.objects.get(pk=oferta["id"]).status == "pending"
 
 
 def _largar(tarefas: Sequence[Callable[[], Any]]) -> list[Any]:

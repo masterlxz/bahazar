@@ -22,6 +22,7 @@ from apps.accounts.models import User
 from apps.economy.idempotency import IdempotencyKeyReused, run_once
 from apps.economy.rules import normalize_idempotency_key, request_fingerprint
 from apps.friends import selectors as friends_selectors
+from apps.inventory.services import ItemLocked
 
 from . import selectors, services
 from .models import TradeOffer
@@ -85,7 +86,9 @@ def _executar_uma_vez(
     executar de novo: se a oferta mudou de estado desde então, a resposta repetida não reflete
     isso (para o estado atual, `GET /trades/<id>/`). A mesma chave com outro pedido dá 422. Um
     `TradeError` passa por `run_once` (a transação desfaz, a chave não queima) e vira
-    `{code, message}` aqui.
+    `{code, message}` aqui. A tradução do `ItemLocked` do `inventory` é preventiva para outras
+    guardas de movimentação (anúncios na 4.3): hoje o caminho é simulado no teste, pois a
+    única guarda registrada exclui a oferta que o aceite está executando.
     """
     try:
         chave = normalize_idempotency_key(request.headers.get(IDEMPOTENCY_HEADER, ""))
@@ -103,6 +106,9 @@ def _executar_uma_vez(
         return _erro(erro.code, erro.message, status.HTTP_422_UNPROCESSABLE_ENTITY)
     except services.TradeError as erro:
         return _erro_do_servico(erro)
+    except ItemLocked as erro:
+        # Tradução preventiva para outras guardas (anúncios na 4.3); hoje é simulada no teste.
+        return _erro(erro.code, str(erro), status.HTTP_409_CONFLICT)
     return Response(saida.body, status=saida.status)
 
 
