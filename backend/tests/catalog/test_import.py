@@ -296,7 +296,7 @@ def test_o_comando_sai_com_erro_se_o_import_falha(escrever: Escrever) -> None:
 # --- Testes do modo API (import_catalog_from_api) ---
 
 
-def _mock_skinport_response(items: list[dict[str, Any]]) -> MagicMock:
+def _mock_skinport_response(items: Any) -> MagicMock:
     """Cria um mock de resposta HTTP com brotli comprimido."""
     import brotli  # type: ignore[import-untyped]
 
@@ -402,7 +402,7 @@ def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response(
-        [{"nao": "uma lista"}]
+        {"nao": "uma lista"}
     )
 
     with pytest.raises(CatalogImportError) as exc:
@@ -442,7 +442,9 @@ def test_comando_com_fetch_chama_import_catalog_from_api(escrever: Escrever, cap
         },
     )()
 
-    with patch("apps.catalog.importer.import_catalog_from_api") as mock_import:
+    with patch(
+        "apps.catalog.management.commands.import_catalog.import_catalog_from_api"
+    ) as mock_import:
         mock_import.return_value = report
 
         call_command("import_catalog", catalog=str(c), fetch=True, app_id=730, currency="USD")
