@@ -4,7 +4,7 @@ Critério: só entra o que está **em aberto** e depende de decisão ou ação. 
 
 ## Aguardando o dono
 - [x] Arquitetura e ADRs 0001-0009 **aprovados** pelo dono em 2026-11-19. D8 confirmada: Django 5.2 LTS.
-- [ ] Responder D3 (antes do deploy), D7 (na PR 4.0, com simulação), D2 (depois da etapa 2), **D11** (fonte de preços em USD, na PR 3.0: **decidida em 2026-11-24: Skinport por snapshot manual**, medida em `MEDICAO-3.0-FONTE-DE-PRECOS.md` (cobre 99,94%); **falta o dono ler os termos da Skinport (`skinport.com/terms`) antes de publicar o jogo**) e **D12** (anúncio real, etapa 6).
+- [ ] Responder D3 (antes do deploy), D7 (na PR 4.0, com simulação), D2 (depois da etapa 2), **D11** (fonte de preços em USD, na PR 3.0: **decidida em 2026-11-24: Skinport por snapshot manual**, medida em `MEDICAO-3.0-FONTE-DE-PRECOS.md` (cobre 99,94%); **termos lidos em 2026-11-25, ADR 0015 gravado**; pendências: API key própria, e-mail de confirmação, atribuição visual no frontend) e **D12** (anúncio real, etapa 6).
 - [x] **Virada de produto** (2026-11-19): economia global por usuário, moeda virtual em USD na escala de preços reais, salas como grupos. ADR 0010 e 0011 gravados; 0003 e 0004 parcialmente substituídos. **Aguarda sua leitura/aprovação do PR**.
 - [x] Nome (D9): **bahazar**, confirmado pelo dono em 2026-11-18. Repo (D10): `masterlxz/bahazar`, público, AGPL-3.0.
 
@@ -85,7 +85,10 @@ Troca de itens entre amigos, **parte 1: modelo e serviço, sem HTTP** (decisões
 - [ ] Sem teste de concorrência da visibilidade (amizade desfeita no meio da requisição): a resposta reflete o instante da checagem.
 - [ ] Se o import mudar a faixa (`min_float`/`max_float`) de uma skin que já tem instâncias, o trigger só confere na gravação: instâncias antigas podem ficar fora da nova faixa. Decidir o que fazer quando isso acontecer.
 - [x] (feito em 2026-11-24, saída vista: 1ª execução 1.455 criadas e 1 sem preço, 2ª execução 0 criadas e 1.455 sem mudança) **Rodar o `import_catalog` com os arquivos reais** no PC do dono (Postgres local): `python manage.py import_catalog --catalog backend/data/skins.json --prices backend/data/skinport.json`; conferir ~1.455 criadas e, na 2ª execução, 0 criadas e 0 atualizadas (PR 3.1).
-- [ ] **Termos da Skinport** (`skinport.com/terms`): uso em jogo, exibição, guardar o dado, crédito. Bloqueia **publicar** o jogo, não o import local. Conferir junto os **agregados arredondados de preço publicados** em `SIMULACAO-4.0-ECONOMIA.md` (inclui o preço de uma skin só, a Contraband): o repo é público.
+- [x] **Termos da Skinport** (`skinport.com/terms`): lidos em 2026-11-25 via cache (Cloudflare bloqueia acesso direto). ToS, Privacy, API docs, FAQ, Imprint analisados. **ADR 0015 gravado**. Bloqueia **publicar** o jogo, não o import local.
+- [ ] **API key Skinport própria**: criar conta dedicada → `SKINPORT_CLIENT_ID` / `SKINPORT_CLIENT_SECRET` no ambiente → `import_catalog` envia `Authorization: Bearer` para limite próprio (hoje usa IP compartilhado /24).
+- [ ] **E-mail para `info@skinport.com`** confirmando uso: "preço de referência para economia virtual em jogo de navegador, moeda virtual sem dinheiro real, atribuição 'via Skinport' no frontend" → arquivar resposta.
+- [ ] **Atribuição visual no frontend**: "Preço de referência via [Skinport](https://skinport.com)" na página de catálogo (`/skins`), detalhe da skin e inventário.
 - [ ] **D1 (imagens)** na PR 3.3, com os termos da Valve lidos. A PR 3.1 não importa imagens.
 - [ ] 4 variantes e 1 skin Restricted sem preço na Skinport (causa não confirmada: nome diferente ou item inexistente no mercado).
 - [ ] Facas e luvas (`★`), StatTrak e Souvenir ficaram fora do catálogo; decidir se entram numa fase futura.
