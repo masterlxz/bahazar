@@ -322,7 +322,7 @@ def test_import_catalog_from_api_cria_skin_com_preco(mock_urlopen: MagicMock, es
 
 @patch("apps.catalog.importer.urlopen")
 def test_import_catalog_from_api_envia_authorization_com_api_key(mock_urlopen: MagicMock, escrever: Escrever) -> None:
-    from apps.catalog.importer import import_catalog_from_api
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response([
@@ -342,7 +342,7 @@ def test_import_catalog_from_api_envia_authorization_com_api_key(mock_urlopen: M
 def test_import_catalog_from_api_rate_limit_429_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
     from urllib.error import HTTPError
 
-    from apps.catalog.importer import import_catalog_from_api, CatalogImportError
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     erro_429 = HTTPError("url", 429, "Too Many Requests", {}, None)
@@ -357,7 +357,7 @@ def test_import_catalog_from_api_rate_limit_429_lanca_erro(mock_urlopen: MagicMo
 def test_import_catalog_from_api_406_accept_encoding_obrigatorio(mock_urlopen: MagicMock, escrever: Escrever) -> None:
     from urllib.error import HTTPError
 
-    from apps.catalog.importer import import_catalog_from_api, CatalogImportError
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     erro_406 = HTTPError("url", 406, "Not Acceptable", {}, None)
@@ -372,7 +372,7 @@ def test_import_catalog_from_api_406_accept_encoding_obrigatorio(mock_urlopen: M
 def test_import_catalog_from_api_403_cloudflare_bloqueia(mock_urlopen: MagicMock, escrever: Escrever) -> None:
     from urllib.error import HTTPError
 
-    from apps.catalog.importer import import_catalog_from_api, CatalogImportError
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     erro_403 = HTTPError("url", 403, "Forbidden", {}, None)
@@ -385,7 +385,7 @@ def test_import_catalog_from_api_403_cloudflare_bloqueia(mock_urlopen: MagicMock
 
 @patch("apps.catalog.importer.urlopen")
 def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
-    from apps.catalog.importer import import_catalog_from_api, CatalogImportError
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response({"nao": "uma lista"})
@@ -399,7 +399,7 @@ def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(mock_urlopen: Mag
 def test_import_catalog_from_api_rede_erro_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
     from urllib.error import URLError
 
-    from apps.catalog.importer import import_catalog_from_api, CatalogImportError
+    from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     mock_urlopen.side_effect = URLError("conexão recusada")
