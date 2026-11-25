@@ -306,7 +306,9 @@ def _mock_skinport_response(items: list[dict[str, Any]]) -> MagicMock:
 
 
 @patch("apps.catalog.importer.urlopen")
-def test_import_catalog_from_api_cria_skin_com_preco(mock_urlopen: MagicMock, escrever: Escrever) -> None:
+def test_import_catalog_from_api_cria_skin_com_preco(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
     from apps.catalog.importer import import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -314,7 +316,9 @@ def test_import_catalog_from_api_cria_skin_com_preco(mock_urlopen: MagicMock, es
         {"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 12.34}
     ])
 
-    relatorio = import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+    relatorio = import_catalog_from_api(
+        c, app_id=730, currency="USD", client_id=None, client_secret=None
+    )
 
     assert relatorio.created == 1
     from apps.catalog.models import Skin
@@ -322,7 +326,9 @@ def test_import_catalog_from_api_cria_skin_com_preco(mock_urlopen: MagicMock, es
 
 
 @patch("apps.catalog.importer.urlopen")
-def test_import_catalog_from_api_envia_authorization_com_api_key(mock_urlopen: MagicMock, escrever: Escrever) -> None:
+def test_import_catalog_from_api_envia_authorization_com_api_key(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
     from apps.catalog.importer import import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -330,7 +336,9 @@ def test_import_catalog_from_api_envia_authorization_com_api_key(mock_urlopen: M
         {"market_hash_name": f"{NOME} (Field-Tested)", "suggested_price": 10.00}
     ])
 
-    import_catalog_from_api(c, app_id=730, currency="USD", client_id="test-id", client_secret="test-secret")
+    import_catalog_from_api(
+        c, app_id=730, currency="USD", client_id="test-id", client_secret="test-secret"
+    )
 
     # Verifica se o header Authorization foi enviado
     args, kwargs = mock_urlopen.call_args
@@ -340,7 +348,9 @@ def test_import_catalog_from_api_envia_authorization_com_api_key(mock_urlopen: M
 
 
 @patch("apps.catalog.importer.urlopen")
-def test_import_catalog_from_api_rate_limit_429_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
+def test_import_catalog_from_api_rate_limit_429_lanca_erro(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -348,12 +358,16 @@ def test_import_catalog_from_api_rate_limit_429_lanca_erro(mock_urlopen: MagicMo
     mock_urlopen.side_effect = erro_429
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+        import_catalog_from_api(
+            c, app_id=730, currency="USD", client_id=None, client_secret=None
+        )
     assert "rate limit excedido" in str(exc.value).lower()
 
 
 @patch("apps.catalog.importer.urlopen")
-def test_import_catalog_from_api_406_accept_encoding_obrigatorio(mock_urlopen: MagicMock, escrever: Escrever) -> None:
+def test_import_catalog_from_api_406_accept_encoding_obrigatorio(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -361,12 +375,16 @@ def test_import_catalog_from_api_406_accept_encoding_obrigatorio(mock_urlopen: M
     mock_urlopen.side_effect = erro_406
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+        import_catalog_from_api(
+            c, app_id=730, currency="USD", client_id=None, client_secret=None
+        )
     assert "accept-encoding: br" in str(exc.value).lower()
 
 
 @patch("apps.catalog.importer.urlopen")
-def test_import_catalog_from_api_403_cloudflare_bloqueia(mock_urlopen: MagicMock, escrever: Escrever) -> None:
+def test_import_catalog_from_api_403_cloudflare_bloqueia(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
@@ -374,31 +392,41 @@ def test_import_catalog_from_api_403_cloudflare_bloqueia(mock_urlopen: MagicMock
     mock_urlopen.side_effect = erro_403
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+        import_catalog_from_api(
+            c, app_id=730, currency="USD", client_id=None, client_secret=None
+        )
     assert "cloudflare" in str(exc.value).lower()
 
 
 @patch("apps.catalog.importer.urlopen")
-def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
+def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response({"nao": "uma lista"})
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+        import_catalog_from_api(
+            c, app_id=730, currency="USD", client_id=None, client_secret=None
+        )
     assert "não é uma lista" in str(exc.value)
 
 
 @patch("apps.catalog.importer.urlopen")
-def test_import_catalog_from_api_rede_erro_lanca_erro(mock_urlopen: MagicMock, escrever: Escrever) -> None:
+def test_import_catalog_from_api_rede_erro_lanca_erro(
+    mock_urlopen: MagicMock, escrever: Escrever
+) -> None:
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
     mock_urlopen.side_effect = URLError("conexão recusada")
 
     with pytest.raises(CatalogImportError) as exc:
-        import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
+        import_catalog_from_api(
+            c, app_id=730, currency="USD", client_id=None, client_secret=None
+        )
     assert "erro de rede" in str(exc.value).lower()
 
 
