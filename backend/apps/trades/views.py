@@ -88,7 +88,8 @@ def _executar_uma_vez(
     `{code, message}` aqui.
     """
     try:
-        chave = normalize_idempotency_key(request.headers.get(IDEMPOTENCY_HEADER) or str(uuid.uuid4()))
+        cabecalho = request.headers.get(IDEMPOTENCY_HEADER) or str(uuid.uuid4())
+        chave = normalize_idempotency_key(cabecalho)
     except ValueError:
         return _erro(
             "invalid_idempotency_key",
