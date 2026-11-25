@@ -410,10 +410,14 @@ def test_o_detalhe_mostra_so_anuncio_ativo(cena: SimpleNamespace) -> None:
     assert ativo.status_code == 200
     assert ativo.json() == anuncio
     assert (depois.status_code, sem_anuncio.status_code) == (404, 404)
-    assert depois.json() == sem_anuncio.json() == {
-        "code": "listing_not_found",
-        "message": "Não encontrado.",
-    }
+    assert (
+        depois.json()
+        == sem_anuncio.json()
+        == {
+            "code": "listing_not_found",
+            "message": "Não encontrado.",
+        }
+    )
 
 
 def _consultas(cliente: APIClient, url: str) -> int:
