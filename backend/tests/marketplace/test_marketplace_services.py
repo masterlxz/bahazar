@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from django.utils import timezone
 
+from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
 
 from .conftest import anunciar
@@ -67,9 +68,6 @@ def test_o_indice_unico_do_banco_fecha_a_corrida_que_o_python_deixou_passar(
     Prova que a garantia "uma instância, um anúncio ativo" também está no banco, não só no
     serviço: sem o índice, dois anúncios ativos entrariam e a vitrine ficaria ambígua.
     """
-    from apps.inventory import (  # type: ignore[import-not-found, unused-ignore]
-        services as inventory_services,
-    )
     from apps.marketplace import (  # type: ignore[import-not-found, unused-ignore]
         selectors,
         services,
