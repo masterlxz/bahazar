@@ -8,8 +8,6 @@ import pytest
 from django.utils import timezone
 
 from apps.inventory.models import SkinInstance
-from apps.marketplace import selectors, services
-from apps.marketplace.models import ListingStatus, MarketListing
 
 from .conftest import anunciar
 
@@ -21,6 +19,12 @@ def _dono(instancia: Any) -> uuid.UUID:
 
 
 def test_criar_grava_o_anuncio_ativo_e_nao_mexe_no_item(cena: SimpleNamespace) -> None:
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import (  # type: ignore[import-not-found, unused-ignore]
+        ListingStatus,
+        MarketListing,
+    )
+
     anuncio = services.create_listing(cena.ana, cena.a1.pk, 700)
 
     gravado = MarketListing.objects.get(pk=anuncio.pk)
@@ -35,6 +39,12 @@ def test_criar_grava_o_anuncio_ativo_e_nao_mexe_no_item(cena: SimpleNamespace) -
 
 
 def test_cancelar_grava_o_estado_terminal_e_o_instante_do_fechamento(cena: SimpleNamespace) -> None:
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import (  # type: ignore[import-not-found, unused-ignore]
+        ListingStatus,
+        MarketListing,
+    )
+
     anuncio = anunciar(cena.ana, cena.a1)
     antes = timezone.now()
 
@@ -57,7 +67,16 @@ def test_o_indice_unico_do_banco_fecha_a_corrida_que_o_python_deixou_passar(
     Prova que a garantia "uma instância, um anúncio ativo" também está no banco, não só no
     serviço: sem o índice, dois anúncios ativos entrariam e a vitrine ficaria ambígua.
     """
+    from apps.inventory import services as inventory_services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace import selectors, services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import (  # type: ignore[import-not-found, unused-ignore]
+        ListingStatus,
+        MarketListing,
+    )
+
     monkeypatch.setattr(selectors, "has_active_listing", lambda instance_id: False)
+    # Also disable the move guards (listing_guard) so the test reaches the database INSERT
+    monkeypatch.setattr(inventory_services, "_MOVE_GUARDS", [])
     anunciar(cena.ana, cena.a1)
 
     with pytest.raises(services.ItemAlreadyListed):
@@ -70,6 +89,12 @@ def test_o_indice_unico_nao_atrapalha_um_anuncio_novo_depois_do_cancelamento(
     cena: SimpleNamespace,
 ) -> None:
     """O índice é parcial: anúncio cancelado não ocupa a vaga do item."""
+    from apps.marketplace import services  # type: ignore[import-not-found, unused-ignore]
+    from apps.marketplace.models import (  # type: ignore[import-not-found, unused-ignore]
+        ListingStatus,
+        MarketListing,
+    )
+
     primeiro = anunciar(cena.ana, cena.a1)
     services.cancel_listing(cena.ana, primeiro.pk)
 
