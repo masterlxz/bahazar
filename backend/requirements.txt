@@ -9,5 +9,5 @@ psycopg[binary]==3.3.9
 django-allauth[headless]==65.22.1
 # Brotli para decomprimir respostas da Skinport API (Accept-Encoding: br obrigatório).
 # MIT. Medido no PyPI em 2026-11-25. v1.1.0 tem vulnerabilidades (PYSEC-2026-1906, PYSEC-2026-2401,
-# PYSEC-2026-4322); use >=1.2.0.
-brotli==1.2.0
+# PYSEC-2026-4322); use >=1.2.1.
+brotli==1.2.1
