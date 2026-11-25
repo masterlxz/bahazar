@@ -182,7 +182,7 @@ def create_offer(
             if rules.pending_limit_exceeded(selectors.pending_count(proposer)):
                 raise TooManyPendingOffers
             travadas = SkinInstance.objects.select_for_update().filter(pk__in=todos)
-            instancias = {i.pk: i for i in travadas.order_by("pk")}
+            instancias = {i.pk: i for i in travadas}
             _conferir_itens(instancias, esperados)
             if selectors.busy_instance_ids(todos):
                 raise ItemAlreadyOffered
