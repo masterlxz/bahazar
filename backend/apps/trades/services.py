@@ -257,7 +257,7 @@ def accept_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
         ids = sorted(i.instance_id for i in itens)
         instancias = {
             i.pk: i
-            for i in SkinInstance.objects.select_for_update().filter(pk__in=ids).order_by("pk")
+            for i in SkinInstance.objects.select_for_update().filter(pk__in=ids)
         }
         _conferir_itens(instancias, [(i.instance_id, _dono_declarado(oferta, i)) for i in itens])
         for item in sorted(itens, key=lambda i: i.instance_id):
