@@ -131,7 +131,9 @@ class TradeListCreateView(APIView):
 
     def get(self, request: Request) -> Response:
         paginacao = TradePagination()
-        pagina = paginacao.paginate_queryset(selectors.offers_of(_eu(request)), request) or []
+        pagina = paginacao.paginate_queryset(selectors.offers_of(_eu(request)), request)
+        if pagina is None:  # só se a paginação estiver desligada (`page_size = None`)
+            raise RuntimeError("TradePagination precisa de page_size")
         selectors.load_items(pagina)
         return paginacao.get_paginated_response(TradeOfferSerializer(pagina, many=True).data)
 

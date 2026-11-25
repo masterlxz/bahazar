@@ -19,6 +19,7 @@ from . import rules
 from .models import TradeOffer, TradeOfferItem
 
 _USERNAME_MAX = 20  # o mesmo teto de `friends`
+_CAMPOS_DO_CORPO = frozenset({"recipient", "offered", "requested"})
 _ITEM_INVALIDO = "O identificador de um item é inválido."
 _RECIPIENT_INVALIDO = "Informe o nome de usuário do destinatário."
 
@@ -75,6 +76,11 @@ def parse_create_body(dados: object) -> CreateInput:
     """
     if not isinstance(dados, Mapping):
         raise InvalidInput("invalid_body", "O corpo precisa ser um objeto JSON.")
+    desconhecidos = set(dados) - _CAMPOS_DO_CORPO
+    if desconhecidos:
+        # Campo que a API não define nunca é ignorado em silêncio (SEGURANCA 8): o cliente
+        # que manda `price` ou `proposer` acredita que isso vale para alguma coisa.
+        raise InvalidInput("invalid_body", "O corpo tem campos que a API não conhece.")
     return CreateInput(
         recipient=_recipient(dados.get("recipient")),
         offered=_item_ids(dados.get("offered"), "offered"),
