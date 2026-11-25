@@ -17,3 +17,13 @@ export function renderApp(path = "/") {
   // `client` permite ao teste olhar o cache (ex.: dado de um usuário que saiu).
   return { ...resultado, client };
 }
+
+/** Renderiza um componente isolado (sem roteamento), com QueryClientProvider. */
+export function renderComponent(component: React.ReactNode) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      {component}
+    </QueryClientProvider>,
+  );
+}

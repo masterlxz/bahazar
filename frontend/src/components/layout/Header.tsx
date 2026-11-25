@@ -6,6 +6,7 @@ import { FRIENDS_ROOT_KEY } from "../../features/friends/useFriends";
 import { INVENTORY_ROOT_KEY } from "../../features/inventory/useInventory";
 import { ME_KEY } from "../../features/profile/useMe";
 import { ROOMS_ROOT_KEY } from "../../features/rooms/useRooms";
+import { SKINS_ROOT_KEY } from "../../features/skins/useSkins";
 import { WALLET_KEY } from "../../features/wallet/useWallet";
 import { logout } from "../../services/auth";
 import { Button } from "../ui/button";
@@ -30,6 +31,8 @@ export default function Header() {
     queryClient.removeQueries({ queryKey: ROOMS_ROOT_KEY });
     // E o inventário, o meu e o dos amigos que chegou a ver (mesma chave raiz).
     queryClient.removeQueries({ queryKey: INVENTORY_ROOT_KEY });
+    // E o catálogo de skins (mesma chave raiz).
+    queryClient.removeQueries({ queryKey: SKINS_ROOT_KEY });
   }
 
   return (
@@ -49,6 +52,9 @@ export default function Header() {
               </Link>
               <Link to="/inventario" className="hover:underline">
                 Inventário
+              </Link>
+              <Link to="/skins" className="hover:underline">
+                Skins
               </Link>
               <Link to="/carteira" className="hover:underline">
                 Carteira

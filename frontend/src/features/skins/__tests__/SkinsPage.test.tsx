@@ -207,7 +207,7 @@ describe("SkinsPage: catálogo /skins", () => {
 
     it("escolher a ordenação envia `ordering` com o prefixo '-' para decrescente", async () => {
       const m = simular({
-        [catalogRoute({ ordering: "-price" })]: {
+        [catalogRoute({ ordering: "-rarity" })]: {
           status: 200,
           body: pagina([SKIN_P250, SKIN_AK, SKIN_AWP]),
         },
@@ -216,11 +216,11 @@ describe("SkinsPage: catálogo /skins", () => {
       renderApp("/skins");
       await screen.findByText("Redline");
 
-      fireEvent.change(screen.getByLabelText("Ordenar por"), { target: { value: "-price" } });
+      fireEvent.change(screen.getByLabelText("Ordenar por"), { target: { value: "-rarity" } });
       fireEvent.click(screen.getByRole("button", { name: "Aplicar" }));
 
       expect(await screen.findByText("Sand Dune")).toBeInTheDocument();
-      expect(m.callsTo(catalogRoute({ ordering: "-price" }))).toHaveLength(1);
+      expect(m.callsTo(catalogRoute({ ordering: "-rarity" }))).toHaveLength(1);
     });
 
     it("Próxima e Anterior trocam de página e os botões respeitam o `next`/`previous` do servidor", async () => {

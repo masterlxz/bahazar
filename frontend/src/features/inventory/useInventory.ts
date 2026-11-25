@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { ApiError } from "../../services/http";
 import { getInventory, type InventoryQuery } from "../../services/inventory";
+import { fetchFacets } from "../../services/skins";
 
 // Chave hierárquica: um único `removeQueries(INVENTORY_ROOT_KEY)` no logout apaga o inventário
 // de todos os jogadores que esta sessão chegou a ver.
@@ -39,5 +40,14 @@ export function useInventory(username: string | undefined, query: InventoryQuery
     queryFn: () => getInventory(username, query),
     enabled: !usernameImpossivel(username),
     retry: tentarDeNovo,
+  });
+}
+
+/** Facets do catálogo (raridades, armas, coleções, desgastes) para popular os filtros do inventário. */
+export function useInventoryFacets() {
+  return useQuery({
+    queryKey: ["inventory", "facets"],
+    queryFn: fetchFacets,
+    staleTime: 10 * 60 * 1000,
   });
 }
