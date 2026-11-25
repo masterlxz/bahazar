@@ -34,7 +34,7 @@ def expire_records(*, days: int, now: datetime | None = None, dry_run: bool = Fa
     if not 1 <= days <= MAX_DAYS:
         raise ValueError(f"days deve estar entre 1 e {MAX_DAYS} (recebi {days})")
     corte = (now if now is not None else _now()) - timedelta(days=days)
-    expirados = IdempotencyRecord.objects.filter(created_at__lt=corte)
+    expirados = IdempotencyRecord.objects.filter(created_at__lte=corte)
     if dry_run:
         return expirados.count()
     apagados, _ = expirados.delete()
