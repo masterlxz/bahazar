@@ -120,7 +120,5 @@ def facets(
     return {
         "rarity": sorted(qs.values_list("rarity", flat=True).distinct()),
         "weapon": sorted(qs.values_list("weapon", flat=True).distinct()),
-        "collection": sorted(
-            c for c in qs.values_list("collection", flat=True).distinct() if c
-        ),
+        "collection": sorted(c for c in qs.values_list("collection", flat=True).distinct() if c),
     }
