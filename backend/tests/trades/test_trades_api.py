@@ -914,7 +914,7 @@ def test_destinatario_inexistente_e_nao_amigo_fazem_o_mesmo_numero_de_consultas(
 def _sem_status(raiz: type, mapa: Mapping[Any, int]) -> list[str]:
     """Os nomes das subclasses (em qualquer profundidade) de `raiz` que `mapa` não conhece."""
     achados: list[str] = []
-    pendentes = list(raiz.__subclasses__())
+    pendentes: list[type] = list(raiz.__subclasses__())
     while pendentes:
         classe = pendentes.pop()
         pendentes.extend(classe.__subclasses__())
