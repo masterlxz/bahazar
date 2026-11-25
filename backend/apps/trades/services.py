@@ -176,11 +176,11 @@ def create_offer(
     esperados += [(i, recipient.pk) for i in requested_ids]
     try:
         with transaction.atomic():
-            _travar_jogadores(proposer.pk, recipient.pk)
             if not friends_selectors.can_view(proposer, recipient):
                 raise NotFriends
             if rules.pending_limit_exceeded(selectors.pending_count(proposer)):
                 raise TooManyPendingOffers
+            _travar_jogadores(proposer.pk, recipient.pk)
             travadas = SkinInstance.objects.select_for_update().filter(pk__in=todos)
             instancias = {i.pk: i for i in travadas.order_by("pk")}
             _conferir_itens(instancias, esperados)
