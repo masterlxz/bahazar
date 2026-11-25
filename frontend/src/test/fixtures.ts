@@ -291,3 +291,11 @@ export const pagina = (
 
 /** 404 do nosso DRF para quem não pode ver (amigo não aceito, pendente, bloqueado, inexistente). */
 export const ERRO_NAO_ENCONTRADO = { detail: "Not found." };
+
+/** Facets do catálogo (apps/catalog/views.py, `CatalogFacetsView`, lido em 2026-11-24). */
+export const FACETS = {
+  rarities: ["Consumer Grade", "Industrial Grade", "Mil-Spec Grade", "Restricted", "Classified", "Covert", "Contraband"],
+  weapons: ["AK-47", "AWP", "Glock-18", "M4A4", "P250"],
+  collections: ["Phoenix", "Dust", "Chroma", "Gamma"],
+  wears: ["Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"],
+};
