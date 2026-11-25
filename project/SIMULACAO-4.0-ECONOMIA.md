@@ -1,9 +1,11 @@
 # Simulação da economia (PR 4.0, D7)
 
 **Data:** 2026-11-24. **Quem rodou:** o dono, no PC dele; eu vi a saída colada, não rodei o script (ADR 0017).
-**Reproduzir:** `python3 project/simulacao/economia.py` (só biblioteca padrão; importa `apps.economy.rules`). Entrada: `backend/data/precos_percentis.json`, gerado do banco local e **fora do repo** (o repo é público e os termos da Skinport não foram lidos). Semente 2026; 500 jogadores sorteados no perfil casual. `verificações: OK` na saída: o modelo reproduz `rules.daily_amount` nos dias 1 a 60 e a conta de US$ 4.650 em 30 dias do `PENDING.md`.
+**Reproduzir:** `python3 project/simulacao/economia.py` (só biblioteca padrão; importa `apps.economy.rules`). Entrada: `backend/data/precos_percentis.json`, gerado do banco local e **fora do repo** (o repo é público e os termos da Skinport não foram lidos). Semente 2026; 500 jogadores sorteados no perfil casual. `verificações: OK` na saída: a fórmula da diária do modelo é igual à de `rules.daily_amount` nos dias 1 a 60 (com os valores que `rules.py` tem hoje) e a conta de US$ 4.650 em 30 dias dos valores provisórios fecha.
 
-**A decisão da D7 continua sendo do dono.** Este relatório traz números e uma candidata; nenhum valor do código foi alterado. Os valores escolhidos entram na PR 4.0b (`rules.py` e testes), que mexe em dinheiro (AGENTS §4) e pede confirmação própria.
+**Atualização (2026-11-25):** o dono decidiu a D7 com base neste relatório ([ADR 0013](adr/0013-parametros-economicos-iniciais.md)) e a PR 4.0b aplicou a candidata em `rules.py`. **As tabelas abaixo são a foto de 2026-11-24 e usam os valores provisórios antigos** (saldo US$ 100, diária US$ 10 × dia até o dia 30), que o script mantém fixos em literais para continuar reproduzível; `rules.py` hoje tem outros valores.
+
+**A decisão da D7 foi do dono.** O texto abaixo foi escrito antes dela: "nenhum valor do código foi alterado" vale para a PR 4.0; os valores escolhidos entraram na PR 4.0b (`rules.py` e testes).
 
 ## O que o modelo é, e o que não é
 - **Vem do código:** saldo inicial (US$ 100), diária (US$ 10 × dia, teto no dia 30), janela de 24 h e quebra da sequência em 48 h (`economy/rules.py`).

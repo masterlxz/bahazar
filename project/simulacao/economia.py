@@ -44,11 +44,15 @@ INF = float("inf")
 
 @dataclass(frozen=True)
 class Params:
-    """Parâmetros da D7. Os três primeiros são os valores PROVISÓRIOS de `economy/rules.py`."""
+    """Parâmetros da D7. Os três primeiros são os valores PROVISÓRIOS de 2026-11-24.
 
-    saldo_inicial: int = rules.STARTING_BALANCE
-    passo_diaria: int = rules.DAILY_STEP
-    dia_teto: int = rules.DAILY_CAP_DAY
+    São os que `economy/rules.py` tinha antes da decisão do dono (ADR 0013, 2026-11-25), fixados
+    aqui em literais para o relatório continuar reproduzível depois que `rules.py` mudou.
+    """
+
+    saldo_inicial: int = 10_000  # US$ 100,00
+    passo_diaria: int = 1_000  # US$ 10,00 por dia de sequência
+    dia_teto: int = 30
     anuncio: int = 100  # centavos por anúncio: HIPÓTESE (o anúncio é simulado, sem valor no código)
     margem_caixa_bps: int = 1_000  # 10%: HIPÓTESE (não há caixa ainda)
     taxa_bps: int = 500  # 5%: HIPÓTESE (não há mercado ainda)
@@ -81,7 +85,7 @@ class Resultado:
 def diaria(p: Params, dia_da_sequencia: int) -> int:
     """A mesma fórmula de `rules.daily_amount`, com `passo` e `teto` parametrizáveis.
 
-    Com os valores de `rules.py`, `verificar` confere que as duas dão o mesmo resultado.
+    Com os valores que `rules.py` tem hoje, `verificar` confere que as duas dão o mesmo resultado.
     """
     return p.passo_diaria * min(dia_da_sequencia, p.dia_teto)
 
@@ -180,12 +184,18 @@ def tabela(cabecalho: list[str], linhas: list[list[str]]) -> None:
 def verificar(seed: int) -> None:
     """O modelo concorda com o código real e com os números que o repo já documenta."""
     p = Params()
-    assert (p.saldo_inicial, p.passo_diaria, p.dia_teto) == (10_000, 1_000, 30)
+    assert (p.saldo_inicial, p.passo_diaria, p.dia_teto) == (10_000, 1_000, 30), "base fixa mudou"
+    # A fórmula da diária do modelo é a de `rules.daily_amount`, com os valores que ela tem hoje.
+    atual = Params(
+        saldo_inicial=rules.STARTING_BALANCE,
+        passo_diaria=rules.DAILY_STEP,
+        dia_teto=rules.DAILY_CAP_DAY,
+    )
     for d in range(1, 61):
-        assert diaria(p, d) == rules.daily_amount(d), f"a diária difere no dia {d}"
+        assert diaria(atual, d) == rules.daily_amount(d), f"a diária difere no dia {d}"
     sem_anuncio = Perfil("teste", 1.0, 0, 0, 0)
     r = simular(sem_anuncio, p, random.Random(0))
-    # PENDING.md: "um jogador sem falhas ganha ~US$ 4.650 em 30 dias" (sem o saldo inicial).
+    # Valores provisórios de 2026-11-24: "~US$ 4.650 em 30 dias" sem falhas (sem o saldo inicial).
     assert r.renda_acum[30] - p.saldo_inicial == 465_000, "a renda de 30 dias não bate (US$ 4.650)"
     assert r.queimado == 0 and r.patrimonio[30] == r.renda_acum[30], "sem gasto nada se queima"
     um = rodar(PERFIS[0], p, seed, 20)
@@ -208,7 +218,8 @@ def main() -> None:
 
     print("## Parâmetros\n")
     print(f"- saldo inicial {usd(base.saldo_inicial)}; diária {usd(base.passo_diaria)} x dia até o")
-    print(f"  dia {base.dia_teto} (teto {usd(diaria(base, base.dia_teto))}); valores de rules.py")
+    print(f"  dia {base.dia_teto} (teto {usd(diaria(base, base.dia_teto))}); valores provisórios")
+    print("  de 2026-11-24 (os de `rules.py` antes da D7), fixados no script")
     print(f"- HIPÓTESES: anúncio {usd(base.anuncio)}, margem das caixas "
           f"{base.margem_caixa_bps / 100:.0f}%, taxa do mercado {base.taxa_bps / 100:.0f}%")
     print(f"- {args.jogadores} jogadores sorteados no perfil casual; semente {args.seed}\n")
@@ -218,7 +229,7 @@ def main() -> None:
 
     res = {pf.nome: rodar(pf, base, args.seed, args.jogadores) for pf in PERFIS}
 
-    print("## Dias até poder comprar (poupando tudo, valores de rules.py)\n")
+    print("## Dias até poder comprar (poupando tudo, valores provisórios de 2026-11-24)\n")
     tabela(
         ["perfil", *precos],
         [[pf.nome, *(dias(dias_ate(res[pf.nome], c)) for c in precos.values())] for pf in PERFIS],
@@ -282,7 +293,7 @@ def main() -> None:
 
     print("## Combinações candidatas (todos os perfis; escolhidas por mim, só para discussão)\n")
     candidatas = [
-        ("atual (rules.py)", "-", base),
+        ("provisório (antes da D7)", "-", base),
         ("passo 1,00", "teto 30", replace(base, passo_diaria=100)),
         ("passo 1,00", "teto 30, saldo 25", replace(base, passo_diaria=100, saldo_inicial=2_500)),
         ("passo 0,50", "teto 30, saldo 25", replace(base, passo_diaria=50, saldo_inicial=2_500)),
@@ -301,7 +312,7 @@ def main() -> None:
         ],
     )
 
-    print("## Queima observada por perfil (valores de rules.py + hipóteses)\n")
+    print("## Queima observada por perfil (valores provisórios + hipóteses)\n")
     linhas = []
     for pf in PERFIS:
         e = int(statistics.median(r.emitido for r in res[pf.nome]))
