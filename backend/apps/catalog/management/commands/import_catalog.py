@@ -21,9 +21,13 @@ class Command(BaseCommand):
         parser.add_argument("--catalog", required=True, help="skins.json do catálogo (ByMykel)")
         parser.add_argument("--prices", help="JSON de preços da Skinport (modo arquivo)")
         parser.add_argument(
-            "--fetch", action="store_true", help="Baixar preços da API da Skinport em vez de arquivo"
+            "--fetch",
+            action="store_true",
+            help="Baixar preços da API da Skinport em vez de arquivo",
         )
-        parser.add_argument("--app-id", type=int, default=730, help="App ID do jogo (padrão 730=CS2)")
+        parser.add_argument(
+            "--app-id", type=int, default=730, help="App ID do jogo (padrão 730=CS2)"
+        )
         parser.add_argument("--currency", default="USD", help="Moeda dos preços (padrão USD)")
 
     def handle(self, *args: Any, **options: Any) -> None:
@@ -42,7 +46,8 @@ class Command(BaseCommand):
                 self.stdout.write("Usando API key Skinport (limite próprio)")
             else:
                 self.stdout.write(self.style.WARNING(
-                    "Sem SKINPORT_CLIENT_ID/SKINPORT_CLIENT_SECRET; usando IP compartilhado (limite /24)"
+                    "Sem SKINPORT_CLIENT_ID/SKINPORT_CLIENT_SECRET; "
+                    "usando IP compartilhado (limite /24)"
                 ))
             try:
                 r = import_catalog_from_api(
