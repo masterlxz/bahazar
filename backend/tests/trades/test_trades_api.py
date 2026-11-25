@@ -749,7 +749,8 @@ def test_json_quebrado_da_400(cena: SimpleNamespace) -> None:
 
 def test_o_teto_de_20_por_lado_passa_da_view_e_cai_no_servico(cena: SimpleNamespace) -> None:
     """Exatamente 20 ids desconhecidos: a view deixa passar e o serviço diz que não são dela."""
-    desconhecidos = [str(uuid.UUID(int=i)) for i in range(1, rules.MAX_ITEMS_PER_SIDE + 1)]
+    # fora de `_UM_ITEM` (int=7), que está do outro lado: um repetido daria 400 `duplicate_item`
+    desconhecidos = [str(uuid.UUID(int=i)) for i in range(100, 100 + rules.MAX_ITEMS_PER_SIDE)]
 
     resposta = _criar(_logado(cena.ana), _com(offered=desconhecidos, requested=[_UM_ITEM]))
 
