@@ -32,6 +32,16 @@ class InactiveSkin(InventoryError):
     message = "A skin está inativa e não pode ser entregue."
 
 
+class NotOwner(InventoryError):
+    code = "not_owner"
+    message = "O item não pertence a quem o está entregando."
+
+
+class ConsumedInstance(InventoryError):
+    code = "consumed_instance"
+    message = "O item já saiu do jogo."
+
+
 def create_instance(
     owner: User,
     skin: Skin,
@@ -58,3 +68,7 @@ def create_instance(
             acquired_via=acquired_via,
             acquired_ref_id=ref_id,
         )
+
+
+def change_owner(instance_id: uuid.UUID, *, from_owner: User, to_owner: User) -> SkinInstance:
+    raise NotImplementedError
