@@ -22,7 +22,7 @@ def offer_guard(instancia: SkinInstance, authorized_by: uuid.UUID | None) -> Non
     própria oferta). Só conta item `active=True`, ou seja, de oferta ainda pendente; vale para o
     lado oferecido e para o pedido, como o índice único do banco.
     """
-    em_oferta = TradeOfferItem.objects.filter(instance_id=instancia.pk, active=True)
+    em_oferta = TradeOfferItem.objects.filter(instance_id=instancia.pk)
     if authorized_by is not None:
         em_oferta = em_oferta.exclude(offer_id=authorized_by)
     if em_oferta.exists():
