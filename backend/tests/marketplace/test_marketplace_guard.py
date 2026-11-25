@@ -87,13 +87,17 @@ def test_assert_movable_roda_as_guardas_sem_mover_o_item(cena: SimpleNamespace) 
     item = SkinInstance.objects.get(pk=cena.a1.pk)
 
     with pytest.raises(inventory_services.ItemLocked):
-        inventory_services.assert_movable(item)
+        inventory_services.assert_movable(item)  # type: ignore[attr-defined, unused-ignore]
     assert _dono(cena.a1) == cena.ana.pk
 
-    inventory_services.assert_movable(item, authorized_by=anuncio.pk)
+    inventory_services.assert_movable(  # type: ignore[attr-defined, unused-ignore]
+        item, authorized_by=anuncio.pk
+    )
     assert _dono(cena.a1) == cena.ana.pk  # anuncia não move: o dono continua o mesmo
 
-    inventory_services.assert_movable(SkinInstance.objects.get(pk=cena.a2.pk))
+    inventory_services.assert_movable(  # type: ignore[attr-defined, unused-ignore]
+        SkinInstance.objects.get(pk=cena.a2.pk)
+    )
 
 
 def test_item_em_oferta_pendente_nao_pode_ser_anunciado(cena: SimpleNamespace) -> None:
