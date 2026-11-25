@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.core.management.base import BaseCommand, CommandParser
 
 from apps.economy.idempotency_expiry import MAX_DAYS, expire_records
 
@@ -29,9 +29,6 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         days: int = options["days"]
         dry_run: bool = options["dry_run"]
-        if not 1 <= days <= MAX_DAYS:
-            raise CommandError(f"--days deve estar entre 1 e {MAX_DAYS} (recebi {days}).")
-
         total = expire_records(days=days, dry_run=dry_run)
         if dry_run:
             self.stdout.write(
