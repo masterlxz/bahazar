@@ -2,10 +2,12 @@
 
 Ordem global de trava: os DOIS jogadores por id (a mesma de `friends.services`, que trava o par
 antes de pedir, aceitar, bloquear ou remover), depois a oferta, depois as instâncias por UUID.
-Criar e aceitar seguem essa ordem inteira; recusar e cancelar só travam a oferta. Operações que
-seguem uma ordem global única não formam ciclo de espera entre si; isso vale também para as FKs
-dos inserts, que tomam KEY SHARE em linhas que a transação já travou. A posse do item só muda em
-`inventory.services.change_owner`.
+O aceite segue essa ordem inteira. Criar não tem o passo da oferta (ela ainda não existe): trava
+os jogadores e depois as instâncias. Recusar e cancelar só travam a oferta. A ordem única só vale
+DENTRO de `trades` (e frente a `friends.services`, que trava os jogadores por id): operações de
+outros módulos, como `inventory.services.change_owner` chamado sozinho, não a seguem sozinhas
+(ver o aviso no docstring dele). Dentro de `trades`, as FKs dos inserts tomam KEY SHARE em linhas
+que a transação já travou. A posse do item só muda em `inventory.services.change_owner`.
 """
 
 import re

@@ -24,7 +24,10 @@ def offer_for_party(user: User, offer_id: uuid.UUID) -> TradeOffer | None:
 
 
 def pending_count(proposer: User) -> int:
-    """Quantas ofertas pendentes `proposer` tem como proponente (recusar e cancelar liberam)."""
+    """Quantas ofertas pendentes `proposer` tem como proponente.
+
+    Só `pending` conta: recusar, cancelar e ACEITAR a oferta liberam a vaga.
+    """
     return TradeOffer.objects.filter(proposer=proposer, status=TradeStatus.PENDING).count()
 
 

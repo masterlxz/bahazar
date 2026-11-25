@@ -76,6 +76,12 @@ def change_owner(instance_id: uuid.UUID, *, from_owner: User, to_owner: User) ->
     Só o dono muda: id, float, skin e origem ficam como estão (nada é criado nem apagado).
     Trava a linha e confere dono e consumo já sob a trava. Quem move vários itens (a troca)
     trava todos antes, em ordem de UUID, para nunca cruzar esperas com outra operação.
+
+    ATENÇÃO a quem chamar FORA de `trades` (mercado, trade-up): `change_owner` sozinho trava só
+    a instância e toma KEY SHARE na linha do NOVO dono (a FK do `UPDATE`). `trades.create_offer`
+    e `accept_offer` seguram os jogadores com FOR UPDATE e DEPOIS as instâncias; quem travar a
+    instância antes dos jogadores pode formar um ciclo de espera com elas. Trave antes os
+    jogadores envolvidos, por id, e só então as instâncias, por UUID.
     """
     with transaction.atomic():
         instancia = SkinInstance.objects.select_for_update().filter(pk=instance_id).first()
