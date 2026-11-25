@@ -123,7 +123,7 @@ A carteira `system` pode ficar negativa (é a fonte do dinheiro); as de jogador,
 4. `TRUNCATE` revogado; backups testados (ver RISCOS).
 
 ### 4.4 Idempotência
-Todo endpoint que move valor exige o header `Idempotency-Key` (UUID gerado pelo cliente por intenção do usuário). A chave é única por escopo; repetir a mesma chave devolve o resultado original; chave igual com corpo diferente → `422`. Detalhe em ARQUITETURA §5.
+Todo endpoint que move valor exige o header `Idempotency-Key` (UUID gerado pelo cliente por intenção do usuário). A chave é única por escopo; repetir a mesma chave devolve o resultado original; chave igual com corpo diferente → `422`. Detalhe em ARQUITETURA §5. **Implementado na PR 4.1** (`economy.idempotency.run_once`, ADR 0014): ainda sem o header HTTP, que entra com a primeira rota (4.2). Chave = UUID; o ledger guarda a sua, com o remetente no nome (`transfer:<remetente>:<chave>`).
 
 ## 5. Índices para consultas frequentes (resumo)
 | Consulta | Índice |

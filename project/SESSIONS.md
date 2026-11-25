@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-25 — Sessão 26 (PR 4.1: idempotência e transferência entre jogadores)
+
+- **Decisão do dono**: transferência **só como serviço interno, sem rota HTTP** (risco J4: várias contas × US$ 25 + diária, e uma transferência livre seria o caminho para juntar tudo numa conta). Plano aprovado em plan mode (dinheiro, migração, concorrência: AGENTS §4). Sessão individual (a transferência usa a idempotência: em série).
+- **Feito** (PR #112): `IdempotencyRecord` + migração `0003` (escrita à mão; `makemigrations --check` do CI conferiu), `economy.idempotency.run_once` (registro e operação na **mesma transação**, savepoint + `IntegrityError`), `rules` (chave UUID, hash SHA-256 de lista JSON canônica, valor da transferência), `services.transfer` (escopo `user:<remetente>`, chave do ledger `transfer:<remetente>:<chave>`), ADR 0014, `ARQUITETURA` §5 e `MODELO` §4.4 ajustados.
+- **Desvio declarado do documento**: **não existe o estado "em andamento" nem o `409 Retry-After`** do `ARQUITETURA` §5. Com o registro na mesma transação, o PostgreSQL faz o `INSERT` duplicado esperar o commit da primeira e então falhar por unicidade; a segunda lê a resposta pronta.
+- **Provas**: PR de controle (testes + esboço ingênuo sem idempotência): **53 falhas, 558 passaram**, todas nos 4 arquivos novos, ruff e mypy limpos. PR final: **611 passaram**. **5 mutações** sobre o commit final (um PR rascunho cada, fechados): replay re-executa (4 falhas), hash ignorado (3), chave do ledger sem o remetente (2), hash sem o destinatário (**1**), registro fora da transação (5). Todas compilam e passam ruff e mypy.
+- **Fraqueza dos testes**: a mutação "hash sem o destinatário" depende de **um** teste (`test_mesma_chave_com_outro_destinatario_e_recusada`).
+- **Não verificado**: execução no PostgreSQL local (só o CI); a migração num banco que já tenha dados; carga real; a expiração dos registros não existe.
+- **Aberto**: `Idempotency-Key` no HTTP e `422` (4.2), expiração dos registros, valor do anúncio, sumidouros; 3.4; termos da Skinport; Etapa 2 no navegador.
+
 ### 2026-11-25 — Sessão 25 (PR 4.0b: aplica a D7)
 
 - **Decisão do dono (2026-11-25)**: candidata da simulação (diária US$ 2,50 × dia até o dia 14, saldo inicial US$ 25), regra da sequência mantida, anúncio para depois com teto de ~10% da diária de regime. Confirmou o plano em plan mode (dinheiro, AGENTS §4).
