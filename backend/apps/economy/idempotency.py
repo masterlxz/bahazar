@@ -84,7 +84,7 @@ def run_once(
             raise RuntimeError(
                 "idempotência: não achou o registro apagado nem conseguiu inserir em "
                 f"{MAX_ATTEMPTS} tentativas"
-            ) from ultimo_erro
+            ) from None
 
         status, body = operation()
         registro.response_status = status
