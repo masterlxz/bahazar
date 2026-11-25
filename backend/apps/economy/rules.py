@@ -1,15 +1,16 @@
 """Regras puras da economia: sem Django e sem I/O, testáveis sem banco.
 
-Unidade de dinheiro: **1 centavo de dólar** (ADR 0011). Os valores abaixo são PROVISÓRIOS
-(RISCOS D7): saem de uma simulação antes de abrir caixas.
+Unidade de dinheiro: **1 centavo de dólar** (ADR 0011). Saldo inicial e diária foram decididos
+pelo dono em 2026-11-25 a partir da simulação da PR 4.0 (ADR 0013, RISCOS D7); o valor do anúncio
+segue em aberto (teto: ~10% da diária de regime).
 """
 
 from collections.abc import Sequence
 from datetime import timedelta
 
-STARTING_BALANCE = 10_000  # US$ 100,00
-DAILY_STEP = 1_000  # US$ 10 por dia de sequência
-DAILY_CAP_DAY = 30  # a diária para de crescer no dia 30 (US$ 300)
+STARTING_BALANCE = 2_500  # US$ 25,00
+DAILY_STEP = 250  # US$ 2,50 por dia de sequência
+DAILY_CAP_DAY = 14  # a diária para de crescer no dia 14 (US$ 35,00)
 DAILY_WINDOW = timedelta(hours=24)  # a diária só libera 24h depois do último resgate
 STREAK_BREAK = timedelta(hours=48)  # 48h ou mais sem resgatar zera a sequência
 
