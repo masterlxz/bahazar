@@ -7,3 +7,6 @@ psycopg[binary]==3.3.9
 # Autenticação (adaptar, não escrever do zero: AGENTS.md §4). MIT. O extra `headless` traz o
 # PyJWT[crypto] (e, por ele, `cryptography`, código nativo). Medido no PyPI em 2026-11-18.
 django-allauth[headless]==65.22.1
+# Brotli para decomprimir respostas da Skinport API (Accept-Encoding: br obrigatório).
+# MIT. Medido no PyPI em 2026-11-25.
+brotli==1.1.0
