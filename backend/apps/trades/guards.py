@@ -23,7 +23,5 @@ def offer_guard(instancia: SkinInstance, authorized_by: uuid.UUID | None) -> Non
     lado oferecido e para o pedido, como o índice único do banco.
     """
     em_oferta = TradeOfferItem.objects.filter(instance_id=instancia.pk, active=True)
-    if authorized_by is not None:
-        em_oferta = em_oferta.exclude(offer_id=authorized_by)
     if em_oferta.exists():
         raise ItemLocked
