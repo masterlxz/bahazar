@@ -14,7 +14,7 @@ pytestmark = pytest.mark.django_db
 factory = APIRequestFactory()
 
 
-def _skin(**campos) -> Skin:
+def _skin(**campos: object) -> Skin:
     base = {
         "external_id": f"skin-{uuid4().hex[:8]}",
         "weapon": "AK-47",

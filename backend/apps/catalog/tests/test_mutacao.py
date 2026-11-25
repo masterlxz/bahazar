@@ -16,7 +16,7 @@ from apps.catalog.models import Skin
 pytestmark = pytest.mark.django_db
 
 
-def _skin(**campos) -> Skin:
+def _skin(**campos: object) -> Skin:
     base = {
         "external_id": f"skin-{uuid4().hex[:8]}",
         "weapon": "AK-47",
@@ -44,21 +44,27 @@ class TestMutacaoFiltros:
         qs = selectors.search(rarity="classified")
         # Se o filtro rarity for removido, viriam 2 em vez de 1
         assert qs.count() == 1
-        assert qs.first().rarity == "Classified"
+        first = qs.first()
+        assert first is not None
+        assert first.rarity == "Classified"
 
     def test_filtro_weapon_existe_no_selector(self) -> None:
         _skin(name="A", weapon="AK-47")
         _skin(name="B", weapon="M4A4")
         qs = selectors.search(weapon="AK-47")
         assert qs.count() == 1
-        assert qs.first().weapon == "AK-47"
+        first = qs.first()
+        assert first is not None
+        assert first.weapon == "AK-47"
 
     def test_filtro_collection_existe_no_selector(self) -> None:
         _skin(name="A", collection="Col A")
         _skin(name="B", collection="Col B")
         qs = selectors.search(collection="col a")
         assert qs.count() == 1
-        assert qs.first().collection == "Col A"
+        first = qs.first()
+        assert first is not None
+        assert first.collection == "Col A"
 
     def test_filtro_wear_existe_no_selector(self) -> None:
         # FN range: 0.00-0.07
@@ -67,14 +73,18 @@ class TestMutacaoFiltros:
         _skin(name="B", min_float=Decimal("0.07"), max_float=Decimal("0.15"))
         qs = selectors.search(wear=["Factory New"])
         assert qs.count() == 1
-        assert qs.first().name == "A"
+        first = qs.first()
+        assert first is not None
+        assert first.name == "A"
 
     def test_filtro_q_existe_no_selector(self) -> None:
         _skin(name="AK-47 | Redline")
         _skin(name="M4A4 | Neo-Noir")
         qs = selectors.search(q="AK-47")
         assert qs.count() == 1
-        assert "AK-47" in qs.first().name
+        first = qs.first()
+        assert first is not None
+        assert "AK-47" in first.name
 
     def test_ordenacao_existe_no_selector(self) -> None:
         _skin(name="Zebra", reference_price=100)

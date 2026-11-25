@@ -4,7 +4,9 @@ API pública (sem autenticação), somente leitura.
 """
 
 import uuid
+from typing import Any
 
+from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.request import Request
@@ -29,16 +31,16 @@ class SkinViewSet(ReadOnlyModelViewSet):
     # Sem permission_classes: público
     http_method_names = ["get", "head", "options"]
 
-    def get_queryset(self):
+    def get_queryset(self) -> "QuerySet[Skin]":
         """QuerySet base: skins ativas, ordenadas por nome (padrão)."""
         return Skin.objects.filter(active=True).order_by("name", "id")
 
-    def get_serializer_class(self):
+    def get_serializer_class(self) -> type[SkinListSerializer | SkinDetailSerializer]:
         if self.action == "retrieve":
             return SkinDetailSerializer
         return SkinListSerializer
 
-    def list(self, request: Request, *args, **kwargs) -> Response:
+    def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """GET /api/v1/catalog/skins/ com query params de filtro e paginação."""
         # Valida params de query
         rarity = request.query_params.get("rarity") or None
@@ -73,7 +75,7 @@ class SkinViewSet(ReadOnlyModelViewSet):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
-    def retrieve(self, request: Request, *args, **kwargs) -> Response:
+    def retrieve(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """GET /api/v1/catalog/skins/<uuid>/
 
         Retorna 404 padronizado se não encontrado ou inativo.
@@ -103,7 +105,7 @@ class FacetsViewSet(ReadOnlyModelViewSet):
     http_method_names = ["get", "head", "options"]
     pagination_class = None  # sem paginação
 
-    def list(self, request: Request, *args, **kwargs) -> Response:
+    def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """Valores únicos respeitando os mesmos filtros da listagem."""
         rarity = request.query_params.get("rarity") or None
         weapon = request.query_params.get("weapon") or None

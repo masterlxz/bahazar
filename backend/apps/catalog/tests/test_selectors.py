@@ -11,7 +11,7 @@ from apps.catalog.models import Skin
 pytestmark = pytest.mark.django_db
 
 
-def _skin(**campos) -> Skin:
+def _skin(**campos: object) -> Skin:
     base = {
         "external_id": f"skin-{uuid4().hex[:8]}",
         "weapon": "AK-47",
