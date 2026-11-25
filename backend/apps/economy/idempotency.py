@@ -32,7 +32,7 @@ from django.db import IntegrityError, transaction
 
 from .models import IdempotencyRecord
 
-MAX_ATTEMPTS = 3  # INSERTs de `run_once` quando o registro some entre o INSERT e o SELECT
+MAX_ATTEMPTS = 10 # INSERTs de `run_once` quando o registro some entre o INSERT e o SELECT
 
 
 class IdempotencyKeyReused(Exception):
