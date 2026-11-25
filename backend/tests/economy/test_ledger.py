@@ -46,7 +46,7 @@ def test_lancamento_que_deixaria_o_jogador_negativo_e_recusado_por_inteiro(ana: 
 
     with pytest.raises(services.InsufficientFunds):
         services.post_entries(
-            [services.Entry(carteira.id, -10_001), services.Entry(sistema.id, 10_001)],
+            [services.Entry(carteira.id, -2_501), services.Entry(sistema.id, 2_501)],
             kind="adjustment",
         )
 
@@ -57,7 +57,7 @@ def test_jogador_pode_chegar_a_zero_mas_nao_abaixo(ana: Any) -> None:
     carteira, sistema = _carteiras(ana)
 
     services.post_entries(
-        [services.Entry(carteira.id, -10_000), services.Entry(sistema.id, 10_000)],
+        [services.Entry(carteira.id, -2_500), services.Entry(sistema.id, 2_500)],
         kind="adjustment",
     )
 
@@ -73,13 +73,13 @@ def test_lancamento_guarda_o_saldo_depois_de_cada_linha(ana: Any) -> None:
     carteira, sistema = _carteiras(ana)
 
     services.post_entries(
-        [services.Entry(carteira.id, -2_500), services.Entry(sistema.id, 2_500)],
+        [services.Entry(carteira.id, -1_000), services.Entry(sistema.id, 1_000)],
         kind="adjustment",
     )
 
     ultima = WalletTransaction.objects.filter(wallet=carteira).order_by("-created_at", "-id")[0]
-    assert ultima.amount == -2_500
-    assert ultima.balance_after == 7_500
+    assert ultima.amount == -1_000
+    assert ultima.balance_after == 1_500
 
 
 @pytest.mark.parametrize("valor", [0, 2**63, -(2**63) - 1])
@@ -162,7 +162,7 @@ def test_auditoria_nao_acha_problema_num_ledger_integro(ana: Any, bruno: Any) ->
 
 
 def test_auditoria_detecta_saldo_adulterado(ana: Any) -> None:
-    Wallet.objects.filter(user=ana).update(balance=10_005)
+    Wallet.objects.filter(user=ana).update(balance=2_505)
 
     problemas = audit.check_ledger()
 
@@ -174,7 +174,7 @@ def test_auditoria_detecta_saldo_adulterado(ana: Any) -> None:
 def test_auditoria_detecta_lancamento_que_nao_soma_zero(ana: Any) -> None:
     carteira, _ = _carteiras(ana)
     WalletTransaction.objects.create(
-        wallet=carteira, group_id=uuid.uuid4(), amount=7, balance_after=10_007, kind="adjustment"
+        wallet=carteira, group_id=uuid.uuid4(), amount=7, balance_after=2_507, kind="adjustment"
     )
 
     assert audit.check_ledger()
