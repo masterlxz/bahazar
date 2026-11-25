@@ -298,7 +298,7 @@ def test_o_comando_sai_com_erro_se_o_import_falha(escrever: Escrever) -> None:
 
 def _mock_skinport_response(items: list[dict[str, Any]]) -> MagicMock:
     """Cria um mock de resposta HTTP com brotli comprimido."""
-    import brotli
+    import brotli  # type: ignore[import-untyped]
 
     resposta = MagicMock()
     resposta.headers = {"Content-Encoding": "br"}
@@ -356,7 +356,7 @@ def test_import_catalog_from_api_rate_limit_429_lanca_erro(
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
-    erro_429 = HTTPError("url", 429, "Too Many Requests", {}, None)
+    erro_429 = HTTPError("url", 429, "Too Many Requests", {} as dict[str, str], None)
     mock_urlopen.side_effect = erro_429
 
     with pytest.raises(CatalogImportError) as exc:
@@ -371,7 +371,7 @@ def test_import_catalog_from_api_406_accept_encoding_obrigatorio(
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
-    erro_406 = HTTPError("url", 406, "Not Acceptable", {}, None)
+    erro_406 = HTTPError("url", 406, "Not Acceptable", {} as dict[str, str], None)
     mock_urlopen.side_effect = erro_406
 
     with pytest.raises(CatalogImportError) as exc:
@@ -386,7 +386,7 @@ def test_import_catalog_from_api_403_cloudflare_bloqueia(
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
-    erro_403 = HTTPError("url", 403, "Forbidden", {}, None)
+    erro_403 = HTTPError("url", 403, "Forbidden", {} as dict[str, str], None)
     mock_urlopen.side_effect = erro_403
 
     with pytest.raises(CatalogImportError) as exc:
@@ -401,7 +401,7 @@ def test_import_catalog_from_api_resposta_nao_lista_lanca_erro(
     from apps.catalog.importer import CatalogImportError, import_catalog_from_api
 
     c = escrever([skin("skin-1", NOME)], [])[0]
-    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response({"nao": "uma lista"})
+    mock_urlopen.return_value.__enter__.return_value = _mock_skinport_response([{"nao": "uma lista"}])
 
     with pytest.raises(CatalogImportError) as exc:
         import_catalog_from_api(c, app_id=730, currency="USD", client_id=None, client_secret=None)
