@@ -23,36 +23,44 @@ describe("SkinCard: placeholder por raridade", () => {
     expect(placeholder).toHaveClass("bg-pink-500");
   });
 
-  it("Consumer Grade → cinza, Industrial Grade → azul-claro, Mil-Spec Grade → azul", () => {
+  it("Consumer Grade → cinza", () => {
     const cinza = { ...skinBase, rarity: "Consumer Grade" as const };
-    const azulClaro = { ...skinBase, rarity: "Industrial Grade" as const };
-    const azul = { ...skinBase, rarity: "Mil-Spec Grade" as const };
-
     renderComponent(<SkinCard skin={cinza} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveClass("bg-neutral-500");
+  });
 
+  it("Industrial Grade → azul-claro", () => {
+    const azulClaro = { ...skinBase, rarity: "Industrial Grade" as const };
     renderComponent(<SkinCard skin={azulClaro} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveClass("bg-sky-400");
+  });
 
+  it("Mil-Spec Grade → azul", () => {
+    const azul = { ...skinBase, rarity: "Mil-Spec Grade" as const };
     renderComponent(<SkinCard skin={azul} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveClass("bg-blue-500");
   });
 
-  it("Restricted → roxo, Classified → rosa, Covert → vermelho, Contraband → laranja", () => {
+  it("Restricted → roxo", () => {
     const roxo = { ...skinBase, rarity: "Restricted" as const };
-    const rosa = { ...skinBase, rarity: "Classified" as const };
-    const vermelho = { ...skinBase, rarity: "Covert" as const };
-    const laranja = { ...skinBase, rarity: "Contraband" as const };
-
     renderComponent(<SkinCard skin={roxo} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveClass("bg-purple-500");
+  });
 
+  it("Classified → rosa", () => {
+    const rosa = { ...skinBase, rarity: "Classified" as const };
     renderComponent(<SkinCard skin={rosa} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveClass("bg-pink-500");
+  });
 
+  it("Covert → vermelho", () => {
+    const vermelho = { ...skinBase, rarity: "Covert" as const };
     renderComponent(<SkinCard skin={vermelho} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveClass("bg-red-500");
+  });
 
+  it("Contraband → laranja", () => {
+    const laranja = { ...skinBase, rarity: "Contraband" as const };
     renderComponent(<SkinCard skin={laranja} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveClass("bg-orange-500");
   });
@@ -77,17 +85,20 @@ describe("SkinCard: placeholder por raridade", () => {
     expect(screen.queryByText("Phoenix")).not.toBeInTheDocument();
   });
 
-  it("inicial da arma com hífen e espaço: 'AWP' → 'A', 'Glock-18' → 'G', 'M4A4' → 'MA'", () => {
+  it("inicial da arma 'AWP' → 'A'", () => {
     const awp = { ...skinBase, weapon: "AWP" };
-    const glock = { ...skinBase, weapon: "Glock-18" };
-    const m4a4 = { ...skinBase, weapon: "M4A4" };
-
     renderComponent(<SkinCard skin={awp} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveTextContent("A");
+  });
 
+  it("inicial da arma 'Glock-18' → 'G'", () => {
+    const glock = { ...skinBase, weapon: "Glock-18" };
     renderComponent(<SkinCard skin={glock} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveTextContent("G");
+  });
 
+  it("inicial da arma 'M4A4' → 'MA'", () => {
+    const m4a4 = { ...skinBase, weapon: "M4A4" };
     renderComponent(<SkinCard skin={m4a4} />);
     expect(screen.getByRole("img", { name: /placeholder da skin redline/i })).toHaveTextContent("MA");
   });
