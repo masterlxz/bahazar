@@ -39,7 +39,7 @@ class SkinViewSet(ReadOnlyModelViewSet):
         return SkinListSerializer
 
     def list(self, request: Request, *args, **kwargs) -> Response:
-        """GET /api/v1/catalog/skins/?rarity=&weapon=&collection=&wear=&q=&ordering=&page=&page_size="""
+        """GET /api/v1/catalog/skins/ com query params de filtro e paginação."""
         # Valida params de query
         rarity = request.query_params.get("rarity") or None
         weapon = request.query_params.get("weapon") or None
