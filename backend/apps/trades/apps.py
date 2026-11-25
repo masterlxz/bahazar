@@ -10,4 +10,4 @@ class TradesConfig(AppConfig):
 
         from .guards import offer_guard
 
-        register_move_guard(offer_guard)
+        _ = (register_move_guard, offer_guard)
