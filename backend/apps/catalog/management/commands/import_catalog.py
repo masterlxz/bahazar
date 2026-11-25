@@ -45,10 +45,12 @@ class Command(BaseCommand):
             if client_id and client_secret:
                 self.stdout.write("Usando API key Skinport (limite próprio)")
             else:
-                self.stdout.write(self.style.WARNING(
-                    "Sem SKINPORT_CLIENT_ID/SKINPORT_CLIENT_SECRET; "
-                    "usando IP compartilhado (limite /24)"
-                ))
+                self.stdout.write(
+                    self.style.WARNING(
+                        "Sem SKINPORT_CLIENT_ID/SKINPORT_CLIENT_SECRET; "
+                        "usando IP compartilhado (limite /24)"
+                    )
+                )
             try:
                 r = import_catalog_from_api(
                     catalog_path=catalog_path,

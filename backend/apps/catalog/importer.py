@@ -230,6 +230,7 @@ def _fetch_skinport_items(
         with urlopen(req, timeout=SKINPORT_TIMEOUT_SECONDS) as resp:  # noqa: S310 - URL is constant (Skinport API)
             if resp.headers.get("Content-Encoding") == "br":
                 import brotli
+
                 data = brotli.decompress(resp.read())
             else:
                 data = resp.read()
