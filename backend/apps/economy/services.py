@@ -34,6 +34,18 @@ class InsufficientFunds(EconomyError):
     message = "Saldo insuficiente."
 
 
+class InvalidTransfer(EconomyError):
+    code = "invalid_transfer"
+    message = "Transferência inválida."
+
+
+@dataclass(frozen=True)
+class TransferResult:
+    ledger_group_id: uuid.UUID
+    amount: int
+    replayed: bool
+
+
 class DailyNotReady(EconomyError):
     code = "daily_not_ready"
     message = "A diária ainda não está disponível."
@@ -142,6 +154,16 @@ def ensure_wallet(user: Any) -> Wallet:
     """Auto-cura: se a carteira não existe (falha no cadastro), abre agora."""
     carteira = Wallet.objects.filter(user=user).first()
     return carteira if carteira is not None else open_wallet(user)
+
+
+def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) -> TransferResult:
+    # ESBOÇO INGÊNUO do commit só de testes: move o dinheiro a cada chamada, sem idempotência.
+    origem = ensure_wallet(sender)
+    destino = ensure_wallet(recipient)
+    grupo = post_entries(
+        [Entry(origem.id, -amount), Entry(destino.id, amount)], kind=TransactionKind.TRANSFER
+    )
+    return TransferResult(grupo, amount, False)
 
 
 def claim_daily(user: Any, now: datetime | None = None) -> DailyClaim:

@@ -37,6 +37,21 @@ def next_streak_day(previous: int | None, elapsed: timedelta | None) -> int:
     return previous + 1
 
 
+def normalize_idempotency_key(key: str) -> str:
+    # ESBOÇO INGÊNUO do commit só de testes: não valida nem normaliza nada.
+    return key
+
+
+def request_fingerprint(*parts: object) -> str:
+    # ESBOÇO INGÊNUO do commit só de testes: o mesmo hash para qualquer pedido.
+    return "0" * 64
+
+
+def validate_transfer_amount(amount: int) -> None:
+    # ESBOÇO INGÊNUO do commit só de testes: aceita qualquer valor.
+    return None
+
+
 def validate_entries(amounts: Sequence[int]) -> None:
     """Um lançamento de partida dobrada: 2+ linhas, inteiros não nulos no `bigint`, soma zero."""
     if len(amounts) < 2:

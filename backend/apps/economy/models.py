@@ -134,3 +134,28 @@ class DailyClaim(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user_id} #{self.claim_number} (dia {self.streak_day})"
+
+
+class IdempotencyRecord(models.Model):
+    """Resposta da primeira execução de uma operação com `Idempotency-Key` (ADR 0014).
+
+    `scope` + `key` identificam a intenção (ex.: `user:<remetente>` + a chave do cliente);
+    `request_hash` separa "o mesmo pedido de novo" de "a mesma chave para outra coisa". O registro
+    nasce na MESMA transação da operação (`idempotency.run_once`), então nunca existe sem ela.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    scope = models.CharField(max_length=80)
+    key = models.CharField(max_length=100)
+    request_hash = models.CharField(max_length=64)
+    response_status = models.PositiveSmallIntegerField(null=True, blank=True)
+    response_body = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["scope", "key"], name="idempotency_unique_scope_key"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.scope} {self.key}"
