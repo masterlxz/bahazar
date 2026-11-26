@@ -224,6 +224,7 @@ class DeclineOfferView(_ResolveOfferView):
     """O destinatário recusa: nada muda de dono e as instâncias ficam livres."""
 
     trade_action = "decline"
+    throttle_scope = "trade_create"
 
 
 class CancelOfferView(_ResolveOfferView):
