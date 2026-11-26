@@ -227,7 +227,7 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
 
     def operar() -> tuple[int, dict[str, Any]]:
         _travar_jogadores(buyer.pk, vendedor.pk)
-        anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
+        anuncio = MarketListing.objects.filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
         if anuncio.status != ListingStatus.ACTIVE:
