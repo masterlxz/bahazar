@@ -105,9 +105,7 @@ def post_entries(
 
     grupo = uuid.uuid4()
     with transaction.atomic():
-        carteiras = {
-            w.id: w for w in Wallet.objects.select_for_update().filter(id__in=ids).order_by("id")
-        }
+        carteiras = {w.id: w for w in Wallet.objects.select_for_update().filter(id__in=ids)}
         if len(carteiras) != len(ids):
             raise ValueError("carteira inexistente no lançamento")
 
