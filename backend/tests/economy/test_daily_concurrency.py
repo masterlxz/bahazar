@@ -11,7 +11,7 @@ from apps.economy import audit, services
 from apps.economy.models import DailyClaim, Wallet
 
 from ..trades.test_trades_concurrency import _disputar
-from .conftest import T0, criar_usuario
+from .conftest import T0, criar_usuario, system_com_id_baixo
 
 N = 6
 
@@ -64,14 +64,13 @@ def _jogador_com_carteira_depois_da_system() -> tuple[Any, Wallet]:
     """Um jogador cuja carteira tem `id` MAIOR que o da `system`.
 
     É a ordem em que a compra trava (carteiras por `id` crescente: `system`, depois a do jogador).
-    O `id` é um UUID aleatório: metade dos jogadores serve, e 40 tentativas bastam sempre.
+    Sem sorteio: a `system` nasce com `id` fixo e baixo ANTES do jogador (`system_com_id_baixo`).
     """
-    for i in range(40):
-        jogador = criar_usuario(f"jogador_{i}")
-        carteira = Wallet.objects.get(user=jogador)
-        if carteira.id > Wallet.objects.get(kind="system").id:
-            return jogador, carteira
-    raise AssertionError("nenhuma carteira com id maior que o da system em 40 tentativas")
+    sistema = system_com_id_baixo()
+    jogador = criar_usuario("jogador_0")
+    carteira = Wallet.objects.get(user=jogador)
+    assert carteira.id > sistema.id
+    return jogador, carteira
 
 
 @pytest.mark.django_db(transaction=True)

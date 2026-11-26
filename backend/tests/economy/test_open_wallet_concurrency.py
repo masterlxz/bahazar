@@ -30,7 +30,7 @@ def test_open_wallet_nao_forma_ciclo_com_quem_trava_a_system_e_depois_a_carteira
     (`deadlock detected`). Travando só o usuário, ele espera a `system` sem segurar carteira
     nenhuma, a vizinha termina e o saldo inicial entra.
     """
-    jogador, carteira = jogador_sem_saldo_inicial("sem_saldo", depois_da_system=True)
+    jogador, carteira = jogador_sem_saldo_inicial("sem_saldo")
     sistema = Wallet.objects.get(kind="system")
 
     esperou, resultado = _disputar(
