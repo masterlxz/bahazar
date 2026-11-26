@@ -137,7 +137,6 @@ class TradeListCreateView(APIView):
     """GET: as ofertas de que faço parte (mais novas primeiro). POST: propor uma troca."""
 
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
     throttle_scope = "trade_create"
     http_method_names = ["get", "post", "head", "options"]
 
