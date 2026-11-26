@@ -66,9 +66,7 @@ class ListingListCreateView(APIView):
         `ScopedRateThrottle` vale para a view inteira. Sem esta troca, a vitrine (GET) esgotaria
         a cota de anunciar (POST) do mesmo jogador.
         """
-        self.throttle_scope = (
-            "market_listing_create" if self.request.method == "POST" else "market_listing_read"
-        )
+        self.throttle_scope = "market_listing_create"
         return super().get_throttles()
 
     def get(self, request: Request) -> Response:
