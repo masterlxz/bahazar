@@ -137,6 +137,10 @@ def _cancelar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
     return lambda: market.cancel_listing(cena.ana, anuncio.pk)
 
 
+def _resgatar_diaria(cena: SimpleNamespace) -> Callable[[], Any]:
+    return lambda: economy.claim_daily(cena.ana)
+
+
 def _comprar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
     anuncio = market.create_listing(cena.ana, cena.a1.pk, 1000)
     chave = str(uuid.uuid4())
@@ -152,6 +156,7 @@ CASOS: list[tuple[str, Callable[[SimpleNamespace], Callable[[], Any]], list[str]
     ("criar anúncio", _criar_anuncio, [USUARIO, INSTANCIA]),
     ("cancelar anúncio", _cancelar_anuncio, [ANUNCIO]),
     ("comprar anúncio", _comprar_anuncio, [USUARIO, ANUNCIO, INSTANCIA, CARTEIRA]),
+    ("resgatar diária", _resgatar_diaria, [USUARIO, CARTEIRA]),
     ("lançar no ledger", _lancamento, [CARTEIRA]),
 ]
 
