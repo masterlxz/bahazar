@@ -24,10 +24,10 @@ class MarketListing(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seller = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="market_listings",
     )
-    instance = models.ForeignKey(
+    instance =models.ForeignKey(
         "inventory.SkinInstance",
         on_delete=models.PROTECT,
         related_name="market_listings",
