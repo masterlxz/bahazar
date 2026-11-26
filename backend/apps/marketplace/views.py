@@ -27,6 +27,8 @@ _STATUS_DO_ERRO: dict[type[services.MarketError], int] = {
     services.ItemLocked: status.HTTP_409_CONFLICT,
     services.ListingNotFound: status.HTTP_404_NOT_FOUND,
     services.ListingNotActive: status.HTTP_409_CONFLICT,
+    services.CannotBuyOwnListing: status.HTTP_409_CONFLICT,
+    services.ListingUnavailable: status.HTTP_409_CONFLICT,
 }
 
 

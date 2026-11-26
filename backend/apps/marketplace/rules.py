@@ -11,6 +11,11 @@ MIN_PRICE = 1
 MAX_PRICE = 2**53 - 1
 
 
+def split_price(price: int) -> tuple[int, int]:
+    """ESQUELETO (controle dos testes): `(para_o_vendedor, taxa)`, ainda não implementado."""
+    raise NotImplementedError
+
+
 def price_is_valid(value: object) -> bool:
     """O preço é um inteiro de centavos entre `MIN_PRICE` e `MAX_PRICE`?"""
     if not isinstance(value, int) or isinstance(value, bool):

@@ -2,6 +2,7 @@
 
 import re
 import uuid
+from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -128,3 +129,33 @@ def cancel_listing(user: User, listing_id: uuid.UUID) -> MarketListing:
         anuncio.closed_at = timezone.now()
         anuncio.save(update_fields=["status", "closed_at"])
         return anuncio
+
+
+class CannotBuyOwnListing(MarketError):
+    code = "cannot_buy_own_listing"
+    message = "Você não pode comprar o seu próprio anúncio."
+
+
+class ListingUnavailable(MarketError):
+    """O anúncio está ativo, mas o item saiu do jogo ou já não é do vendedor."""
+
+    code = "listing_unavailable"
+    message = "O item deste anúncio não está mais disponível."
+
+
+@dataclass(frozen=True)
+class PurchaseResult:
+    """A venda concluída. `replayed` é verdadeiro quando a mesma chave devolveu o resultado de
+    uma compra já feita, sem mover nada de novo."""
+
+    id: uuid.UUID
+    listing_id: uuid.UUID
+    price: int
+    fee: int
+    ledger_group_id: uuid.UUID
+    replayed: bool
+
+
+def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> PurchaseResult:
+    """ESQUELETO (controle dos testes): a compra ainda não está implementada."""
+    raise NotImplementedError

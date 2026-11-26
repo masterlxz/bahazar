@@ -20,6 +20,7 @@ class Entry(NamedTuple):
 
     wallet_id: uuid.UUID
     amount: int
+    kind: str | None = None  # ESQUELETO (controle dos testes): ainda ignorado por `post_entries`
 
 
 class EconomyError(Exception):

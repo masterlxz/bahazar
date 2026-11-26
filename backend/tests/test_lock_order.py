@@ -6,10 +6,12 @@ pega só um trecho dessa lista e nunca volta atrás. Ordem trocada entre duas op
 não o texto do serviço: um helper pode esconder o `select_for_update`.
 
 Determinístico, sem threads. Não prova a ausência de corrida real: isso é o papel de
-`test_marketplace_locks.py` e `test_trades_concurrency.py`. A compra (4.4) entra nesta tabela.
+`test_marketplace_locks.py`, `test_trades_concurrency.py` e
+`test_marketplace_compra_concurrency.py`.
 """
 
 import re
+import uuid
 from collections.abc import Callable
 from itertools import groupby
 from types import SimpleNamespace
@@ -130,6 +132,12 @@ def _cancelar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
     return lambda: market.cancel_listing(cena.ana, anuncio.pk)
 
 
+def _comprar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
+    anuncio = market.create_listing(cena.ana, cena.a1.pk, 1000)
+    chave = str(uuid.uuid4())
+    return lambda: market.buy_listing(cena.bruno, anuncio.pk, idempotency_key=chave)
+
+
 # Cada linha: "se o jogador faz X, o banco trava estas tabelas, nesta ordem".
 CASOS: list[tuple[str, Callable[[SimpleNamespace], Callable[[], Any]], list[str]]] = [
     ("criar oferta de troca", _criar_oferta, [USUARIO, INSTANCIA]),
@@ -138,6 +146,7 @@ CASOS: list[tuple[str, Callable[[SimpleNamespace], Callable[[], Any]], list[str]
     ("cancelar oferta de troca", _cancelar_oferta, [OFERTA]),
     ("criar anúncio", _criar_anuncio, [USUARIO, INSTANCIA]),
     ("cancelar anúncio", _cancelar_anuncio, [ANUNCIO]),
+    ("comprar anúncio", _comprar_anuncio, [USUARIO, ANUNCIO, INSTANCIA, CARTEIRA]),
     ("lançar no ledger", _lancamento, [CARTEIRA]),
 ]
 
