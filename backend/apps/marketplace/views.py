@@ -100,8 +100,6 @@ class ListingDetailView(APIView):
     """Um anúncio ativo. Anúncio fechado ou inexistente dá o mesmo 404."""
 
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "market_listing_read"
     http_method_names = ["get", "head", "options"]
 
     def get(self, request: Request, listing_id: uuid.UUID) -> Response:
