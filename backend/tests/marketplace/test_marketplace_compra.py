@@ -175,7 +175,10 @@ def test_comprar_o_proprio_anuncio_da_409_e_nao_muda_nada(cena: SimpleNamespace)
 
 def test_anuncio_cancelado_ou_ja_vendido_da_409(cena: SimpleNamespace) -> None:
     cancelado = anunciar(cena.ana, cena.a1, 1000)
-    assert logado(cena.ana).post(f"{LISTINGS_URL}{cancelado.pk}/cancel/", {}).status_code == 200
+    cancelar = logado(cena.ana).post(
+        f"{LISTINGS_URL}{cancelado.pk}/cancel/", {}, HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4())
+    )
+    assert cancelar.status_code == 200
     vendido = anunciar(cena.ana, cena.a2, 1000)
     assert _comprar(logado(cena.bruno), vendido.pk).status_code == 201
 
