@@ -147,8 +147,6 @@ def open_wallet(user: Any) -> Wallet:
     mesmo jogador; o UNIQUE `(carteira, chave)` do ledger é a rede de segurança do banco.
     """
     with transaction.atomic():
-        usuario_model: Any = get_user_model()
-        list(usuario_model.objects.select_for_update().filter(pk=user.pk))
         carteira, _ = Wallet.objects.get_or_create(user=user, defaults={"kind": WalletKind.PLAYER})
         ja_recebeu = WalletTransaction.objects.filter(
             wallet=carteira, kind=TransactionKind.STARTING_GRANT
