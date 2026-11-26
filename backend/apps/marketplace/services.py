@@ -119,7 +119,7 @@ def cancel_listing(user: User, listing_id: uuid.UUID) -> MarketListing:
     um anúncio inexistente dão o mesmo 404; um anúncio já fechado dá 409.
     """
     with transaction.atomic():
-        anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
+        anuncio = MarketListing.objects.filter(pk=listing_id).first()
         if anuncio is None or anuncio.seller_id != user.pk:
             raise ListingNotFound
         if anuncio.status != ListingStatus.ACTIVE:
