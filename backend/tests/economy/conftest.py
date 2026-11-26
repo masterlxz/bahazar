@@ -24,7 +24,7 @@ def criar_usuario(username: str) -> Any:
     )
 
 
-ID_BAIXO_DA_SYSTEM = uuid.UUID(int=1)
+ID_BAIXO_DA_SYSTEM = uuid.UUID(int=2**128 - 1)
 
 
 def system_com_id_baixo() -> Any:
