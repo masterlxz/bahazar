@@ -82,7 +82,8 @@ class ListingListCreateView(APIView):
 
     def get(self, request: Request) -> Response:
         paginacao = ListingPagination()
-        anuncios = selectors.active_listings(_vendedores_ocultos(request))
+        _vendedores_ocultos(request)
+        anuncios = selectors.active_listings()
         pagina = paginacao.paginate_queryset(anuncios, request)
         if pagina is None:
             raise RuntimeError("ListingPagination precisa de page_size")
