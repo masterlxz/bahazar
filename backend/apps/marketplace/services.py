@@ -125,8 +125,8 @@ def _uma_vez(
         )
     except EconomyKeyReused as erro:
         raise IdempotencyKeyReused from erro
-    except EconomyExhausted as erro:
-        raise IdempotencyUnavailable from erro
+    except EconomyExhausted:
+        raise
     return ListingOutcome(saida.body, saida.status, saida.replayed)
 
 
