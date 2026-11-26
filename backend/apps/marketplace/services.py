@@ -243,8 +243,8 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
         except inventory_services.ItemLocked as erro:
             raise ItemLocked from erro
         linhas = [
-            Entry(origem.id, -anuncio.price, kind=_LEDGER_COMPRA),
-            Entry(destino.id, para_vendedor, kind=_LEDGER_VENDA),
+            Entry(destino.id, -anuncio.price, kind=_LEDGER_COMPRA),
+            Entry(origem.id, para_vendedor, kind=_LEDGER_VENDA),
         ]
         if taxa:
             linhas.append(Entry(sistema.id, taxa, kind=_LEDGER_TAXA))
