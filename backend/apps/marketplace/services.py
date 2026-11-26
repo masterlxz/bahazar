@@ -253,10 +253,7 @@ def buy_listing(
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable
-        try:
-            para_vendedor, taxa = rules.split_price(anuncio.price)
-        except ValueError as erro:  # preço fora do limite, gravado direto no banco
-            raise ListingUnavailable from erro
+        para_vendedor, taxa = rules.split_price(anuncio.price)
         try:
             inventory_services.change_owner(
                 instancia.pk, from_owner=vendedor, to_owner=buyer, authorized_by=anuncio.pk
