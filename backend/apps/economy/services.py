@@ -138,10 +138,18 @@ def post_entries(
 
 
 def open_wallet(user: Any) -> Wallet:
-    """Abre a carteira do jogador e lança o saldo inicial, uma única vez."""
+    """Abre a carteira do jogador e lança o saldo inicial, uma única vez.
+
+    A trava é a do USUÁRIO, e não a da carteira: a ordem global é jogadores antes de carteiras
+    (ADR 0016), e as carteiras são travadas depois, por `post_entries`, junto com a `system` e por
+    `id`. Travar a carteira à mão ANTES formava o mesmo ciclo da diária com quem segura a `system`
+    e depois pede a carteira (a compra). A trava do usuário serializa aberturas simultâneas do
+    mesmo jogador; o UNIQUE `(carteira, chave)` do ledger é a rede de segurança do banco.
+    """
     with transaction.atomic():
+        usuario_model: Any = get_user_model()
+        list(usuario_model.objects.select_for_update().filter(pk=user.pk))
         carteira, _ = Wallet.objects.get_or_create(user=user, defaults={"kind": WalletKind.PLAYER})
-        carteira = Wallet.objects.select_for_update().get(pk=carteira.pk)
         ja_recebeu = WalletTransaction.objects.filter(
             wallet=carteira, kind=TransactionKind.STARTING_GRANT
         ).exists()
