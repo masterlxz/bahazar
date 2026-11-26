@@ -17,8 +17,9 @@ from apps.inventory.models import SkinInstance
 from apps.marketplace import guards, services
 from apps.marketplace.models import ListingStatus, MarketListing
 from apps.trades import services as trades_services
+from apps.trades.models import TradeOffer
 
-from .conftest import anunciar
+from .conftest import anunciar, logado
 
 pytestmark = pytest.mark.django_db
 
@@ -118,6 +119,55 @@ def test_item_alheio_em_oferta_pendente_da_404_e_nunca_item_locked(cena: SimpleN
 
     assert MarketListing.objects.count() == 0
     assert _dono(cena.b1) == cena.bruno.pk
+
+
+@pytest.mark.parametrize("lado", ["oferecido", "pedido"])
+def test_item_anunciado_nao_entra_numa_oferta_de_troca(cena: SimpleNamespace, lado: str) -> None:
+    """O outro sentido da guarda: anúncio ativo recusa `create_offer`, dos dois lados da troca.
+
+    Sem isto a oferta nasce pendente, o aceite sempre dá `item_locked` e o item anunciado fica
+    preso pelo índice único das ofertas até alguém recusar (a oferta "zumbi"). O anúncio tem
+    prioridade (decisão do dono, 2026-11-26): quem quer trocar cancela o anúncio antes.
+    """
+    if lado == "oferecido":
+        anunciar(cena.ana, cena.a1)
+    else:
+        anunciar(cena.bruno, cena.b1)
+
+    with pytest.raises(inventory_services.ItemLocked):
+        trades_services.create_offer(cena.ana, cena.bruno, [cena.a1.pk], [cena.b1.pk])
+
+    assert TradeOffer.objects.count() == 0
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.pk, cena.bruno.pk)
+
+
+def test_item_alheio_anunciado_continua_dando_o_erro_de_posse_da_troca(
+    cena: SimpleNamespace,
+) -> None:
+    """A posse vence a guarda também em `trades`: o anúncio de carla não aparece num pedido."""
+    anunciar(cena.carla, cena.c1)
+
+    with pytest.raises(trades_services.ItemNotOwned):
+        trades_services.create_offer(cena.ana, cena.bruno, [cena.a1.pk], [cena.c1.pk])
+
+    assert TradeOffer.objects.count() == 0
+
+
+def test_criar_oferta_com_item_anunciado_pela_api_da_409_item_locked(cena: SimpleNamespace) -> None:
+    anunciar(cena.ana, cena.a1)
+    corpo = {
+        "recipient": cena.bruno.username,
+        "offered": [str(cena.a1.pk)],
+        "requested": [str(cena.b1.pk)],
+    }
+
+    resposta = logado(cena.ana).post(
+        "/api/v1/trades/", corpo, format="json", headers={"Idempotency-Key": str(uuid.uuid4())}
+    )
+
+    assert resposta.status_code == 409, resposta.content
+    assert resposta.json()["code"] == "item_locked"
+    assert TradeOffer.objects.count() == 0
 
 
 def test_item_locked_do_mercado_e_erro_de_mercado_com_codigo_estavel() -> None:
