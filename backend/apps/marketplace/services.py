@@ -7,6 +7,7 @@ trava é a do ADR 0016: jogadores, anúncio, instância, carteiras.
 
 import re
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -196,12 +197,25 @@ def _travar_jogadores(*ids: uuid.UUID) -> None:
     list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
 
 
-def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> PurchaseResult:
+def buy_listing(
+    buyer: User,
+    listing_id: uuid.UUID,
+    *,
+    idempotency_key: str,
+    hide_sellers: Iterable[uuid.UUID] = (),
+) -> PurchaseResult:
     """Compra o anúncio: o item, o dinheiro, a taxa e o registro da venda, tudo ou nada.
 
     Uma única vez por `(comprador, chave)`: repetir a chave com o mesmo pedido devolve a venda
     original (`replayed=True`) sem mover nada. A chave de negócio que sobrevive à expiração do
-    registro é o `UNIQUE(listing)` de `MarketTransaction` e o estado `sold` do anúncio.
+    registro é o `UNIQUE(listing)` de `MarketTransaction` e o estado `sold` do anúncio; por isso
+    a chave de idempotência das linhas do ledger é a do ANÚNCIO, não a do cliente (a do cliente
+    pode se repetir em outro anúncio depois de expirar, e o UNIQUE do ledger viraria um 500).
+
+    `hide_sellers` são os vendedores que o comprador bloqueou (a view os lê do `friends`): o
+    anúncio deles dá o mesmo 404 de anúncio inexistente. A chave é validada ANTES disso, para que
+    a ordem das checagens não revele o bloqueio. Replay de uma compra de vendedor que o comprador
+    bloqueou depois também dá 404, não o recibo.
 
     Fluxo: lê o anúncio SEM trava só para saber quem é o vendedor (as carteiras abrem antes da
     transação: `open_wallet` trava a `system`, e isso fora de ordem poderia travar uma compra
@@ -210,12 +224,16 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
     muda antes do lançamento no ledger para que a instância fique travada antes das carteiras.
 
     Erros: `InvalidIdempotencyKey`, `ListingNotFound`, `CannotBuyOwnListing`, `ListingNotActive`,
-    `ListingUnavailable`, `ItemLocked`, `InsufficientFunds` e `IdempotencyKeyReused`.
+    `ListingUnavailable`, `InsufficientFunds` e `IdempotencyKeyReused`. Qualquer erro do
+    `inventory` na troca de dono, e um preço fora do limite gravado direto no banco, viram
+    `ListingUnavailable`: o item não pode ser vendido, e nada além disso é revelado.
     """
     try:
         chave = normalize_idempotency_key(idempotency_key)
     except ValueError as erro:
         raise InvalidIdempotencyKey from erro
+    if selectors.is_hidden(listing_id, hide_sellers):
+        raise ListingNotFound
     previa = MarketListing.objects.select_related("seller").filter(pk=listing_id).first()
     if previa is None:
         raise ListingNotFound
@@ -235,13 +253,16 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable
-        para_vendedor, taxa = rules.split_price(anuncio.price)
+        try:
+            para_vendedor, taxa = rules.split_price(anuncio.price)
+        except ValueError as erro:  # preço fora do limite, gravado direto no banco
+            raise ListingUnavailable from erro
         try:
             inventory_services.change_owner(
                 instancia.pk, from_owner=vendedor, to_owner=buyer, authorized_by=anuncio.pk
             )
-        except inventory_services.ItemLocked as erro:
-            raise ItemLocked from erro
+        except inventory_services.InventoryError as erro:
+            raise ListingUnavailable from erro
         linhas = [
             Entry(origem.id, -anuncio.price, kind=_LEDGER_COMPRA),
             Entry(destino.id, para_vendedor, kind=_LEDGER_VENDA),
@@ -252,7 +273,7 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
             linhas,
             kind=_LEDGER_COMPRA,
             ref_id=anuncio.pk,
-            idempotency_key=f"market_buy:{buyer.pk}:{chave}",
+            idempotency_key=f"market_buy:{anuncio.pk}",
         )
         anuncio.status = ListingStatus.SOLD
         anuncio.closed_at = timezone.now()
