@@ -273,7 +273,7 @@ def buy_listing(
             linhas,
             kind=_LEDGER_COMPRA,
             ref_id=anuncio.pk,
-            idempotency_key=f"market_buy:{anuncio.pk}",
+            idempotency_key=f"market_buy:{buyer.pk}:{chave}",
         )
         anuncio.status = ListingStatus.SOLD
         anuncio.closed_at = timezone.now()
