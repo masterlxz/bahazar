@@ -145,7 +145,10 @@ def create_listing(
     pedido = request_fingerprint("market_create", str(seller.pk), str(instance_id), price)
 
     def operar() -> tuple[int, dict[str, Any]]:
-        return 201, _corpo(_gravar_anuncio(seller, instance_id, price))
+        try:
+            return 201, _corpo(_gravar_anuncio(seller, instance_id, price))
+        except ItemAlreadyListed as erro:
+            return 409, {"code": erro.code, "message": erro.message}
 
     return _uma_vez(seller, idempotency_key, pedido, operar)
 
