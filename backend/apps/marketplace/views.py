@@ -9,7 +9,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
@@ -60,6 +60,17 @@ class ListingListCreateView(APIView):
     throttle_scope = "market_listing_create"
     http_method_names = ["get", "post", "head", "options"]
 
+    def get_throttles(self) -> list[BaseThrottle]:
+        """Escopo por método: só o POST gasta a cota de criar; a leitura tem a sua.
+
+        `ScopedRateThrottle` vale para a view inteira. Sem esta troca, a vitrine (GET) esgotaria
+        a cota de anunciar (POST) do mesmo jogador.
+        """
+        self.throttle_scope = (
+            "market_listing_create" if self.request.method == "POST" else "market_listing_read"
+        )
+        return super().get_throttles()
+
     def get(self, request: Request) -> Response:
         paginacao = ListingPagination()
         pagina = paginacao.paginate_queryset(selectors.active_listings(), request)
@@ -89,6 +100,8 @@ class ListingDetailView(APIView):
     """Um anúncio ativo. Anúncio fechado ou inexistente dá o mesmo 404."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "market_listing_read"
     http_method_names = ["get", "head", "options"]
 
     def get(self, request: Request, listing_id: uuid.UUID) -> Response:
