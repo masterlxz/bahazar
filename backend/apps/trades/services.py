@@ -191,8 +191,6 @@ def create_offer(
             # Item preso por outra operação (anúncio no mercado) não entra na oferta: o aceite
             # sempre falharia com `ItemLocked` e a oferta ficaria pendente, prendendo o item.
             # `ItemLocked` sobe como está; a view o traduz para 409. A guarda só lê.
-            for instancia in instancias.values():
-                inventory_services.assert_movable(instancia)
             lados = dict.fromkeys(offered_ids, TradeSide.OFFERED)
             lados.update(dict.fromkeys(requested_ids, TradeSide.REQUESTED))
             oferta = TradeOffer.objects.create(proposer=proposer, recipient=recipient)
