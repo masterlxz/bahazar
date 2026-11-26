@@ -108,7 +108,7 @@ def _executar_uma_vez(
         return _erro_do_servico(erro)
     except ItemLocked as erro:
         # Criar oferta com item anunciado (guarda do mercado); no aceite é só preventivo.
-        return _erro(erro.code, str(erro), status.HTTP_409_CONFLICT)
+        return _erro(erro.code, str(erro), status.HTTP_400_BAD_REQUEST)
     return Response(saida.body, status=saida.status)
 
 
