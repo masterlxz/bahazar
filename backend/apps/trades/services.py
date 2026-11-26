@@ -256,8 +256,8 @@ def accept_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
     """O destinatário aceita: tudo é revalidado sob trava e os donos trocam, ou nada muda."""
     previa = _oferta_para(actor, offer_id)
     with transaction.atomic():
-        _travar_jogadores(previa.proposer_id, previa.recipient_id)
         oferta = _travar_oferta(actor, offer_id, rules.ACCEPT)
+        _travar_jogadores(previa.proposer_id, previa.recipient_id)
         if not friends_selectors.can_view(previa.proposer, previa.recipient):
             raise NotFriends
         itens = list(oferta.items.all())
