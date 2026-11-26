@@ -16,6 +16,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
@@ -136,7 +137,17 @@ class TradeListCreateView(APIView):
     """GET: as ofertas de que faço parte (mais novas primeiro). POST: propor uma troca."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "trade_create"
     http_method_names = ["get", "post", "head", "options"]
+
+    def get_throttles(self) -> list[BaseThrottle]:
+        """Só o POST gasta a cota de criar; a leitura da lista não tem limite (por ora).
+
+        `ScopedRateThrottle` vale para a view inteira. Sem esta troca, 30 GETs da lista esgotariam
+        a cota de criar do mesmo jogador.
+        """
+        return super().get_throttles() if self.request.method == "POST" else []
 
     def get(self, request: Request) -> Response:
         paginacao = TradePagination()
@@ -186,6 +197,8 @@ class _ResolveOfferView(APIView):
     """Base de aceitar, recusar e cancelar: muda só a ação (`trade_action`)."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "trade_resolve"  # aceitar, recusar e cancelar dividem o mesmo balde
     http_method_names = ["post", "options"]
     trade_action: str
 
