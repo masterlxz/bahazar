@@ -27,6 +27,7 @@ from apps.economy.models import Wallet
 from apps.marketplace import services as market
 from apps.trades import services as trades
 
+from .economy.conftest import jogador_sem_saldo_inicial
 from .marketplace.conftest import (
     anunciar,
     criar_instancia,
@@ -149,6 +150,12 @@ def _resgatar_diaria(cena: SimpleNamespace) -> Callable[[], Any]:
     return lambda: economy.claim_daily(cena.ana)
 
 
+def _abrir_carteira(cena: SimpleNamespace) -> Callable[[], Any]:
+    """Carteira que existe e ainda não recebeu o saldo inicial (o app não a produz)."""
+    jogador, _ = jogador_sem_saldo_inicial("sem_saldo")
+    return lambda: economy.open_wallet(jogador)
+
+
 def _comprar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
     anuncio = anunciar(cena.ana, cena.a1)
     chave = str(uuid.uuid4())
@@ -165,6 +172,7 @@ CASOS: list[tuple[str, Callable[[SimpleNamespace], Callable[[], Any]], list[str]
     ("cancelar anúncio", _cancelar_anuncio, [ANUNCIO]),
     ("comprar anúncio", _comprar_anuncio, [USUARIO, ANUNCIO, INSTANCIA, CARTEIRA]),
     ("resgatar diária", _resgatar_diaria, [USUARIO, CARTEIRA]),
+    ("abrir carteira", _abrir_carteira, [USUARIO, CARTEIRA]),
     ("lançar no ledger", _lancamento, [CARTEIRA]),
 ]
 
