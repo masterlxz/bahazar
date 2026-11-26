@@ -98,7 +98,7 @@ def run_once(
                 return Outcome(existente.response_status, existente.response_body, True)
             break
         else:
-            raise IdempotencyExhausted(
+            raise RuntimeError(
                 f"idempotência: o registro da chave apareceu e sumiu {MAX_ATTEMPTS} vezes seguidas "
                 "(expirou durante o pedido); o pedido NÃO foi executado e repetir é seguro"
             ) from ultimo_erro
