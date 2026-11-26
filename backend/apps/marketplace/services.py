@@ -228,12 +228,12 @@ def buy_listing(
     `inventory` na troca de dono, e um preço fora do limite gravado direto no banco, viram
     `ListingUnavailable`: o item não pode ser vendido, e nada além disso é revelado.
     """
+    if selectors.is_hidden(listing_id, hide_sellers):
+        raise ListingNotFound
     try:
         chave = normalize_idempotency_key(idempotency_key)
     except ValueError as erro:
         raise InvalidIdempotencyKey from erro
-    if selectors.is_hidden(listing_id, hide_sellers):
-        raise ListingNotFound
     previa = MarketListing.objects.select_related("seller").filter(pk=listing_id).first()
     if previa is None:
         raise ListingNotFound
