@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-26 — Sessão 41 (PR 2 do plano da Sessão 40: ADR da exceção de fronteira e códigos de erro)
+
+- **Modo:** sessão individual, só docs (sem plan mode: sem decisão nova; o plano da Sessão 40 já previa este PR). Itens (e) e (f) das sobras da A2.
+- **Feito** (PR deste commit, nenhum código tocado): `project/adr/0019-excecao-de-fronteira-trades-usa-idempotencia-do-economy.md` (decisão do dono de 2026-11-25: só `trades/views.py` importa `economy.idempotency` e `economy.rules`; alternativas descartadas e custo de reverter) e a seção "Códigos de erro que o frontend precisa conhecer" em `ARQUITETURA.md` §6, com a tabela `code` × HTTP de trocas, mercado, compra e diária, **lida do código** (`trades/views.py`, `trades/serializers.py`, `marketplace/views.py`, `marketplace/serializers.py`, `economy/views.py`), não de memória.
+- **Provas:** sem controle nem mutação (docs). O CI roda `CI Private Files` e `CI`; resultado no PR. **Conferi o ADR contra o que o teste de arquitetura de `trades` diz** (`test_trades_arquitetura.py`, comentário de `_PERMITIDOS_NA_VIEW`).
+- **Não verificado:** a tabela é leitura do código na data; não rodei a API. O texto do ARQUITETURA diz `{code, message, details}` e OpenAPI gerado (desenho antigo); a tabela registra o formato real (`{code, message}`), mas **não reescrevi o parágrafo antigo** (ficou como histórico). Erros do DRF (`{detail}`) seguem pendentes (PR 6).
+- **Aberto:** PRs 3 a 6 do plano da Sessão 40 (`run_once` esgotado com 503; throttle de trocas; M1 e (b)(c); erros do DRF); validação no PC do dono (`migrate marketplace` com dados e uma compra de ponta a ponta).
+
 ### 2026-11-26 — Sessão 40 (A1: o teste de arquitetura do mercado confere o NOME importado)
 
 - **Modo:** sessão individual, plan mode. O dono pediu A1 e as sobras da A2 e da M1 de uma vez (9 itens); quebrei em **6 PRs, um por intenção** (A1; ADR e códigos de erro (e)(f); `run_once` esgotado (g), com **503 `idempotency_unavailable`** decidido; throttle de trocas (a); M1 e (b)(c); erros do DRF (d)), cada um com o seu ciclo e o seu plan mode quando há decisão de produto. Esta sessão fez o PR 1.
