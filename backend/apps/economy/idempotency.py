@@ -43,6 +43,21 @@ class IdempotencyKeyReused(Exception):
     message = "Esta chave de idempotência já foi usada com outro pedido."
 
 
+class IdempotencyExhausted(RuntimeError):
+    """O `run_once` esgotou as tentativas: o pedido NÃO foi executado e repetir é seguro.
+
+    Herda de `RuntimeError` para não quebrar quem a capturava. `code` e `message` são o que a API
+    mostra (503); `str(erro)` é o texto técnico, para o log, e vem encadeado ao último
+    `IntegrityError`.
+    """
+
+    code = "idempotency_unavailable"
+    message = (
+        "Não foi possível registrar a chave de idempotência agora. Nada foi feito: "
+        "repita o pedido com a mesma chave."
+    )
+
+
 @dataclass(frozen=True)
 class Outcome:
     status: int
