@@ -41,7 +41,7 @@ Regra do fluxo: tarefa grande vira PRs pequenos; **testes primeiro** (AGENTS.md 
 | 4.2 (**parte 1 implementada em 2026-11-25**: modelo e serviço, sem HTTP, PR #120; a parte 2, com as rotas e o `Idempotency-Key`, falta) | **Troca de itens entre amigos** (oferta, aceite atômico, cancelamento). Só itens, itens dos dois lados, tetos de 20 | uma skin, uma oferta ativa (sob concorrência) |
 | 4.3 | `market_listings` global: criar/cancelar/listar; índice único parcial | uma skin, um anúncio ativo |
 | 4.4a (**implementada**, ADR 0018) | Compra atômica + taxa de 5% (hipótese) + `market_transactions` | N compradores simultâneos: 1 sucesso; reconciliação OK |
-| 4.4b (**implementada**, ADR 0018) | `Idempotency-Key` em criar e cancelar anúncio (decisão do dono, 2026-11-26) | retry de um `201` perdido não devolve `409`; reenvio antigo não recria o anúncio |
+| 4.4b (**implementada**, ADR 0018) | `Idempotency-Key` em criar e cancelar anúncio (decisão do dono, 2026-11-26) | retry de um `201` perdido não devolve `409`; reenvio antigo não recria o anúncio **dentro da janela de 7 dias** (depois dela recria; aceito) |
 | 4.5 | Extrato, patrimônio, telas do mercado e das trocas | revisão visual |
 | 4.6 | Teste de propriedade (Hypothesis) das invariantes + mutação deliberada | mutações derrubam testes |
 

@@ -17,7 +17,8 @@ Depois da expiração a segurança contra execução dupla é do CHAMADOR: "pedi
 `run_once`, não para quem o chama. Toda `operation` precisa de uma guarda própria e durável de
 unicidade além deste registro (no `transfer`, o UNIQUE `wallettx_unique_idempotency_key` do
 ledger; ver `test_transferencia_repetida_depois_de_expirar_nao_move_dinheiro_de_novo` em
-`tests/economy/test_expire_idempotency.py`).
+`tests/economy/test_expire_idempotency.py`). Exceção aceita pelo dono (2026-11-26): o criar
+anúncio do `marketplace` não tem essa guarda; só a retenção protege (ADR 0018, adendo da 4.4b).
 
 Contrato: assume o isolamento READ COMMITTED (o padrão do Django e deste projeto): o `SELECT`
 depois da falha de unicidade precisa enxergar a linha confirmada pela outra transação. Não chamar

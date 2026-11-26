@@ -213,3 +213,56 @@ def test_a_chave_vale_por_jogador_a_mesma_chave_de_outro_jogador_nao_colide(
 
     assert (da_ana.status_code, do_bruno.status_code) == (201, 201)
     assert da_ana.json()["id"] != do_bruno.json()["id"]
+
+
+# --- buracos achados na revisão adversária (Sessão 38) ---------------------------------------
+
+
+def test_cancelar_outro_anuncio_com_a_chave_ja_usada_da_422_e_o_outro_segue_ativo(
+    cena: SimpleNamespace,
+) -> None:
+    """A impressão digital do cancelar inclui o anúncio: a chave de A não cancela B (nem finge)."""
+    ana, chave = logado(cena.ana), nova_chave()
+    a = _criar(ana, cena.a1, nova_chave()).json()
+    b = _criar(ana, cena.a2, nova_chave()).json()
+    assert _cancelar(ana, a["id"], chave).status_code == 200
+
+    resposta = _cancelar(ana, b["id"], chave)
+
+    assert resposta.status_code == 422
+    assert resposta.json()["code"] == "idempotency_key_reused"
+    assert MarketListing.objects.get(pk=b["id"]).status == "active"
+    assert MarketListing.objects.get(pk=a["id"]).status == "cancelled"
+
+
+def test_replay_do_criar_depois_da_venda_devolve_o_retrato_active_nao_o_estado_atual(
+    cena: SimpleNamespace,
+) -> None:
+    """O corpo repetido é o da 1ª vez: `status` não vale como estado atual (use o GET)."""
+    ana, chave = logado(cena.ana), nova_chave()
+    primeira = _criar(ana, cena.a1, chave)
+    compra = logado(cena.bruno).post(
+        f"{LISTINGS_URL}{primeira.json()['id']}/buy/",
+        {},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=nova_chave(),
+    )
+    assert compra.status_code == 201, compra.content
+
+    repetida = _criar(ana, cena.a1, chave)
+
+    assert repetida.status_code == 201
+    assert repetida.json() == primeira.json()
+    assert repetida.json()["status"] == "active"
+    assert MarketListing.objects.get().status == "sold"
+    assert MarketListing.objects.count() == 1
+
+
+def test_corpo_invalido_com_chave_invalida_da_invalid_body_primeiro(cena: SimpleNamespace) -> None:
+    """Fixa a ordem das checagens do criar: o corpo é lido antes de a chave ser validada."""
+    resposta = logado(cena.ana).post(
+        LISTINGS_URL, {"price": 1}, format="json", HTTP_IDEMPOTENCY_KEY="isto-nao-e-uuid"
+    )
+
+    assert resposta.status_code == 400
+    assert resposta.json()["code"] == "invalid_body"
