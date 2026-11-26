@@ -147,7 +147,7 @@ class TradeListCreateView(APIView):
         `ScopedRateThrottle` vale para a view inteira. Sem esta troca, 30 GETs da lista esgotariam
         a cota de criar do mesmo jogador.
         """
-        return super().get_throttles() if self.request.method == "POST" else []
+        return super().get_throttles()
 
     def get(self, request: Request) -> Response:
         paginacao = TradePagination()
