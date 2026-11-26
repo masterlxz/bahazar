@@ -20,7 +20,7 @@ def test_inventory_nao_importa_rooms_economy_nem_trades() -> None:
 
     `trades` trava item pelo gancho `register_move_guard` (I-6), sem que o núcleo o importe.
     """
-    proibidos = ("apps.rooms", "apps.economy", "apps.trades")
+    proibidos = ("apps.rooms", "apps.economy", "apps.trades", "apps.marketplace")
     assert "models.py" in _codigo(), "apps.inventory não existe"
     achados = [
         f"{nome}: {linha.strip()}"

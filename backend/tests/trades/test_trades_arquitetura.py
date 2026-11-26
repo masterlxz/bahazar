@@ -57,7 +57,7 @@ def _alvos_importados(no: ast.AST) -> list[tuple[str, bool]]:
         return [(alias.name, False) for alias in no.names]
     if isinstance(no, ast.ImportFrom):
         modulo = _modulo_do_from(no)
-        if modulo in ("apps", "apps.economy", "apps.rooms"):
+        if modulo in ("apps", "apps.economy", "apps.rooms", "apps.marketplace"):
             return [(f"{modulo}.{alias.name}", False) for alias in no.names]
         return [(modulo, False)]
     if isinstance(no, ast.Call) and no.args:
@@ -84,7 +84,7 @@ def _importacoes_proibidas(codigo: dict[str, str]) -> list[str]:
     for nome, fonte in codigo.items():
         for no in ast.walk(ast.parse(fonte)):
             for alvo, dinamico in _alvos_importados(no):
-                if _dentro_de(alvo, "apps.rooms"):
+                if _dentro_de(alvo, "apps.rooms") or _dentro_de(alvo, "apps.marketplace"):
                     achados.append(f"{nome}: {alvo}")
                 elif _dentro_de(alvo, "apps.economy"):
                     permitido = (
