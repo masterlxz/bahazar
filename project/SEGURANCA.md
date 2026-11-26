@@ -59,7 +59,7 @@ Camadas, da mais externa à mais interna:
 
 ## 6. Dinheiro e concorrência
 - **Transação única** por operação: `transaction.atomic()` envolve checagens, lançamentos no ledger, troca de dono e atualização de status.
-- Nível de isolamento `READ COMMITTED` (padrão) **com travas explícitas** (`select_for_update`): ordem fixa **jogadores → anúncio ou oferta → instâncias → carteiras, cada grupo por id crescente** (ADR 0016; a redação antiga, "anúncio → instância → carteiras", nunca foi a do código). Ordem fixa evita deadlock; se ocorrer, a transação é repetida (limite de 3 tentativas).
+- Nível de isolamento `READ COMMITTED` (padrão) **com travas explícitas** (`select_for_update`): ordem fixa **jogadores → anúncio ou oferta → instâncias → carteiras, cada grupo por id crescente** (ADR 0016; a redação antiga, "anúncio → instância → carteiras", nunca foi a do código). Ordem fixa evita deadlock; se ocorrer, a transação é repetida (limite de 3 tentativas). **A compra no mercado** (ADR 0018) segue essa ordem: confere estado, dono e consumo **sob** a trava (a leitura sem trava só acha o vendedor), muda o dono antes do lançamento no ledger e grava a venda na mesma transação; a taxa vai para a carteira `system`. Preço, dono e taxa nunca vêm do cliente.
 - **Idempotência** por `Idempotency-Key` (ver MODELO §4.4).
 - Toda operação grava `activity_log`/ledger na mesma transação (nada de "gravar log depois").
 - Estados inválidos tornados irrepresentáveis pelo banco (índices parciais, `CHECK`).

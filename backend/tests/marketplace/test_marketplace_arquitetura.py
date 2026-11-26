@@ -85,8 +85,16 @@ def _modulos_importados(fonte: str) -> list[str]:
     return achados
 
 
-# A exceção estreita e escrita (ADR 0017): só a view lê o bloqueio, pelo selector do `friends`.
-_EXCECOES = {"views.py": frozenset({"apps.friends.selectors"})}
+# As exceções estreitas e escritas: só a view lê o bloqueio, pelo selector do `friends` (ADR 0017);
+# só o serviço de compra fala com o dinheiro, por `economy.services`, e roda o `run_once` por
+# dentro (ADR 0018). Nenhum outro arquivo do mercado, nenhum outro módulo de `economy`.
+_ECONOMY_DO_SERVICO = frozenset(
+    {"apps.economy.services", "apps.economy.idempotency", "apps.economy.rules"}
+)
+_EXCECOES = {
+    "views.py": frozenset({"apps.friends.selectors"}),
+    "services.py": _ECONOMY_DO_SERVICO,
+}
 
 
 def _proibidos_importados(nome: str, fonte: str) -> list[str]:
@@ -101,9 +109,9 @@ def _proibidos_importados(nome: str, fonte: str) -> list[str]:
 def test_o_mercado_nao_importa_trades_economy_friends_nem_rooms() -> None:
     """Módulo não importa módulo: a única ponte com `trades` é a guarda registrada em `inventory`.
 
-    O mercado só conhece `accounts`, `catalog` e `inventory`. A única exceção é `views.py`, que lê
-    o bloqueio por `friends.selectors` (ADR 0017); quem precisar de carteira (a 4.4) decide isso
-    por outra exceção escrita, como a da view de `trades`.
+    O mercado só conhece `accounts`, `catalog` e `inventory`. As exceções são `_EXCECOES`: a view
+    lê o bloqueio por `friends.selectors` (ADR 0017) e o serviço de compra fala com o dinheiro
+    por `economy` (ADR 0018).
     """
     for nome, fonte in _codigo().items():
         assert _proibidos_importados(nome, fonte) == [], nome
@@ -120,6 +128,19 @@ def test_a_view_do_mercado_usa_a_excecao_do_friends_e_so_ela() -> None:
         assert [m for m in _modulos_importados(codigo[nome]) if "friends" in m] == [], nome
 
 
+def test_o_servico_do_mercado_usa_a_excecao_do_economy_e_so_ela() -> None:
+    """A ponte com o dinheiro: `services.py` importa `economy.services` e `economy.idempotency`,
+    nunca o modelo da carteira; nenhum outro arquivo do mercado importa `economy`."""
+    codigo = _codigo()
+
+    achados = {m for m in _modulos_importados(codigo["services.py"]) if "economy" in m}
+
+    assert {"apps.economy.services", "apps.economy.idempotency"} <= achados
+    assert achados <= _ECONOMY_DO_SERVICO
+    for nome in ("views.py", "selectors.py", "serializers.py", "models.py", "guards.py"):
+        assert [m for m in _modulos_importados(codigo[nome]) if "economy" in m] == [], nome
+
+
 @pytest.mark.parametrize(
     "fonte",
     [
@@ -133,6 +154,34 @@ def test_a_excecao_da_view_nao_abre_outros_modulos_do_friends(fonte: str) -> Non
     assert _proibidos_importados("views.py", fonte) != []
     assert _proibidos_importados("views.py", "from apps.friends.selectors import blocked_by") == []
     assert _proibidos_importados("selectors.py", "from apps.friends.selectors import blocked_by")
+
+
+@pytest.mark.parametrize(
+    "fonte",
+    [
+        "from apps.economy import models",
+        "from apps.economy.models import Wallet",
+        "from apps.economy import services",
+        "import apps.economy.audit",
+        "from apps.friends.selectors import blocked_by",
+    ],
+)
+def test_a_excecao_do_servico_nao_abre_outros_modulos(fonte: str) -> None:
+    assert _proibidos_importados("services.py", fonte) != []
+
+
+@pytest.mark.parametrize(
+    "fonte",
+    [
+        "from apps.economy.services import post_entries",
+        "from apps.economy.idempotency import run_once",
+        "from apps.economy.rules import normalize_idempotency_key",
+    ],
+)
+def test_a_excecao_do_servico_vale_so_no_servico(fonte: str) -> None:
+    assert _proibidos_importados("services.py", fonte) == []
+    for outro in ("views.py", "selectors.py", "serializers.py", "models.py"):
+        assert _proibidos_importados(outro, fonte) != [], outro
 
 
 @pytest.mark.parametrize(

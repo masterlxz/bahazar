@@ -16,10 +16,15 @@ from .models import DailyClaim, TransactionKind, Wallet, WalletKind, WalletTrans
 
 
 class Entry(NamedTuple):
-    """Uma linha de lançamento: quanto entra (+) ou sai (-) de uma carteira."""
+    """Uma linha de lançamento: quanto entra (+) ou sai (-) de uma carteira.
+
+    `kind` é opcional: sem ele a linha leva o tipo do lançamento. Com ele, o extrato distingue
+    os papéis de uma mesma operação (compra, venda e taxa de uma compra no mercado).
+    """
 
     wallet_id: uuid.UUID
     amount: int
+    kind: str | None = None
 
 
 class EconomyError(Exception):
@@ -119,7 +124,7 @@ def post_entries(
                     group_id=grupo,
                     amount=entrada.amount,
                     balance_after=novo_saldo,
-                    kind=kind,
+                    kind=entrada.kind or kind,
                     ref_id=ref_id,
                     idempotency_key=idempotency_key or "",
                 )

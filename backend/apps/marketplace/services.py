@@ -1,19 +1,37 @@
-"""Regras transacionais dos anúncios: criar e cancelar, sempre sob trava."""
+"""Regras transacionais dos anúncios: criar, cancelar e comprar, sempre sob trava.
+
+A compra é a única operação do mercado que fala com o dinheiro. A ponte com `economy` mora só
+neste arquivo e só nestes três módulos (ADR 0018; o teste de arquitetura a impõe). A ordem de
+trava é a do ADR 0016: jogadores, anúncio, instância, carteiras.
+"""
 
 import re
 import uuid
+from dataclasses import dataclass
+from typing import Any
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.economy.idempotency import IdempotencyKeyReused as EconomyKeyReused
+from apps.economy.idempotency import run_once
+from apps.economy.rules import normalize_idempotency_key, request_fingerprint
+from apps.economy.services import Entry, ensure_wallet, get_system_wallet, post_entries
+from apps.economy.services import InsufficientFunds as EconomyInsufficientFunds
 from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
 
-from . import selectors
-from .models import ListingStatus, MarketListing
+from . import rules, selectors
+from .models import ListingStatus, MarketListing, MarketTransaction
 
 _ONE_ACTIVE_PER_INSTANCE = "marketlist_one_active_instance"
+
+# Tipos de linha do ledger (os valores de `economy.models.TransactionKind`, que este módulo não
+# pode importar). O banco recusa um tipo que não exista (`wallettx_kind_valid`).
+_LEDGER_COMPRA = "market_purchase"
+_LEDGER_VENDA = "market_sale"
+_LEDGER_TAXA = "market_fee"
 
 
 class MarketError(Exception):
@@ -128,3 +146,145 @@ def cancel_listing(user: User, listing_id: uuid.UUID) -> MarketListing:
         anuncio.closed_at = timezone.now()
         anuncio.save(update_fields=["status", "closed_at"])
         return anuncio
+
+
+class CannotBuyOwnListing(MarketError):
+    code = "cannot_buy_own_listing"
+    message = "Você não pode comprar o seu próprio anúncio."
+
+
+class ListingUnavailable(MarketError):
+    """O anúncio está ativo, mas o item saiu do jogo ou já não é do vendedor."""
+
+    code = "listing_unavailable"
+    message = "O item deste anúncio não está mais disponível."
+
+
+@dataclass(frozen=True)
+class PurchaseResult:
+    """A venda concluída. `replayed` é verdadeiro quando a mesma chave devolveu o resultado de
+    uma compra já feita, sem mover nada de novo."""
+
+    id: uuid.UUID
+    listing_id: uuid.UUID
+    price: int
+    fee: int
+    ledger_group_id: uuid.UUID
+    replayed: bool
+
+
+class InsufficientFunds(MarketError):
+    code = "insufficient_funds"
+    message = "Saldo insuficiente."
+
+
+class InvalidIdempotencyKey(MarketError):
+    code = "invalid_idempotency_key"
+    message = "Envie o cabeçalho Idempotency-Key com um UUID."
+
+
+class IdempotencyKeyReused(MarketError):
+    code = "idempotency_key_reused"
+    message = "Esta chave de idempotência já foi usada com outro pedido."
+
+
+def _travar_jogadores(*ids: uuid.UUID) -> None:
+    """Trava os jogadores por id crescente, a mesma ordem de `trades` e `friends` (ADR 0016).
+
+    Sem o `order_by`, o PostgreSQL trava na ordem em que lê, que não é a do id.
+    """
+    list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+
+
+def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> PurchaseResult:
+    """Compra o anúncio: o item, o dinheiro, a taxa e o registro da venda, tudo ou nada.
+
+    Uma única vez por `(comprador, chave)`: repetir a chave com o mesmo pedido devolve a venda
+    original (`replayed=True`) sem mover nada. A chave de negócio que sobrevive à expiração do
+    registro é o `UNIQUE(listing)` de `MarketTransaction` e o estado `sold` do anúncio.
+
+    Fluxo: lê o anúncio SEM trava só para saber quem é o vendedor (as carteiras abrem antes da
+    transação: `open_wallet` trava a `system`, e isso fora de ordem poderia travar uma compra
+    contra outra); depois, dentro da transação, trava jogadores, anúncio e instância e SÓ ENTÃO
+    confere o estado (ativo, dono, consumo), porque a leitura anterior pode estar velha. O dono
+    muda antes do lançamento no ledger para que a instância fique travada antes das carteiras.
+
+    Erros: `InvalidIdempotencyKey`, `ListingNotFound`, `CannotBuyOwnListing`, `ListingNotActive`,
+    `ListingUnavailable`, `ItemLocked`, `InsufficientFunds` e `IdempotencyKeyReused`.
+    """
+    try:
+        chave = normalize_idempotency_key(idempotency_key)
+    except ValueError as erro:
+        raise InvalidIdempotencyKey from erro
+    previa = MarketListing.objects.select_related("seller").filter(pk=listing_id).first()
+    if previa is None:
+        raise ListingNotFound
+    vendedor = previa.seller
+    if vendedor.pk == buyer.pk:
+        raise CannotBuyOwnListing
+    pedido = request_fingerprint("market_buy", str(buyer.pk), str(listing_id))
+    origem, destino, sistema = ensure_wallet(buyer), ensure_wallet(vendedor), get_system_wallet()
+
+    def operar() -> tuple[int, dict[str, Any]]:
+        _travar_jogadores(buyer.pk, vendedor.pk)
+        anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
+        if anuncio is None:
+            raise ListingNotFound
+        if anuncio.status != ListingStatus.ACTIVE:
+            raise ListingNotActive
+        instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
+        if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
+            raise ListingUnavailable
+        para_vendedor, taxa = rules.split_price(anuncio.price)
+        try:
+            inventory_services.change_owner(
+                instancia.pk, from_owner=vendedor, to_owner=buyer, authorized_by=anuncio.pk
+            )
+        except inventory_services.ItemLocked as erro:
+            raise ItemLocked from erro
+        linhas = [
+            Entry(origem.id, -anuncio.price, kind=_LEDGER_COMPRA),
+            Entry(destino.id, para_vendedor, kind=_LEDGER_VENDA),
+        ]
+        if taxa:
+            linhas.append(Entry(sistema.id, taxa, kind=_LEDGER_TAXA))
+        grupo = post_entries(
+            linhas,
+            kind=_LEDGER_COMPRA,
+            ref_id=anuncio.pk,
+            idempotency_key=f"market_buy:{buyer.pk}:{chave}",
+        )
+        anuncio.status = ListingStatus.SOLD
+        anuncio.closed_at = timezone.now()
+        anuncio.save(update_fields=["status", "closed_at"])
+        venda = MarketTransaction.objects.create(
+            listing=anuncio,
+            buyer=buyer,
+            seller=vendedor,
+            price=anuncio.price,
+            fee=taxa,
+            ledger_group_id=grupo,
+        )
+        return 201, {
+            "id": str(venda.pk),
+            "listing_id": str(anuncio.pk),
+            "price": venda.price,
+            "fee": venda.fee,
+            "ledger_group_id": str(grupo),
+        }
+
+    try:
+        saida = run_once(scope=f"user:{buyer.pk}", key=chave, request_hash=pedido, operation=operar)
+    except EconomyInsufficientFunds as erro:
+        raise InsufficientFunds from erro
+    except EconomyKeyReused as erro:
+        raise IdempotencyKeyReused from erro
+    corpo = saida.body
+    return PurchaseResult(
+        id=uuid.UUID(corpo["id"]),
+        listing_id=uuid.UUID(corpo["listing_id"]),
+        price=corpo["price"],
+        fee=corpo["fee"],
+        ledger_group_id=uuid.UUID(corpo["ledger_group_id"]),
+        replayed=saida.replayed,
+    )

@@ -2,7 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 
 from . import rules
 
@@ -74,3 +74,48 @@ class MarketListing(models.Model):
 
     def __str__(self) -> str:
         return f"{self.instance_id} por {self.seller_id} ({self.price})"
+
+
+class MarketTransaction(models.Model):
+    """Uma venda concluída. Só se escreve, nunca se muda: o banco barra UPDATE e DELETE (trigger).
+
+    Uma por anúncio (`listing` único): é a chave de negócio que impede vender duas vezes, mesmo
+    que a idempotência da requisição expire. A ligação com o dinheiro é `ledger_group_id`.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    listing = models.OneToOneField(
+        MarketListing,
+        on_delete=models.PROTECT,
+        related_name="sale",
+    )
+    buyer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="market_purchases",
+    )
+    seller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="market_sales",
+    )
+    price = models.BigIntegerField()
+    fee = models.BigIntegerField()
+    ledger_group_id = models.UUIDField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=~Q(buyer=F("seller")),
+                name="markettx_buyer_not_seller",
+            ),
+            # `0 <= taxa < preço` já garante preço positivo e vendedor recebendo pelo menos 1.
+            models.CheckConstraint(
+                condition=Q(fee__gte=0) & Q(fee__lt=F("price")),
+                name="markettx_fee_below_price",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.listing_id}: {self.buyer_id} comprou de {self.seller_id} ({self.price})"

@@ -53,6 +53,34 @@ def test_lancamento_que_deixaria_o_jogador_negativo_e_recusado_por_inteiro(ana: 
     assert _estado() == antes
 
 
+def test_cada_linha_pode_ter_o_proprio_tipo_e_o_padrao_e_o_do_lancamento(ana: Any) -> None:
+    """Uma compra no mercado mostra "compra", "venda" e "taxa" no extrato, não tudo "compra"."""
+    carteira, sistema = _carteiras(ana)
+
+    grupo = services.post_entries(
+        [services.Entry(sistema.id, -100), services.Entry(carteira.id, 100, kind="market_sale")],
+        kind="adjustment",
+    )
+
+    tipos = {
+        linha.wallet_id: linha.kind for linha in WalletTransaction.objects.filter(group_id=grupo)
+    }
+    assert tipos == {sistema.id: "adjustment", carteira.id: "market_sale"}
+
+
+def test_tipo_invalido_numa_linha_e_recusado_pelo_banco_e_nao_grava_nada(ana: Any) -> None:
+    carteira, sistema = _carteiras(ana)
+    antes = _estado()
+
+    with pytest.raises(IntegrityError):
+        services.post_entries(
+            [services.Entry(sistema.id, -100), services.Entry(carteira.id, 100, kind="inventado")],
+            kind="adjustment",
+        )
+
+    assert _estado() == antes
+
+
 def test_jogador_pode_chegar_a_zero_mas_nao_abaixo(ana: Any) -> None:
     carteira, sistema = _carteiras(ana)
 
