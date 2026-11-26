@@ -10,8 +10,9 @@
   existe estado "em andamento" (nem `409 Retry-After`);
 - registro apagado pela expiração (`expire_idempotency`) entre o `INSERT` que falhou e o `SELECT`:
   a chave ficou livre, então o `INSERT` é refeito (para o `run_once` é pedido novo, mesmo com
-  outro hash), até `MAX_ATTEMPTS` vezes; esgotado o limite levanta `RuntimeError`, encadeado ao
-  último `IntegrityError` (o pedido não executou).
+  outro hash), até `MAX_ATTEMPTS` vezes; esgotado o limite levanta `IdempotencyExhausted` (uma
+  `RuntimeError`; as rotas a traduzem para 503), encadeada ao último `IntegrityError` (o pedido
+  não executou e repetir com a mesma chave é seguro).
 
 Depois da expiração a segurança contra execução dupla é do CHAMADOR: "pedido novo" vale só para o
 `run_once`, não para quem o chama. Toda `operation` precisa de uma guarda própria e durável de
@@ -97,9 +98,9 @@ def run_once(
                 return Outcome(existente.response_status, existente.response_body, True)
             break
         else:
-            raise RuntimeError(
-                "idempotência: não achou o registro apagado nem conseguiu inserir em "
-                f"{MAX_ATTEMPTS} tentativas"
+            raise IdempotencyExhausted(
+                f"idempotência: o registro da chave apareceu e sumiu {MAX_ATTEMPTS} vezes seguidas "
+                "(expirou durante o pedido); o pedido NÃO foi executado e repetir é seguro"
             ) from ultimo_erro
 
         status, body = operation()

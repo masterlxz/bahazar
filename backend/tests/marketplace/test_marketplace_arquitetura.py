@@ -106,7 +106,9 @@ _ECONOMY_DO_SERVICO = {
     "apps.economy.services": frozenset(
         {"Entry", "InsufficientFunds", "ensure_wallet", "get_system_wallet", "post_entries"}
     ),
-    "apps.economy.idempotency": frozenset({"IdempotencyKeyReused", "run_once"}),
+    "apps.economy.idempotency": frozenset(
+        {"IdempotencyExhausted", "IdempotencyKeyReused", "run_once"}
+    ),
     "apps.economy.rules": frozenset({"normalize_idempotency_key", "request_fingerprint"}),
 }
 _FRIENDS_DA_VIEW = {"apps.friends.selectors": frozenset({"blocked_by"})}
