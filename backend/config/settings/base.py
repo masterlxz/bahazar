@@ -145,7 +145,7 @@ REST_FRAMEWORK = {
         "market_listing_cancel": "60/min",
         "market_listing_buy": "30/min",  # hipótese, sem fonte
         "market_listing_read": "120/min",  # lista e detalhe da vitrine; hipótese, sem fonte
-        "trade_create": "30/min",  # POST /trades/; hipótese, sem fonte
+        "trade_create": "31/min",  # POST /trades/; hipótese, sem fonte
         "trade_resolve": "60/min",  # accept, decline e cancel dividem o balde; hipótese, sem fonte
     },
 }
