@@ -29,7 +29,7 @@ class MarketListing(models.Model):
     )
     instance = models.ForeignKey(
         "inventory.SkinInstance",
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name="market_listings",
     )
     price = models.BigIntegerField()
