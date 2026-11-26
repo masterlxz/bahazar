@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="marketlisting",
             constraint=models.CheckConstraint(
-                condition=models.Q(("price__gt", 0)),
+                condition=models.Q(("price__gte", 0)),
                 name="marketlisting_price_positive",
             ),
         ),
