@@ -13,6 +13,11 @@ class ListingStatus(models.TextChoices):
     CANCELLED = rules.CANCELLED, "Cancelado"
 
 
+# `closed_at` é nulo se, e só se, o anúncio está ativo: cada ramo é um estado válido inteiro.
+_ATIVO_SEM_FIM = Q(status=ListingStatus.ACTIVE, closed_at__isnull=True)
+_FECHADO_COM_FIM = ~Q(status=ListingStatus.ACTIVE) & Q(closed_at__isnull=False)
+
+
 class MarketListing(models.Model):
     """Um anúncio global de um item, em centavos. Só o vendedor pode cancelá-lo."""
 
@@ -45,6 +50,10 @@ class MarketListing(models.Model):
             models.CheckConstraint(
                 condition=Q(status__in=ListingStatus.values),
                 name="marketlisting_status_valid",
+            ),
+            models.CheckConstraint(
+                condition=_ATIVO_SEM_FIM | _FECHADO_COM_FIM,
+                name="marketlisting_closed_matches_status",
             ),
             models.UniqueConstraint(
                 fields=["instance"],
