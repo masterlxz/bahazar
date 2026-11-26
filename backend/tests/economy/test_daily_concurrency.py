@@ -2,6 +2,7 @@
 
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 import pytest
 from django.db import connection
@@ -9,6 +10,7 @@ from django.db import connection
 from apps.economy import audit, services
 from apps.economy.models import DailyClaim, Wallet
 
+from ..trades.test_trades_concurrency import _disputar
 from .conftest import T0, criar_usuario
 
 N = 6
@@ -55,4 +57,42 @@ def test_cadastros_simultaneos_mantem_uma_unica_carteira_system() -> None:
 
     assert Wallet.objects.filter(kind="system").count() == 1
     assert Wallet.objects.get(kind="system").balance == -2_500 * N
+    assert audit.check_ledger() == []
+
+
+def _jogador_com_carteira_depois_da_system() -> tuple[Any, Wallet]:
+    """Um jogador cuja carteira tem `id` MAIOR que o da `system`.
+
+    É a ordem em que a compra trava (carteiras por `id` crescente: `system`, depois a do jogador).
+    O `id` é um UUID aleatório: metade dos jogadores serve, e 40 tentativas bastam sempre.
+    """
+    for i in range(40):
+        jogador = criar_usuario(f"jogador_{i}")
+        carteira = Wallet.objects.get(user=jogador)
+        if carteira.id > Wallet.objects.get(kind="system").id:
+            return jogador, carteira
+    raise AssertionError("nenhuma carteira com id maior que o da system em 40 tentativas")
+
+
+@pytest.mark.django_db(transaction=True)
+def test_a_diaria_nao_forma_ciclo_com_quem_trava_a_system_e_depois_a_carteira() -> None:
+    """A vizinha faz o que a compra faz: segura a `system` e SÓ DEPOIS pede a carteira do jogador.
+
+    Se a diária travar a carteira do jogador ANTES de pedir a `system` (o bug), ela segura a
+    carteira esperando a `system`, a vizinha pede a carteira e o PostgreSQL aborta uma das duas
+    (`deadlock detected`, 500 para o jogador). Travando o usuário primeiro, a diária espera a
+    `system` sem segurar carteira nenhuma, a vizinha termina e a diária credita.
+    """
+    jogador, carteira = _jogador_com_carteira_depois_da_system()
+    sistema = Wallet.objects.get(kind="system")
+
+    esperou, resultado = _disputar(
+        trava=lambda: list(Wallet.objects.select_for_update().filter(pk=sistema.pk)),
+        depois=lambda: list(Wallet.objects.select_for_update().filter(pk=carteira.pk)),
+        operacao=lambda: services.claim_daily(jogador, now=T0),
+    )
+
+    assert esperou, "a diária não esperou a trava da system"
+    assert isinstance(resultado, DailyClaim)
+    assert Wallet.objects.get(user=jogador).balance == 2_750
     assert audit.check_ledger() == []
