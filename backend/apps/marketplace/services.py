@@ -147,7 +147,8 @@ def create_listing(
     def operar() -> tuple[int, dict[str, Any]]:
         return 201, _corpo(_gravar_anuncio(seller, instance_id, price))
 
-    return _uma_vez(seller, idempotency_key, pedido, operar)
+    status, corpo = operar()
+    return ListingOutcome(corpo, status, not pedido)
 
 
 def cancel_listing(user: User, listing_id: uuid.UUID, *, idempotency_key: str) -> ListingOutcome:
