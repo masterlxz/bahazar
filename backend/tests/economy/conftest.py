@@ -1,5 +1,6 @@
 """Fixtures e helpers comuns dos testes da economia global (PR 2.2)."""
 
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 
@@ -23,28 +24,47 @@ def criar_usuario(username: str) -> Any:
     )
 
 
+ID_BAIXO_DA_SYSTEM = uuid.UUID(int=1)
+
+
+def system_com_id_baixo() -> Any:
+    """A carteira `system` com `id` fixo e mínimo (`UUID(int=1)`), criada ANTES dos jogadores.
+
+    O `post_entries` trava as carteiras por `id` crescente. Com a `system` no começo da fila, a
+    carteira de qualquer jogador (um UUID aleatório) vem DEPOIS dela, sempre: é a ordem em que a
+    compra trava e que forma o ciclo dos testes de deadlock. Sortear jogadores até achar um com
+    `id` maior falhava em ~2,4% das execuções (`E[s^40] = 1/41`), pois o `id` da `system` também
+    era aleatório. Se a `system` já existir com outro `id` (um jogador criado antes dela), o
+    teste falha na hora, em vez de depender de sorte.
+    """
+    from apps.economy.models import Wallet
+
+    sistema, _ = Wallet.objects.get_or_create(kind="system", defaults={"id": ID_BAIXO_DA_SYSTEM})
+    assert sistema.id == ID_BAIXO_DA_SYSTEM, "crie a system com id baixo ANTES de criar jogadores"
+    return sistema
+
+
 def jogador_sem_saldo_inicial(prefixo: str, *, depois_da_system: bool = False) -> tuple[Any, Any]:
     """Um jogador cuja carteira JÁ existe mas ainda não recebeu o saldo inicial.
 
     O app nunca produz esse estado (a carteira e o `starting_grant` nascem na mesma transação);
     o teste o fabrica para provar a regra de trava do `open_wallet`. O usuário entra por
     `bulk_create`, que não dispara o `post_save` (a carteira não nasce por sinal), e a carteira
-    é criada à mão. Com `depois_da_system`, só serve a carteira de `id` MAIOR que o da `system`
-    (a ordem em que o `post_entries` trava); o `id` é um UUID aleatório, então 40 tentativas
-    bastam sempre.
+    é criada à mão. Com `depois_da_system`, a `system` nasce com `id` baixo
+    (`system_com_id_baixo`, que exige ser a PRIMEIRA carteira do teste) e a do jogador fica
+    depois dela na ordem do `post_entries`; sem ele, a `system` pode ser a que já existir.
     """
     from apps.economy.models import Wallet
     from apps.economy.services import get_system_wallet
 
-    sistema = get_system_wallet()
-    for i in range(40):
-        usuario = User(username=f"{prefixo}_{i}", email=f"{prefixo}_{i}@exemplo.com")
-        usuario.set_unusable_password()
-        User.objects.bulk_create([usuario])
-        carteira = Wallet.objects.create(user=usuario, kind="player")
-        if not depois_da_system or carteira.id > sistema.id:
-            return usuario, carteira
-    raise AssertionError("nenhuma carteira com id maior que o da system em 40 tentativas")
+    sistema = system_com_id_baixo() if depois_da_system else get_system_wallet()
+    usuario = User(username=prefixo, email=f"{prefixo}@exemplo.com")
+    usuario.set_unusable_password()
+    User.objects.bulk_create([usuario])
+    carteira = Wallet.objects.create(user=usuario, kind="player")
+    if depois_da_system:
+        assert carteira.id > sistema.id
+    return usuario, carteira
 
 
 def logado(usuario: Any) -> APIClient:
