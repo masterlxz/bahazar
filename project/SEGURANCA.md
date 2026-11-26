@@ -83,7 +83,7 @@ Serializers DRF com tipos estritos; limites explícitos (`price` entre mínimo e
 ## 10. Plano de testes de segurança (obrigatórios por funcionalidade)
 | Área | Casos mínimos |
 |---|---|
-| Autorização | Para **cada endpoint**: anônimo → 401; usuário sem relação com o dono/grupo (ou bloqueado) → 404; membro comum em rota de admin do grupo → 403 |
+| Autorização | Para **cada endpoint**: anônimo → 403 (a API usa só sessão, e sem o cabeçalho `WWW-Authenticate` o DRF responde 403, não 401); usuário sem relação com o dono/grupo (ou bloqueado) → 404; membro comum em rota de admin do grupo → 403 |
 | Carteira | Saldo nunca negativo; transferência soma zero; valor ≤ 0, enorme (> bigint) e não numérico rejeitados; **nenhum endpoint de escrita** em carteira |
 | Renda diária | Resgate 2x no mesmo dia (inclusive em paralelo) → um crédito só; valor vem do servidor, nunca do corpo |
 | Amizade | Auto-pedido, pedido duplicado e pedido a quem bloqueou recusados; bloqueado não vê nada (inventário e trocas). **No mercado** (ADR 0017) o bloqueio muda só a vista de quem bloqueou: ele não vê os anúncios de quem bloqueou, e o bloqueado vê a vitrine inteira e pode comprar, para não perceber o bloqueio |

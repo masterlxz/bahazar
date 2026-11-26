@@ -20,6 +20,13 @@ A 4.3 deixou anunciar, cancelar e listar. A compra é a primeira operação que 
 - **Um tipo de ledger para as três linhas (`market_purchase`):** o extrato do vendedor mostraria "Compra no mercado" para uma venda.
 - **Coluna `idempotency_key` na venda (o desenho de `MODELO-DE-DADOS`):** a idempotência já vive em `idempotency_records` e no ledger; `UNIQUE(listing)` é mais forte (vale mesmo com chaves diferentes).
 - **Anúncio primeiro na trava:** já descartado no ADR 0016.
+- **Chave do ledger montada com a chave do cliente** (`market_buy:<comprador>:<chave>`, a 1ª versão): o `UNIQUE(carteira, chave)` do ledger estourava (500) quando o mesmo cliente reusava a chave num anúncio diferente depois de expirar o registro de idempotência. Achado da revisão da Sessão 35; hoje a chave é `market_buy:<id do anúncio>`.
+
+## Ajustes depois da revisão adversária e da auditoria (Sessão 35)
+- **A chave de idempotência das linhas do ledger é `market_buy:<id do anúncio>`**, independente da do cliente. Depois de expirar o registro, a mesma chave num OUTRO anúncio é uma compra nova; no MESMO anúncio dá 409 `listing_not_active` (a guarda durável é o estado `sold` e o `UNIQUE(listing)`), sem mover nada. Quem perdeu a resposta de uma compra feita há mais de 7 dias recebe 409, não o recibo.
+- **Erros do `inventory` na troca de dono** (`NotOwner`, `ConsumedInstance`, `ItemLocked`) e o `ValueError` de `split_price` (preço gravado direto no banco acima do teto) viram `409 listing_unavailable`. Isso também deixa de revelar, por `item_locked`, que o item está numa oferta de troca pendente.
+- **A chave é validada antes do bloqueio:** a ordem das checagens não pode revelar a quem bloqueou. O serviço recebe `hide_sellers` (a view os lê do `friends`). O replay de uma compra de um vendedor que o comprador bloqueou depois dá 404, não o recibo.
+- **O 409 da compra de anúncio fechado revela que o id já existiu** (o `GET` dá 404). Aceito: o UUID não é adivinhável e o anúncio já foi público.
 
 ## Consequências
 - Quem criar outra operação que mexa em dinheiro e posse segue a mesma regra: a ponte fica no serviço, e o caso entra em `tests/test_lock_order.py`.
