@@ -16,7 +16,6 @@ def _vendaveis() -> QuerySet[MarketListing]:
     """
     return MarketListing.objects.filter(
         status=ListingStatus.ACTIVE,
-        instance__consumed_at__isnull=True,
         instance__owner_id=F("seller_id"),
     )
 
