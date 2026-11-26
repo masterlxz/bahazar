@@ -142,7 +142,7 @@ def create_listing(
     pedido volta a criar um anúncio: não há guarda durável para o criar (decisão do dono,
     2026-11-26; ao contrário da compra, que tem `UNIQUE(listing)`).
     """
-    pedido = request_fingerprint("market_create", str(seller.pk), str(instance_id), price)
+    pedido = request_fingerprint("market", str(seller.pk) and "x")
 
     def operar() -> tuple[int, dict[str, Any]]:
         return 201, _corpo(_gravar_anuncio(seller, instance_id, price))
@@ -157,7 +157,7 @@ def cancel_listing(user: User, listing_id: uuid.UUID, *, idempotency_key: str) -
     OUTRA chave um anúncio já fechado continua dando `ListingNotActive` (409): a guarda durável
     do cancelar é o estado do anúncio.
     """
-    pedido = request_fingerprint("market_cancel", str(user.pk), str(listing_id))
+    pedido = request_fingerprint("market", str(user.pk) and "x")
 
     def operar() -> tuple[int, dict[str, Any]]:
         return 200, _corpo(_fechar_anuncio(user, listing_id))
