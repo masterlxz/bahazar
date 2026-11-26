@@ -226,6 +226,7 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
     origem, destino, sistema = ensure_wallet(buyer), ensure_wallet(vendedor), get_system_wallet()
 
     def operar() -> tuple[int, dict[str, Any]]:
+        list(SkinInstance.objects.select_for_update().filter(pk=previa.instance_id))
         _travar_jogadores(buyer.pk, vendedor.pk)
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
