@@ -68,7 +68,7 @@ O **desgaste** (FN/MW/FT/WW/BS) não é coluna: é derivado de `float_value` por
 | Tabela | Campos principais | Constraints e índices |
 |---|---|---|
 | `market_listings` | `id`, `room_id`, `skin_instance_id`, `seller_id`, `price` bigint, `status` (`active`\|`sold`\|`cancelled`), `created_at`, `closed_at` | `price > 0`; **`UNIQUE(skin_instance_id) WHERE status='active'`** (uma skin, um anúncio ativo); índice `(room_id, status, created_at DESC)` para a vitrine; índice `(seller_id)` |
-| `market_transactions` | `id`, `room_id`, `listing_id` (UNIQUE), `buyer_id`, `seller_id`, `price`, `fee`, `ledger_group_id`, `idempotency_key` | **append-only**; `buyer_id <> seller_id`; `UNIQUE(listing_id)` (um anúncio só vende uma vez); `UNIQUE(buyer_id, idempotency_key)` |
+| `market_transactions` (**4.4a, implementada**, ADR 0018; tabela `marketplace_markettransaction`) | `id`, `listing_id` (UNIQUE), `buyer_id`, `seller_id`, `price`, `fee`, `ledger_group_id`, `created_at`. **Sem** `room_id` (economia global) e **sem** `idempotency_key` (a chave de negócio é o `UNIQUE(listing)`) | **append-only** (trigger na migração `0003`); `buyer_id <> seller_id`; `0 <= fee < price`; `UNIQUE(listing_id)` (um anúncio só vende uma vez); FKs `PROTECT` |
 
 ### 3.5 Caixas e trade-ups (módulos)
 | Tabela | Campos principais | Constraints e índices |
