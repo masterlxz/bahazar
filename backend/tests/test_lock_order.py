@@ -45,18 +45,23 @@ _FOR_UPDATE = re.compile(r"\bFOR (?:NO KEY )?UPDATE\b")
 _TABELA = re.compile(r'\bFROM "(\w+)"')
 
 
-def tabelas_travadas(operacao: Callable[[], Any]) -> list[str]:
-    """As tabelas dos `SELECT ... FOR UPDATE` da operação, na ordem, sem repetição seguida."""
+def consultas_travadas(operacao: Callable[[], Any]) -> list[tuple[str, str]]:
+    """`(tabela, sql)` de cada `SELECT ... FOR UPDATE` que a operação emite, na ordem."""
     with CaptureQueriesContext(connection) as captura:
         operacao()
-    achadas: list[str] = []
+    achadas: list[tuple[str, str]] = []
     for consulta in captura.captured_queries:
         sql = consulta["sql"]
         if sql.lstrip().upper().startswith("SELECT") and _FOR_UPDATE.search(sql):
             tabela = _TABELA.search(sql)
             assert tabela is not None, sql
-            achadas.append(tabela.group(1))
-    return [tabela for tabela, _ in groupby(achadas)]
+            achadas.append((tabela.group(1), sql))
+    return achadas
+
+
+def tabelas_travadas(operacao: Callable[[], Any]) -> list[str]:
+    """As tabelas dos `SELECT ... FOR UPDATE` da operação, na ordem, sem repetição seguida."""
+    return [tabela for tabela, _ in groupby(t for t, _ in consultas_travadas(operacao))]
 
 
 def respeita_a_ordem(tabelas: list[str]) -> bool:
@@ -162,3 +167,30 @@ def test_cada_operacao_trava_na_ordem_global(
 
     assert achadas == esperado, nome
     assert respeita_a_ordem(achadas), nome
+
+
+# As operações que travam VÁRIOS jogadores ou VÁRIAS carteiras de uma vez. Sem `ORDER BY`, o
+# PostgreSQL trava na ordem em que lê as linhas, que costuma coincidir com a do id: o bug só
+# apareceria com dois pedidos cruzados e ficaria verde quase sempre. Olhar o SQL emitido pega a
+# ausência da ordem sem precisar de corrida. As instâncias não entram: lá a leitura de uma linha só
+# já leva `ORDER BY` do `.first()`, o que tornaria a checagem vazia.
+_COM_VARIAS_LINHAS = (
+    "criar oferta de troca",
+    "aceitar oferta de troca",
+    "comprar anúncio",
+    "lançar no ledger",
+)
+
+
+@pytest.mark.parametrize("nome", _COM_VARIAS_LINHAS)
+def test_a_trava_de_varios_jogadores_ou_carteiras_sai_ordenada_por_id(
+    cena: SimpleNamespace, nome: str
+) -> None:
+    montar = next(m for n, m, _ in CASOS if n == nome)
+
+    consultas = consultas_travadas(montar(cena))
+
+    de_varias_linhas = [(t, sql) for t, sql in consultas if t in (USUARIO, CARTEIRA)]
+    assert de_varias_linhas, nome
+    for tabela, sql in de_varias_linhas:
+        assert f'ORDER BY "{tabela}"."id"' in sql, (nome, sql)

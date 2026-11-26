@@ -160,13 +160,12 @@ class BuyListingView(APIView):
     http_method_names = ["post", "options"]
 
     def post(self, request: Request, listing_id: uuid.UUID) -> Response:
-        if selectors.is_hidden(listing_id, _vendedores_ocultos(request)):
-            return _erro_do_servico(services.ListingNotFound())
         try:
             compra = services.buy_listing(
                 _eu(request),
                 listing_id,
                 idempotency_key=request.headers.get("Idempotency-Key", ""),
+                hide_sellers=_vendedores_ocultos(request),
             )
         except services.MarketError as erro:
             return _erro_do_servico(erro)
