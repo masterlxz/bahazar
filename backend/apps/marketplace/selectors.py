@@ -33,7 +33,7 @@ def active_listings(hide_sellers: Iterable[uuid.UUID] = ()) -> QuerySet[MarketLi
     """
     return (
         _vendaveis()
-        .exclude(seller_id__in=list(hide_sellers))
+        .filter(seller_id__in=list(hide_sellers))
         .select_related("seller", "instance__skin")
         .order_by("-created_at", "-id")
     )
