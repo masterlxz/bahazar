@@ -1,6 +1,7 @@
 """Leitura dos anúncios globais do mercado."""
 
 import uuid
+from collections.abc import Iterable
 
 from django.db.models import F, QuerySet
 
@@ -21,18 +22,38 @@ def _vendaveis() -> QuerySet[MarketListing]:
     )
 
 
-def active_listings() -> QuerySet[MarketListing]:
+def active_listings(hide_sellers: Iterable[uuid.UUID] = ()) -> QuerySet[MarketListing]:
     """Os anúncios ativos, dos mais novos aos mais antigos, com dados da vitrine já carregados.
+
+    `hide_sellers` são os vendedores que quem olha bloqueou (ADR 0017): a vista dele não os
+    mostra. Quem foi bloqueado não passa nada aqui e vê a vitrine inteira.
 
     O id decrescente é o desempate: sem ele a paginação pode repetir ou pular anúncios criados
     no mesmo instante.
     """
-    return _vendaveis().select_related("seller", "instance__skin").order_by("-created_at", "-id")
+    return (
+        _vendaveis()
+        .exclude(seller_id__in=list(hide_sellers))
+        .select_related("seller", "instance__skin")
+        .order_by("-created_at", "-id")
+    )
 
 
-def active_listing(listing_id: uuid.UUID) -> MarketListing | None:
-    """O anúncio ativo pedido, ou `None` se não existir ou já estiver fechado."""
-    return _vendaveis().filter(pk=listing_id).select_related("seller", "instance__skin").first()
+def active_listing(
+    listing_id: uuid.UUID, hide_sellers: Iterable[uuid.UUID] = ()
+) -> MarketListing | None:
+    """O anúncio ativo pedido, ou `None` se não existir ou já estiver fechado.
+
+    Anúncio de um vendedor em `hide_sellers` também dá `None`: o mesmo 404, para o detalhe não
+    revelar o que a lista esconde.
+    """
+    return (
+        _vendaveis()
+        .exclude(seller_id__in=list(hide_sellers))
+        .filter(pk=listing_id)
+        .select_related("seller", "instance__skin")
+        .first()
+    )
 
 
 def has_active_listing(instance_id: uuid.UUID) -> bool:

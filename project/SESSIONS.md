@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-26 — Sessão 33 (vitrine × bloqueio, ADR 0017)
+
+- **Modo:** sessão individual, plan mode. Decisões do dono (3 perguntas): **o bloqueio esconde os anúncios só na vista de quem bloqueou** (lista e detalhe), **o bloqueado pode comprar** (regra para a 4.4, nada implementado) e **exceção estreita de fronteira só em `marketplace/views.py`**.
+- **Feito** (PR #198): `selectors.active_listings` e `active_listing` ganham `hide_sellers` (`.exclude(seller_id__in=...)`); `views.py` lê `friends.selectors.blocked_by` e passa os ids; o detalhe de anúncio escondido dá o mesmo 404 de anúncio inexistente. `test_marketplace_arquitetura.py` passa a permitir só `apps.friends.selectors` em `views.py`; `test_marketplace_bloqueio.py` novo (7 testes). ADR 0017, `SEGURANCA.md` e `PENDING.md` atualizados. Sem migração.
+- **Provas (CI lido por mim, com `headSha`):** controle `52b0e64` (só testes): **4 falhas** (lista, detalhe, desbloquear, exceção da view) e 1109 passaram; os testes 3, 4, 6 e 7 da tabela **passavam de antemão** (descrevem o que a vitrine já fazia: bloqueado vê tudo, amigo e pedido pendente não somem, o próprio anúncio aparece), então só provam que a mudança não os quebrou. Final `aaf5c11`: **1113 passaram**. **Mutações do coordenador** (um PR rascunho cada, fechados, branches apagadas; todas passaram ruff, format e mypy e falharam em teste), **5 de 5:** (a) esconder quem bloqueou o usuário, o sentido errado (`4ce742f`: 5 falhas, só em `test_marketplace_bloqueio.py`: lista, detalhe, o bloqueado, o sentido inverso e desbloquear); (b) detalhe sem filtro (`4577fd8`: 1, o do detalhe); (c) lista sem filtro (`34e0766`: 2, lista e desbloquear); (d) `exclude` vira `filter` (`fb68ea5`: 13, em 4 arquivos); (e) `views.py` lê `friends.models` (`2175b7d`: 2, os de arquitetura, comportamento igual).
+- **Não verificado:** nada rodou fora do CI; nenhuma tela (o mercado não tem frontend); o custo da consulta a mais por leitura e do `NOT IN` com muitos bloqueados (sem teto de bloqueios); `HEAD` e `OPTIONS` na vitrine não têm teste próprio; a regra "o bloqueado pode comprar" só vira teste na 4.4.
+- **Aberto:** teto de anúncios ativos por vendedor (decisão do dono); a compra (4.4) entra em `test_lock_order.py` e ganha teste de `pg_locks`, e herda a regra do bloqueio; sobras da A2 e M1.
+
 ### 2026-11-26 — Sessão 32 (ordem de trava global, ADR 0016)
 
 - **Modo:** sessão individual, plan mode (posse de item e dinheiro: AGENTS §4). Plano aprovado pelo dono sem mudanças. Sem código de produção: só teste, ADR e docs.

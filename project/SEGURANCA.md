@@ -86,7 +86,7 @@ Serializers DRF com tipos estritos; limites explícitos (`price` entre mínimo e
 | Autorização | Para **cada endpoint**: anônimo → 401; usuário sem relação com o dono/grupo (ou bloqueado) → 404; membro comum em rota de admin do grupo → 403 |
 | Carteira | Saldo nunca negativo; transferência soma zero; valor ≤ 0, enorme (> bigint) e não numérico rejeitados; **nenhum endpoint de escrita** em carteira |
 | Renda diária | Resgate 2x no mesmo dia (inclusive em paralelo) → um crédito só; valor vem do servidor, nunca do corpo |
-| Amizade | Auto-pedido, pedido duplicado e pedido a quem bloqueou recusados; bloqueado não vê nada |
+| Amizade | Auto-pedido, pedido duplicado e pedido a quem bloqueou recusados; bloqueado não vê nada (inventário e trocas). **No mercado** (ADR 0017) o bloqueio muda só a vista de quem bloqueou: ele não vê os anúncios de quem bloqueou, e o bloqueado vê a vitrine inteira e pode comprar, para não perceber o bloqueio |
 | Ledger | UPDATE/DELETE bloqueados; `SUM(amount)` de todo o ledger = 0; `balance` = soma do extrato após carga aleatória |
 | Marketplace | 2 compradores simultâneos → 1 sucesso; comprar o próprio anúncio falha; anunciar item alheio/consumido/já anunciado falha; cancelar durante compra |
 | Idempotência | Mesma chave 2x → mesmo resultado, 1 débito; mesma chave com corpo diferente → 422 |

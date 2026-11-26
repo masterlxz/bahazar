@@ -13,6 +13,7 @@ from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.friends.selectors import blocked_by  # única ponte com o `friends` (ADR 0017)
 
 from . import selectors, services
 from .models import MarketListing
@@ -39,6 +40,14 @@ def _erro(code: str, message: str, http_status: int) -> Response:
 
 def _erro_do_servico(erro: services.MarketError) -> Response:
     return _erro(erro.code, erro.message, _STATUS_DO_ERRO[type(erro)])
+
+
+def _vendedores_ocultos(request: Request) -> list[uuid.UUID]:
+    """Quem o usuário bloqueou: a vitrine dele não mostra os anúncios dessas pessoas.
+
+    Só o sentido de quem bloqueou (`blocked_by`): o bloqueado não pode perceber o bloqueio.
+    """
+    return list(blocked_by(_eu(request)).values_list("pk", flat=True))
 
 
 def _listing_data(listing: MarketListing) -> dict[str, object]:
@@ -73,7 +82,8 @@ class ListingListCreateView(APIView):
 
     def get(self, request: Request) -> Response:
         paginacao = ListingPagination()
-        pagina = paginacao.paginate_queryset(selectors.active_listings(), request)
+        anuncios = selectors.active_listings(_vendedores_ocultos(request))
+        pagina = paginacao.paginate_queryset(anuncios, request)
         if pagina is None:
             raise RuntimeError("ListingPagination precisa de page_size")
         return paginacao.get_paginated_response(ListingSerializer(pagina, many=True).data)
@@ -105,7 +115,7 @@ class ListingDetailView(APIView):
     http_method_names = ["get", "head", "options"]
 
     def get(self, request: Request, listing_id: uuid.UUID) -> Response:
-        anuncio = selectors.active_listing(listing_id)
+        anuncio = selectors.active_listing(listing_id, _vendedores_ocultos(request))
         if anuncio is None:
             return _erro(
                 services.ListingNotFound.code,
