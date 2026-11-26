@@ -155,7 +155,7 @@ class BuyListingView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes: list[type[BaseThrottle]] = []
     throttle_scope = "market_listing_buy"
     http_method_names = ["post", "options"]
 
