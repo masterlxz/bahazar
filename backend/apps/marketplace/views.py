@@ -13,7 +13,7 @@ from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.friends.selectors import blocked_by  # única ponte com o `friends` (ADR 0017)
+from apps.friends.selectors import Friendship  # única ponte com o `friends` (ADR 0017)
 
 from . import selectors, services
 from .models import MarketListing
@@ -47,7 +47,8 @@ def _vendedores_ocultos(request: Request) -> list[uuid.UUID]:
 
     Só o sentido de quem bloqueou (`blocked_by`): o bloqueado não pode perceber o bloqueio.
     """
-    return list(blocked_by(_eu(request)).values_list("pk", flat=True))
+    quem_me_bloqueou = Friendship.objects.filter(addressee=_eu(request), status="blocked")
+    return list(quem_me_bloqueou.values_list("requester_id", flat=True))
 
 
 def _listing_data(listing: MarketListing) -> dict[str, object]:
