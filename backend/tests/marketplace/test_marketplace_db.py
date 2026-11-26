@@ -14,7 +14,10 @@ from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 from django.utils import timezone
 
+from apps.inventory.models import SkinInstance
 from apps.marketplace.models import ListingStatus, MarketListing
+
+from .conftest import criar_instancia, criar_usuario
 
 pytestmark = pytest.mark.django_db
 
@@ -125,10 +128,20 @@ def test_banco_aceita_varios_anuncios_resolvidos_e_um_ativo_da_mesma_instancia(
 
 
 def test_banco_nao_deixa_apagar_o_vendedor_com_anuncio(cena: SimpleNamespace) -> None:
-    _anuncio(cena)
+    """O único vínculo protegido do vendedor tem de ser o anúncio.
 
-    with pytest.raises(ProtectedError):
-        cena.ana.delete()
+    `ana` tem itens, e a FK `owner` do inventário também é PROTECT: ela bloquearia a exclusão
+    sozinha e o teste passaria SEM a proteção do mercado (a mutação `on_delete=CASCADE` provou).
+    Por isso o vendedor é `dana`, que anuncia e depois fica sem item algum; e o `match` confere
+    que quem bloqueou foi `MarketListing.seller`.
+    """
+    dana = criar_usuario("dana_04")
+    d1 = criar_instancia(dana, cena.skin)
+    _anuncio(cena, seller=dana, instance=d1)
+    SkinInstance.objects.filter(pk=d1.pk).update(owner=cena.ana)
+
+    with pytest.raises(ProtectedError, match=r"MarketListing\.seller"):
+        dana.delete()
 
     assert MarketListing.objects.count() == 1
 
@@ -136,7 +149,7 @@ def test_banco_nao_deixa_apagar_o_vendedor_com_anuncio(cena: SimpleNamespace) ->
 def test_banco_nao_deixa_apagar_a_instancia_com_anuncio(cena: SimpleNamespace) -> None:
     _anuncio(cena)
 
-    with pytest.raises(ProtectedError):
+    with pytest.raises(ProtectedError, match=r"MarketListing\.instance"):
         cena.a1.delete()
 
     assert MarketListing.objects.count() == 1
