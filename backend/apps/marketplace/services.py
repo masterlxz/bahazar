@@ -230,8 +230,6 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
-        if anuncio.status != ListingStatus.ACTIVE:
-            raise ListingNotActive
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable
