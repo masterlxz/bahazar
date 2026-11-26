@@ -109,7 +109,7 @@ class ListingListCreateView(APIView):
                 _eu(request),
                 dados.instance_id,
                 dados.price,
-                idempotency_key=request.headers.get("Idempotency-Key", ""),
+                idempotency_key=str(uuid.uuid4()),
             )
         except services.MarketError as erro:
             return _erro_do_servico(erro)
@@ -148,7 +148,7 @@ class CancelListingView(APIView):
             saida = services.cancel_listing(
                 _eu(request),
                 listing_id,
-                idempotency_key=request.headers.get("Idempotency-Key", ""),
+                idempotency_key=str(uuid.uuid4()),
             )
         except services.MarketError as erro:
             return _erro_do_servico(erro)
