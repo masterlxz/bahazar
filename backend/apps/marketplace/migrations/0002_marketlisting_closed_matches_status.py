@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="marketlisting",
             constraint=models.CheckConstraint(
-                condition=models.Q(status="active", closed_at__isnull=True)
+                condition=models.Q(status="active")
                 | (~models.Q(status="active") & models.Q(closed_at__isnull=False)),
                 name="marketlisting_closed_matches_status",
             ),
