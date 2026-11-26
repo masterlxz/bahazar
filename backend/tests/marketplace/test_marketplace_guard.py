@@ -55,7 +55,7 @@ def test_item_sem_anuncio_continua_livre(cena: SimpleNamespace) -> None:
 
 def test_cancelar_o_anuncio_libera_o_item(cena: SimpleNamespace) -> None:
     anuncio = anunciar(cena.ana, cena.a1)
-    services.cancel_listing(cena.ana, anuncio.pk)
+    services.cancel_listing(cena.ana, anuncio.pk, idempotency_key=str(uuid.uuid4()))
 
     mover(cena.a1.pk, from_owner=cena.ana, to_owner=cena.bruno)
 

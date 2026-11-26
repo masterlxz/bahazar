@@ -25,6 +25,7 @@ from apps.inventory.models import SkinInstance
 
 from . import rules, selectors
 from .models import ListingStatus, MarketListing, MarketTransaction
+from .serializers import ListingSerializer
 
 _ONE_ACTIVE_PER_INSTANCE = "marketlist_one_active_instance"
 
@@ -92,7 +93,30 @@ def violated_constraint(erro: IntegrityError) -> str | None:
     return achado.group(1) if achado else None
 
 
-def create_listing(seller: User, instance_id: uuid.UUID, price: int) -> MarketListing:
+@dataclass(frozen=True)
+class ListingOutcome:
+    """Resposta de criar ou cancelar: o corpo gravado (JSON), o status HTTP e se foi repetição."""
+
+    body: dict[str, Any]
+    status: int
+    replayed: bool
+
+
+def create_listing(
+    seller: User, instance_id: uuid.UUID, price: int, *, idempotency_key: str
+) -> ListingOutcome:
+    """ESQUELETO do controle da 4.4b: ignora a chave (a implementação vem depois dos testes)."""
+    anuncio = _criar_sem_chave(seller, instance_id, price)
+    return ListingOutcome(dict(ListingSerializer(anuncio).data), 201, False)
+
+
+def cancel_listing(user: User, listing_id: uuid.UUID, *, idempotency_key: str) -> ListingOutcome:
+    """ESQUELETO do controle da 4.4b: ignora a chave (a implementação vem depois dos testes)."""
+    anuncio = _cancelar_sem_chave(user, listing_id)
+    return ListingOutcome(dict(ListingSerializer(anuncio).data), 200, False)
+
+
+def _criar_sem_chave(seller: User, instance_id: uuid.UUID, price: int) -> MarketListing:
     """Cria um anúncio ativo para um item do vendedor.
 
     A instância é travada antes das conferências: só o dono pode anunciá-la, um item consumido
@@ -131,7 +155,7 @@ def create_listing(seller: User, instance_id: uuid.UUID, price: int) -> MarketLi
         raise ItemAlreadyListed from erro
 
 
-def cancel_listing(user: User, listing_id: uuid.UUID) -> MarketListing:
+def _cancelar_sem_chave(user: User, listing_id: uuid.UUID) -> MarketListing:
     """Cancela um anúncio ativo do vendedor.
 
     A linha do anúncio é travada antes de conferir dono e estado. Um anúncio de outra pessoa e

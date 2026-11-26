@@ -63,11 +63,18 @@ def criar_instancia(
     )
 
 
-def anunciar(vendedor: Any, instancia: Any, price: int = 1000) -> Any:
-    """Cria o anúncio pelo serviço, que é a porta da regra de negócio."""
-    from apps.marketplace import services
+def nova_chave() -> str:
+    """Uma `Idempotency-Key` nova: um UUID por intenção, como o cliente gera."""
+    return str(uuid.uuid4())
 
-    return services.create_listing(vendedor, instancia.pk, price)
+
+def anunciar(vendedor: Any, instancia: Any, price: int = 1000) -> Any:
+    """Cria o anúncio pelo serviço, que é a porta da regra de negócio; devolve o modelo."""
+    from apps.marketplace import services
+    from apps.marketplace.models import MarketListing
+
+    saida = services.create_listing(vendedor, instancia.pk, price, idempotency_key=nova_chave())
+    return MarketListing.objects.get(pk=saida.body["id"])
 
 
 @pytest.fixture

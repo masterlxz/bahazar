@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.inventory.models import SkinInstance
 
-from .conftest import anunciar
+from .conftest import anunciar, nova_chave
 
 pytestmark = pytest.mark.django_db
 
@@ -25,9 +25,9 @@ def test_criar_grava_o_anuncio_ativo_e_nao_mexe_no_item(cena: SimpleNamespace) -
         MarketListing,
     )
 
-    anuncio = services.create_listing(cena.ana, cena.a1.pk, 700)
+    saida = services.create_listing(cena.ana, cena.a1.pk, 700, idempotency_key=nova_chave())
 
-    gravado = MarketListing.objects.get(pk=anuncio.pk)
+    gravado = MarketListing.objects.get(pk=saida.body["id"])
     assert (gravado.seller_id, gravado.instance_id, gravado.price) == (
         cena.ana.pk,
         cena.a1.pk,
@@ -48,10 +48,10 @@ def test_cancelar_grava_o_estado_terminal_e_o_instante_do_fechamento(cena: Simpl
     anuncio = anunciar(cena.ana, cena.a1)
     antes = timezone.now()
 
-    cancelado = services.cancel_listing(cena.ana, anuncio.pk)
+    cancelado = services.cancel_listing(cena.ana, anuncio.pk, idempotency_key=nova_chave())
 
     gravado = MarketListing.objects.get(pk=anuncio.pk)
-    assert cancelado.pk == anuncio.pk
+    assert cancelado.body["id"] == str(anuncio.pk)
     assert gravado.status == ListingStatus.CANCELLED
     assert gravado.closed_at is not None
     assert gravado.closed_at >= antes
@@ -96,7 +96,7 @@ def test_o_indice_unico_nao_atrapalha_um_anuncio_novo_depois_do_cancelamento(
     )
 
     primeiro = anunciar(cena.ana, cena.a1)
-    services.cancel_listing(cena.ana, primeiro.pk)
+    services.cancel_listing(cena.ana, primeiro.pk, idempotency_key=nova_chave())
 
     segundo = anunciar(cena.ana, cena.a1, price=50)
 

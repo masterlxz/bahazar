@@ -20,7 +20,10 @@ pytestmark = pytest.mark.django_db
 
 def _anunciar(cliente: APIClient, instancia: Any) -> str:
     resposta = cliente.post(
-        LISTINGS_URL, {"instance_id": str(instancia.pk), "price": 1000}, format="json"
+        LISTINGS_URL,
+        {"instance_id": str(instancia.pk), "price": 1000},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()),
     )
     assert resposta.status_code == 201, resposta.content
     return str(resposta.json()["id"])

@@ -55,7 +55,10 @@ def test_cancelar_leva_429_na_61a_tentativa_por_minuto(cena: SimpleNamespace) ->
     ana = logado(cena.ana)
     url = f"{LISTINGS_URL}{UM_ID_QUALQUER}/cancel/"
 
-    estados = [ana.post(url, {}, format="json").status_code for _ in range(61)]
+    estados = [
+        ana.post(url, {}, format="json", HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4())).status_code
+        for _ in range(61)
+    ]
     # 404: o anúncio não existe; a resposta é barata e conta para o throttle, que roda antes
 
     assert estados == [404] * 60 + [429]
@@ -128,9 +131,17 @@ def test_a_api_aceita_o_teto_e_recusa_um_a_mais(cena: SimpleNamespace) -> None:
     ana = logado(cena.ana)
 
     no_teto = ana.post(
-        LISTINGS_URL, {"instance_id": str(cena.a1.pk), "price": 2**53 - 1}, format="json"
+        LISTINGS_URL,
+        {"instance_id": str(cena.a1.pk), "price": 2**53 - 1},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()),
     )
-    acima = ana.post(LISTINGS_URL, {"instance_id": str(cena.a2.pk), "price": 2**53}, format="json")
+    acima = ana.post(
+        LISTINGS_URL,
+        {"instance_id": str(cena.a2.pk), "price": 2**53},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=str(uuid.uuid4()),
+    )
 
     assert no_teto.status_code == 201, no_teto.content
     assert no_teto.json()["price"] == 2**53 - 1

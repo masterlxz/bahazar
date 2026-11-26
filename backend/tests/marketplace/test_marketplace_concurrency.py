@@ -16,6 +16,8 @@ from django.db import connection
 from apps.marketplace import services
 from apps.marketplace.models import ListingStatus, MarketListing
 
+from .conftest import nova_chave
+
 ESPERA_MAXIMA_S = 30
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -53,14 +55,18 @@ def test_duas_criacoes_simultaneas_do_mesmo_item_so_uma_vale(cena: SimpleNamespa
     """
     precos = [111, 222]
     tarefas = [
-        (lambda preco=preco: services.create_listing(cena.ana, cena.a1.pk, preco))
+        (
+            lambda preco=preco: services.create_listing(
+                cena.ana, cena.a1.pk, preco, idempotency_key=nova_chave()
+            )
+        )
         for preco in precos
     ]
 
     resultados = _largar(tarefas)
 
     nomes = sorted(type(r).__name__ for r in resultados)
-    assert nomes == ["ItemAlreadyListed", "MarketListing"]
+    assert nomes == ["ItemAlreadyListed", "ListingOutcome"]
     ativos = MarketListing.objects.filter(instance=cena.a1, status=ListingStatus.ACTIVE)
     assert ativos.count() == 1
     assert ativos.get().price in precos

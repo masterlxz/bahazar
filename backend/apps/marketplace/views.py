@@ -105,10 +105,15 @@ class ListingListCreateView(APIView):
         except InvalidInput as erro:
             return _erro(erro.code, erro.message, status.HTTP_400_BAD_REQUEST)
         try:
-            anuncio = services.create_listing(_eu(request), dados.instance_id, dados.price)
+            saida = services.create_listing(
+                _eu(request),
+                dados.instance_id,
+                dados.price,
+                idempotency_key=request.headers.get("Idempotency-Key", ""),
+            )
         except services.MarketError as erro:
             return _erro_do_servico(erro)
-        return Response(_listing_data(anuncio), status=status.HTTP_201_CREATED)
+        return Response(saida.body, status=saida.status)
 
 
 class ListingDetailView(APIView):
@@ -140,10 +145,14 @@ class CancelListingView(APIView):
 
     def post(self, request: Request, listing_id: uuid.UUID) -> Response:
         try:
-            anuncio = services.cancel_listing(_eu(request), listing_id)
+            saida = services.cancel_listing(
+                _eu(request),
+                listing_id,
+                idempotency_key=request.headers.get("Idempotency-Key", ""),
+            )
         except services.MarketError as erro:
             return _erro_do_servico(erro)
-        return Response(_listing_data(anuncio), status=status.HTTP_200_OK)
+        return Response(saida.body, status=saida.status)
 
 
 class BuyListingView(APIView):
