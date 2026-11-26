@@ -66,8 +66,8 @@ def _jogador_com_carteira_depois_da_system() -> tuple[Any, Wallet]:
     É a ordem em que a compra trava (carteiras por `id` crescente: `system`, depois a do jogador).
     Sem sorteio: a `system` nasce com `id` fixo e baixo ANTES do jogador (`system_com_id_baixo`).
     """
-    sistema = system_com_id_baixo()
     jogador = criar_usuario("jogador_0")
+    sistema = system_com_id_baixo()
     carteira = Wallet.objects.get(user=jogador)
     assert carteira.id > sistema.id
     return jogador, carteira
