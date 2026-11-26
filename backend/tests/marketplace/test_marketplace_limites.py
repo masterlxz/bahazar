@@ -33,7 +33,8 @@ def _criar_vazio(cliente: Any) -> int:
 
 
 def test_os_tres_escopos_do_mercado_tem_taxa_configurada() -> None:
-    taxas = settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]
+    configuracao: Any = settings.REST_FRAMEWORK
+    taxas: dict[str, str] = configuracao["DEFAULT_THROTTLE_RATES"]
 
     assert taxas["market_listing_create"] == "30/min"
     assert taxas["market_listing_cancel"] == "60/min"
