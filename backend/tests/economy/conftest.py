@@ -44,22 +44,26 @@ def system_com_id_baixo() -> Any:
     return sistema
 
 
-def jogador_sem_saldo_inicial(prefixo: str) -> tuple[Any, Any]:
+def jogador_sem_saldo_inicial(prefixo: str, *, depois_da_system: bool = False) -> tuple[Any, Any]:
     """Um jogador cuja carteira JÁ existe mas ainda não recebeu o saldo inicial.
 
     O app nunca produz esse estado (a carteira e o `starting_grant` nascem na mesma transação);
     o teste o fabrica para provar a regra de trava do `open_wallet`. O usuário entra por
     `bulk_create`, que não dispara o `post_save` (a carteira não nasce por sinal), e a carteira
-    é criada à mão, depois da `system` de `id` baixo (`system_com_id_baixo`).
+    é criada à mão. Com `depois_da_system`, a `system` nasce com `id` baixo
+    (`system_com_id_baixo`, que exige ser a PRIMEIRA carteira do teste) e a do jogador fica
+    depois dela na ordem do `post_entries`; sem ele, a `system` pode ser a que já existir.
     """
     from apps.economy.models import Wallet
+    from apps.economy.services import get_system_wallet
 
-    sistema = system_com_id_baixo()
+    sistema = system_com_id_baixo() if depois_da_system else get_system_wallet()
     usuario = User(username=prefixo, email=f"{prefixo}@exemplo.com")
     usuario.set_unusable_password()
     User.objects.bulk_create([usuario])
     carteira = Wallet.objects.create(user=usuario, kind="player")
-    assert carteira.id > sistema.id
+    if depois_da_system:
+        assert carteira.id > sistema.id
     return usuario, carteira
 
 
