@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-26 — Sessão 40 (A1: o teste de arquitetura do mercado confere o NOME importado)
+
+- **Modo:** sessão individual, plan mode. O dono pediu A1 e as sobras da A2 e da M1 de uma vez (9 itens); quebrei em **6 PRs, um por intenção** (A1; ADR e códigos de erro (e)(f); `run_once` esgotado (g), com **503 `idempotency_unavailable`** decidido; throttle de trocas (a); M1 e (b)(c); erros do DRF (d)), cada um com o seu ciclo e o seu plan mode quando há decisão de produto. Esta sessão fez o PR 1.
+- **Feito** (PR #244, só testes, nenhum código de produção): `test_marketplace_arquitetura.py` passa a ler `(módulo, nome)` de cada import (`_importacoes`); `_EXCECOES` vira `{arquivo: {módulo: {nomes}}}` (`economy.services`: `Entry`, `InsufficientFunds`, `ensure_wallet`, `get_system_wallet`, `post_entries`; `economy.idempotency`: `IdempotencyKeyReused`, `run_once`; `economy.rules`: `normalize_idempotency_key`, `request_fingerprint`; `friends.selectors`: `blocked_by`); `import <módulo>` solto e `*` deixam de valer; `_nomes_sobrando` aponta nome da lista que o arquivo já não importa. 14 casos novos de "recusar" e 1 teste da detecção de exceção velha.
+- **Provas (CI lido por mim, com `headSha`):** final `d463743`: **1246 passaram** (não há controle "antes falha": o detector é o próprio teste). **Mutações do coordenador no detector** (um PR rascunho cada, #245 a #248, fechados, branches apagadas; passaram ruff, format e mypy e falharam em teste), **4 de 4, só os testes previstos:** (1) compara só o módulo: 13 falhas (todos os casos por nome e por `import` solto, nos dois testes); (2) `import` solto aceito: 3 (`import apps.friends.selectors`, `import apps.economy.services`, o `import_module`); (3) ignora `*`: 2 (os dois `import *`); (4) exceção velha nunca apontada: 1 (`test_excecao_com_nome_que_o_arquivo_nao_importa_mais_e_apontada_como_velha`).
+- **Desvio do plano:** a mutação 4 prevista (`==` virar `<=`) não derrubaria teste nenhum com a lista igual ao uso; extraí `_nomes_sobrando` e testei a detecção com fontes sintéticas, e então a mutação passou a cair.
+- **Não verificado:** nada rodou fora do CI; o teste lê os nomes por `ast`, não pega acesso por `getattr` dinâmico nem import por variável; `trades` segue com exceção por módulo (`economy.idempotency` e `economy.rules`), sem lista de nomes.
+- **Aberto:** PRs 2 a 6 acima; validação no PC do dono (`migrate marketplace` com dados e uma compra de ponta a ponta); sobras da M1.
+
 ### 2026-11-26 — Sessão 39 (`open_wallet`: travar o usuário, não a carteira)
 
 - **Modo:** sessão individual, plan mode (dinheiro: AGENTS §4). Decisão do dono (1 pergunta): **corrigir** pela regra do ADR 0016, em vez de só provar que o ciclo é inalcançável. Minha leitura (não prova): o ciclo só existe num estado que o app não produz (carteira existente sem o `starting_grant`); no cadastro e na auto-cura a carteira nova é invisível aos outros até o commit.
