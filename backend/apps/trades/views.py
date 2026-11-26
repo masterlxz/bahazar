@@ -197,7 +197,6 @@ class _ResolveOfferView(APIView):
     """Base de aceitar, recusar e cancelar: muda só a ação (`trade_action`)."""
 
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
     throttle_scope = "trade_resolve"  # aceitar, recusar e cancelar dividem o mesmo balde
     http_method_names = ["post", "options"]
     trade_action: str
