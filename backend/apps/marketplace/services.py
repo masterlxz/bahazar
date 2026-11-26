@@ -160,7 +160,7 @@ def cancel_listing(user: User, listing_id: uuid.UUID, *, idempotency_key: str) -
     pedido = request_fingerprint("market_cancel", str(user.pk), str(listing_id))
 
     def operar() -> tuple[int, dict[str, Any]]:
-        return 200, _corpo(_fechar_anuncio(user, listing_id))
+        return 201, _corpo(_fechar_anuncio(user, listing_id))
 
     return _uma_vez(user, idempotency_key, pedido, operar)
 
