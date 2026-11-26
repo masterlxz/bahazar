@@ -132,6 +132,7 @@ def test_chave_esgotada_da_503_e_nada_muda(
 ) -> None:
     rota = ROTAS[nome](cena)
     chave = str(uuid.uuid4())
+    antes = IdempotencyRecord.objects.count()  # montar a rota pode ter gravado registros (anúncio)
     _esgotar(monkeypatch, rota.usuario, chave)
 
     resposta = _enviar(logado(rota.usuario), rota, chave)
@@ -140,7 +141,7 @@ def test_chave_esgotada_da_503_e_nada_muda(
     assert set(resposta.json()) == {"code", "message"}
     assert resposta.json()["code"] == CODIGO
     assert rota.intacto()
-    assert IdempotencyRecord.objects.count() == 1  # só o registro velho que montei
+    assert IdempotencyRecord.objects.count() == antes + 1  # só o registro velho que montei
 
 
 @pytest.mark.parametrize("nome", ROTAS)
