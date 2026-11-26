@@ -140,6 +140,26 @@ Corpo contém ids das instâncias **escolhidas pelo usuário** (entrada legítim
 - Erros padronizados `{code, message, details}` com `code` estável (`insufficient_funds`, `listing_not_active`...) para o frontend traduzir.
 - Paginação por cursor em listas grandes (extrato, vitrine); tamanho máximo fixo.
 
+### Códigos de erro que o frontend precisa conhecer (trocas e mercado)
+Formato real hoje: `{code, message}` (sem `details`); a diária acrescenta `available_at`. Erros do DRF (JSON quebrado, `?page` inválida, 403 do CSRF, 405, 429) saem como `{detail}`: pendência (d) da A2. Lido do código em 2026-11-26 (`trades/views.py`, `trades/serializers.py`, `marketplace/views.py`, `marketplace/serializers.py`); se divergir, o código vale.
+
+| Rota | `code` | HTTP |
+|---|---|---|
+| trocas e mercado (POST) | `invalid_idempotency_key` (cabeçalho ausente ou não UUID) | 400 |
+| trocas e mercado (POST) | `idempotency_key_reused` (mesma chave, outro pedido) | 422 |
+| `POST /trades/` | `invalid_body`, `invalid_recipient`, `invalid_items`, `invalid_item_id`, `too_many_items` (corpo) | 400 |
+| `POST /trades/` e resolução | `self_trade`, `empty_side`, `duplicate_item`, `invalid_item_id`, `too_many_items` | 400 |
+| `POST /trades/` e resolução | `not_friends`, `item_not_owned`, `item_consumed`, `item_already_offered`, `too_many_pending_offers`, `offer_not_pending`, `item_locked` (item anunciado no mercado) | 409 |
+| trocas | `offer_not_found` | 404 |
+| trocas | `not_allowed` | 403 |
+| `POST /listings/` | `invalid_body`, `invalid_price` (corpo) | 400 |
+| mercado | `instance_not_found`, `listing_not_found` (também anúncio de quem o comprador bloqueou) | 404 |
+| mercado | `item_consumed`, `item_already_listed`, `item_locked`, `listing_not_active`, `cannot_buy_own_listing`, `listing_unavailable` | 409 |
+| compra | `insufficient_funds` | 422 |
+| `POST /wallet/daily/` | `daily_not_ready` (com `available_at`) | 409 |
+
+Observações: `item_consumed` e `item_locked` existem nos dois módulos com o mesmo código e HTTP; o texto (`message`) muda e não é contrato. O frontend traduz pelo `code`, nunca pelo `message`. O esgotamento do `run_once` hoje vira 500; o plano é um `503 idempotency_unavailable` (PR 3 do plano da Sessão 40, ainda não feito).
+
 ## 7. Tempo real
 Decisão em duas fases (YAGNI):
 1. **Etapas 1-5:** sem tempo real; vitrine e inventário atualizam por *refetch* (TanStack Query) ao focar a aba e a cada ~10-15 s na vitrine. Barato e suficiente para um grupo pequeno.
