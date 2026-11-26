@@ -143,6 +143,7 @@ REST_FRAMEWORK = {
         "invite_redeem": "10/min",
         "market_listing_create": "30/min",
         "market_listing_cancel": "60/min",
+        "market_listing_buy": "30/min",  # hipótese, sem fonte
         "market_listing_read": "120/min",  # lista e detalhe da vitrine; hipótese, sem fonte
     },
 }

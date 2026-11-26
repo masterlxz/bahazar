@@ -11,9 +11,23 @@ MIN_PRICE = 1
 MAX_PRICE = 2**53 - 1
 
 
+# Taxa do mercado, em basis points (500 = 5%). HIPÓTESE do dono (2026-11-26), não medida: vem da
+# simulação 4.0 (ADR 0013); reabrir com dados reais. É o sumidouro que queima a renda de regime.
+MARKET_FEE_BPS = 500
+_BPS = 10_000
+
+
 def split_price(price: int) -> tuple[int, int]:
-    """ESQUELETO (controle dos testes): `(para_o_vendedor, taxa)`, ainda não implementado."""
-    raise NotImplementedError
+    """Divide o preço de uma compra em `(para_o_vendedor, taxa)`, em centavos.
+
+    A taxa arredonda para baixo (`price * bps // 10_000`), então o vendedor recebe `price - taxa`
+    e nunca zero (a taxa é sempre menor que o preço); preço até 19 centavos paga taxa 0. O preço
+    inválido levanta `ValueError`: quem chama já o validou na criação do anúncio.
+    """
+    if not price_is_valid(price):
+        raise ValueError("o preço precisa ser um inteiro positivo dentro do limite")
+    taxa = price * MARKET_FEE_BPS // _BPS
+    return price - taxa, taxa
 
 
 def price_is_valid(value: object) -> bool:

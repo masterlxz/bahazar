@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import CancelListingView, ListingDetailView, ListingListCreateView
+from .views import BuyListingView, CancelListingView, ListingDetailView, ListingListCreateView
 
 urlpatterns = [
     path("listings/", ListingListCreateView.as_view(), name="listing-list"),
@@ -10,4 +10,5 @@ urlpatterns = [
         CancelListingView.as_view(),
         name="listing-cancel",
     ),
+    path("listings/<uuid:listing_id>/buy/", BuyListingView.as_view(), name="listing-buy"),
 ]

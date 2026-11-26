@@ -29,6 +29,9 @@ _STATUS_DO_ERRO: dict[type[services.MarketError], int] = {
     services.ListingNotActive: status.HTTP_409_CONFLICT,
     services.CannotBuyOwnListing: status.HTTP_409_CONFLICT,
     services.ListingUnavailable: status.HTTP_409_CONFLICT,
+    services.InsufficientFunds: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    services.IdempotencyKeyReused: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    services.InvalidIdempotencyKey: status.HTTP_400_BAD_REQUEST,
 }
 
 
@@ -141,3 +144,39 @@ class CancelListingView(APIView):
         except services.MarketError as erro:
             return _erro_do_servico(erro)
         return Response(_listing_data(anuncio), status=status.HTTP_200_OK)
+
+
+class BuyListingView(APIView):
+    """Compra um anúncio ativo. O corpo é ignorado: preço, dono e taxa nunca vêm do cliente.
+
+    Exige o cabeçalho `Idempotency-Key` (um UUID). Anúncio inexistente e anúncio de quem o
+    comprador bloqueou dão o mesmo 404; o bloqueado, ao contrário, compra normalmente (ADR 0017).
+    Repetir a chave devolve a venda original, também com 201.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "market_listing_buy"
+    http_method_names = ["post", "options"]
+
+    def post(self, request: Request, listing_id: uuid.UUID) -> Response:
+        if selectors.is_hidden(listing_id, _vendedores_ocultos(request)):
+            return _erro_do_servico(services.ListingNotFound())
+        try:
+            compra = services.buy_listing(
+                _eu(request),
+                listing_id,
+                idempotency_key=request.headers.get("Idempotency-Key", ""),
+            )
+        except services.MarketError as erro:
+            return _erro_do_servico(erro)
+        return Response(
+            {
+                "id": str(compra.id),
+                "listing_id": str(compra.listing_id),
+                "price": compra.price,
+                "fee": compra.fee,
+                "ledger_group_id": str(compra.ledger_group_id),
+            },
+            status=status.HTTP_201_CREATED,
+        )

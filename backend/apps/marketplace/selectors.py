@@ -56,6 +56,15 @@ def active_listing(
     )
 
 
+def is_hidden(listing_id: uuid.UUID, hide_sellers: Iterable[uuid.UUID]) -> bool:
+    """O anúncio é de um vendedor que quem olha bloqueou, em qualquer estado?
+
+    A compra usa isto para dar o mesmo 404 do detalhe: sem olhar o estado, porque um anúncio
+    escondido não pode revelar se está ativo, vendido ou cancelado.
+    """
+    return MarketListing.objects.filter(pk=listing_id, seller_id__in=list(hide_sellers)).exists()
+
+
 def has_active_listing(instance_id: uuid.UUID) -> bool:
     """A instância já tem algum anúncio ativo?"""
     return MarketListing.objects.filter(
