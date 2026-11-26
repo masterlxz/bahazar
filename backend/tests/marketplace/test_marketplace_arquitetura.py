@@ -85,19 +85,54 @@ def _modulos_importados(fonte: str) -> list[str]:
     return achados
 
 
+# A exceção estreita e escrita (ADR 0017): só a view lê o bloqueio, pelo selector do `friends`.
+_EXCECOES = {"views.py": frozenset({"apps.friends.selectors"})}
+
+
+def _proibidos_importados(nome: str, fonte: str) -> list[str]:
+    permitidos = _EXCECOES.get(nome, frozenset())
+    return [
+        m
+        for m in _modulos_importados(fonte)
+        if m not in permitidos and any(m == p or m.startswith(f"{p}.") for p in _PROIBIDOS)
+    ]
+
+
 def test_o_mercado_nao_importa_trades_economy_friends_nem_rooms() -> None:
     """Módulo não importa módulo: a única ponte com `trades` é a guarda registrada em `inventory`.
 
-    O mercado só conhece `accounts`, `catalog` e `inventory`. Quem precisar de carteira (a 4.4)
-    ou de amizade decide isso por uma exceção estreita e escrita, como a da view de `trades`.
+    O mercado só conhece `accounts`, `catalog` e `inventory`. A única exceção é `views.py`, que lê
+    o bloqueio por `friends.selectors` (ADR 0017); quem precisar de carteira (a 4.4) decide isso
+    por outra exceção escrita, como a da view de `trades`.
     """
     for nome, fonte in _codigo().items():
-        achados = [
-            m
-            for m in _modulos_importados(fonte)
-            if any(m == p or m.startswith(f"{p}.") for p in _PROIBIDOS)
-        ]
-        assert achados == [], nome
+        assert _proibidos_importados(nome, fonte) == [], nome
+
+
+def test_a_view_do_mercado_usa_a_excecao_do_friends_e_so_ela() -> None:
+    """A exceção não pode ficar velha: `views.py` importa o selector, e nenhum outro `friends`."""
+    codigo = _codigo()
+
+    achados = [m for m in _modulos_importados(codigo["views.py"]) if m.startswith("apps.friends")]
+
+    assert achados == ["apps.friends.selectors"]
+    for nome in ("selectors.py", "services.py", "serializers.py", "models.py"):
+        assert [m for m in _modulos_importados(codigo[nome]) if "friends" in m] == [], nome
+
+
+@pytest.mark.parametrize(
+    "fonte",
+    [
+        "from apps.friends import models",
+        "from apps.friends.models import Friendship",
+        "from apps.friends import services",
+        "import apps.friends.services",
+    ],
+)
+def test_a_excecao_da_view_nao_abre_outros_modulos_do_friends(fonte: str) -> None:
+    assert _proibidos_importados("views.py", fonte) != []
+    assert _proibidos_importados("views.py", "from apps.friends.selectors import blocked_by") == []
+    assert _proibidos_importados("selectors.py", "from apps.friends.selectors import blocked_by")
 
 
 @pytest.mark.parametrize(
