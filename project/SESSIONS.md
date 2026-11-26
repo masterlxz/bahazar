@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-26 — Sessão 39 (`open_wallet`: travar o usuário, não a carteira)
+
+- **Modo:** sessão individual, plan mode (dinheiro: AGENTS §4). Decisão do dono (1 pergunta): **corrigir** pela regra do ADR 0016, em vez de só provar que o ciclo é inalcançável. Minha leitura (não prova): o ciclo só existe num estado que o app não produz (carteira existente sem o `starting_grant`); no cadastro e na auto-cura a carteira nova é invisível aos outros até o commit.
+- **Feito** (PR #240, só `economy/services.py` em produção): `open_wallet` trava o USUÁRIO (`get_user_model()`) no lugar da carteira e deixa o `post_entries` travar as carteiras por `id`; docstring explica o porquê. Testes: `test_open_wallet_concurrency.py` (ciclo com a `system` e 6 aberturas simultâneas), caso "abrir carteira" no `test_lock_order` e o helper `jogador_sem_saldo_inicial` (usuário por `bulk_create` + carteira criada à mão, com `id` maior que o da `system`).
+- **Provas (CI lido por mim, com `headSha`):** controle `12dbc5e` (só testes): **2 falhas e 1230 passaram**: `test_open_wallet_nao_forma_ciclo_com_quem_trava_a_system_e_depois_a_carteira` caiu em `OperationalError: deadlock detected` (**o deadlock foi reproduzido no CI**) e `test_cada_operacao_trava_na_ordem_global[abrir carteira]` (`[carteira]` no lugar de `[usuário, carteira]`); o teste das 6 aberturas simultâneas já passava (a trava da carteira já serializava). Final `518f9d9`: **1232 passaram**. **Mutações do coordenador** (um PR rascunho cada, #241 a #243, fechados, branches apagadas; passaram ruff, format e mypy e falharam em teste), **3 de 3:** (1) volta a travar a carteira, sem o usuário: 2 falhas, o do ciclo e o `test_lock_order`; (2) sem trava nenhuma: 2, as 6 simultâneas e o `test_lock_order`; (3) usuário travado depois de ler `ja_recebeu`: 1, as 6 simultâneas.
+- **Não verificado:** nada rodou fora do CI; o estado "carteira sem saldo inicial" é fabricado, não ocorre no app; a trava do usuário no sinal do cadastro (dentro da transação que cria o usuário) só tem a prova do CI de todos os cadastros; os testes de trava passaram poucas vezes (estabilidade não medida); a correção não muda comportamento observável do app.
+- **Aberto:** validação no PC do dono (`migrate marketplace` com dados e uma compra de ponta a ponta); A1 (arquitetura por nome importado); sobras da A2 e M1; teste de `pg_locks` do `INSERT` do registro de idempotência e `expire_idempotency` real no teste de expiração (da revisão da 4.4b).
+
 ### 2026-11-26 — Sessão 38 (revisão adversária da 4.4b e os buracos que ela achou)
 
 - **Modo:** sessão individual. Um agente só de leitura (`adversarial-reviewer`) sobre o commit `0366a6b`, com ordem de ler por `git show`/`git diff` e sem trocar de branch (conferi: continuou na `main`). **O relatório é saída de modelo, não verdade:** conferi no código o que dava para ler (as frases do `PENDING.md` e do `ARQUITETURA.md`). Nada foi reproduzido pelo agente.
