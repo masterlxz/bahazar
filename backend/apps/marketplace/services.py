@@ -142,7 +142,7 @@ def create_listing(
     pedido volta a criar um anúncio: não há guarda durável para o criar (decisão do dono,
     2026-11-26; ao contrário da compra, que tem `UNIQUE(listing)`).
     """
-    pedido = request_fingerprint("market_create", str(seller.pk), str(instance_id), price)
+    pedido = request_fingerprint("market_create", str(seller.pk), str(instance_id))
 
     def operar() -> tuple[int, dict[str, Any]]:
         return 201, _corpo(_gravar_anuncio(seller, instance_id, price))
