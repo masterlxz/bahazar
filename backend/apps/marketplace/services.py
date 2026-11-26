@@ -194,7 +194,7 @@ def _travar_jogadores(*ids: uuid.UUID) -> None:
 
     Sem o `order_by`, o PostgreSQL trava na ordem em que lê, que não é a do id.
     """
-    list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+    list(User.objects.select_for_update().filter(pk__in=ids))
 
 
 def buy_listing(
