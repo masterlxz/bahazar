@@ -21,7 +21,7 @@
 |---|---|---|---|
 | R1 | **Sem RLS**: uma regra de visibilidade esquecida vaza carteira ou inventário a quem não é amigo (e, em grupos, um `.filter` esquecido vaza entre salas) | Alto | Selector escopado, permissão padrão negar, **uma** permissão central de visibilidade (dono, amigo, grupo), teste de IDOR parametrizado por endpoint |
 | R2 | Condição de corrida em compra, saldo ou convite | Alto | Travas na ordem fixa, `CHECK`s, índices únicos parciais, testes de concorrência **contra Postgres real** (SQLite não serve: ele não reproduz o comportamento de `FOR UPDATE`) |
-| R3 | Deadlock por ordem de lock inconsistente | Médio | Ordem fixa (anúncio → instância → carteiras por UUID) + retry limitado |
+| R3 | Deadlock por ordem de lock inconsistente | Médio | Ordem fixa (jogadores → anúncio ou oferta → instâncias → carteiras, ADR 0016) + retry limitado |
 | R4 | Divergência entre `wallets.balance` e o ledger | Alto | Uma única função grava ambos; auditoria periódica; `balance_after` para achar o ponto |
 | R5 | Economia desbalanceada (inflação por **diária, anúncio**, caixas/recompensas, "máquina de dinheiro" com trade-up ou batalha de caixa). **Mais grave agora**: a economia é única e global, sem o amortecedor de salas pequenas | Alto (produto) | Carteira `system` global mede a oferta monetária; sumidouros (taxa); valores provisórios declarados; simular **antes** das caixas (D7, PR 4.0) |
 | R6 | RNG enviesado ou manipulável | Alto (confiança dos jogadores) | CSPRNG no servidor, snapshot, teste qui-quadrado |
