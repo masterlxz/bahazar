@@ -136,7 +136,7 @@ def _nomes_sobrando(nome: str, fonte: str) -> list[str]:
     return [
         f"{modulo}.{n}"
         for modulo, permitidos in _EXCECOES.get(nome, {}).items()
-        for n in sorted(permitidos - {i for m, i in _importacoes(fonte) if m == modulo and i})
+        for n in sorted(set[str]())
     ]
 
 
