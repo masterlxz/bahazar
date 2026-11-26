@@ -27,7 +27,13 @@ from apps.economy.models import Wallet
 from apps.marketplace import services as market
 from apps.trades import services as trades
 
-from .marketplace.conftest import criar_instancia, criar_skin, criar_usuario, tornar_amigos
+from .marketplace.conftest import (
+    anunciar,
+    criar_instancia,
+    criar_skin,
+    criar_usuario,
+    tornar_amigos,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -129,12 +135,14 @@ def _cancelar_oferta(cena: SimpleNamespace) -> Callable[[], Any]:
 
 
 def _criar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
-    return lambda: market.create_listing(cena.ana, cena.a1.pk, 1000)
+    chave = str(uuid.uuid4())
+    return lambda: market.create_listing(cena.ana, cena.a1.pk, 1000, idempotency_key=chave)
 
 
 def _cancelar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
-    anuncio = market.create_listing(cena.ana, cena.a1.pk, 1000)
-    return lambda: market.cancel_listing(cena.ana, anuncio.pk)
+    anuncio = anunciar(cena.ana, cena.a1)
+    chave = str(uuid.uuid4())
+    return lambda: market.cancel_listing(cena.ana, anuncio.pk, idempotency_key=chave)
 
 
 def _resgatar_diaria(cena: SimpleNamespace) -> Callable[[], Any]:
@@ -142,7 +150,7 @@ def _resgatar_diaria(cena: SimpleNamespace) -> Callable[[], Any]:
 
 
 def _comprar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
-    anuncio = market.create_listing(cena.ana, cena.a1.pk, 1000)
+    anuncio = anunciar(cena.ana, cena.a1)
     chave = str(uuid.uuid4())
     return lambda: market.buy_listing(cena.bruno, anuncio.pk, idempotency_key=chave)
 

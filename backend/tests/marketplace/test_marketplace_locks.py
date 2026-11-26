@@ -21,7 +21,7 @@ from apps.marketplace import services
 from apps.marketplace.models import ListingStatus, MarketListing
 
 from ..trades.test_trades_concurrency import _disputar, _travar_instancia
-from .conftest import anunciar
+from .conftest import anunciar, nova_chave
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -58,11 +58,13 @@ def test_criar_anuncio_trava_o_vendedor_antes_da_instancia(cena: SimpleNamespace
     esperou, resultado = _disputar(
         trava=lambda: _travar_vendedor(cena.ana),
         depois=lambda: _travar_instancia(cena.a1),
-        operacao=_tentar(lambda: services.create_listing(cena.ana, cena.a1.pk, 500)),
+        operacao=_tentar(
+            lambda: services.create_listing(cena.ana, cena.a1.pk, 500, idempotency_key=nova_chave())
+        ),
     )
 
     assert esperou, "o anúncio não esperou a trava do vendedor"
-    assert isinstance(resultado, MarketListing)
+    assert isinstance(resultado, services.ListingOutcome)
     assert MarketListing.objects.filter(instance=cena.a1, status=ListingStatus.ACTIVE).count() == 1
 
 
@@ -88,7 +90,9 @@ def test_criar_anuncio_confere_dono_e_consumo_sob_a_trava_da_instancia(
     esperou, resultado = _disputar(
         trava=lambda: _travar_instancia(cena.a1),
         depois=trocar_dono if mudanca == "dono" else consumir,
-        operacao=_tentar(lambda: services.create_listing(cena.ana, cena.a1.pk, 500)),
+        operacao=_tentar(
+            lambda: services.create_listing(cena.ana, cena.a1.pk, 500, idempotency_key=nova_chave())
+        ),
     )
 
     esperado = services.InstanceNotFound if mudanca == "dono" else services.ItemConsumed
@@ -118,7 +122,9 @@ def test_cancelar_confere_o_estado_sob_a_trava_do_anuncio(cena: SimpleNamespace)
     esperou, resultado = _disputar(
         trava=travar_anuncio,
         depois=cancelar_por_fora,
-        operacao=_tentar(lambda: services.cancel_listing(cena.ana, anuncio.pk)),
+        operacao=_tentar(
+            lambda: services.cancel_listing(cena.ana, anuncio.pk, idempotency_key=nova_chave())
+        ),
     )
 
     assert esperou, "o cancelamento não esperou a trava do anúncio"

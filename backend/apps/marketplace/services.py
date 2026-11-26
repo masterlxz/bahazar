@@ -7,7 +7,7 @@ trava é a do ADR 0016: jogadores, anúncio, instância, carteiras.
 
 import re
 import uuid
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,6 +25,7 @@ from apps.inventory.models import SkinInstance
 
 from . import rules, selectors
 from .models import ListingStatus, MarketListing, MarketTransaction
+from .serializers import ListingSerializer
 
 _ONE_ACTIVE_PER_INSTANCE = "marketlist_one_active_instance"
 
@@ -92,7 +93,79 @@ def violated_constraint(erro: IntegrityError) -> str | None:
     return achado.group(1) if achado else None
 
 
-def create_listing(seller: User, instance_id: uuid.UUID, price: int) -> MarketListing:
+@dataclass(frozen=True)
+class ListingOutcome:
+    """Resposta de criar ou cancelar: o corpo gravado (JSON), o status HTTP e se foi repetição."""
+
+    body: dict[str, Any]
+    status: int
+    replayed: bool
+
+
+def _uma_vez(
+    user: User,
+    idempotency_key: str,
+    pedido: str,
+    operacao: Callable[[], tuple[int, dict[str, Any]]],
+) -> ListingOutcome:
+    """Valida a chave e roda `operacao` uma única vez por `(jogador, chave)` (ADR 0014).
+
+    O registro da chave e a operação confirmam na mesma transação: se a operação levanta um
+    `MarketError`, tudo desfaz e a chave não fica queimada. A repetição devolve o corpo GRAVADO
+    na primeira vez (um retrato daquele momento), sem executar de novo.
+    """
+    try:
+        chave = normalize_idempotency_key(idempotency_key)
+    except ValueError as erro:
+        raise InvalidIdempotencyKey from erro
+    try:
+        saida = run_once(
+            scope=f"user:{user.pk}", key=chave, request_hash=pedido, operation=operacao
+        )
+    except EconomyKeyReused as erro:
+        raise IdempotencyKeyReused from erro
+    return ListingOutcome(saida.body, saida.status, saida.replayed)
+
+
+def _corpo(anuncio: MarketListing) -> dict[str, Any]:
+    """O anúncio no formato público da API, já em tipos de JSON (é o que `run_once` grava)."""
+    return dict(ListingSerializer(anuncio).data)
+
+
+def create_listing(
+    seller: User, instance_id: uuid.UUID, price: int, *, idempotency_key: str
+) -> ListingOutcome:
+    """Cria um anúncio, uma única vez por `(vendedor, chave)`; a repetição devolve o 201 gravado.
+
+    Erros: `InvalidIdempotencyKey`, `IdempotencyKeyReused` (mesma chave, outro item ou preço) e os
+    de `_gravar_anuncio`. Depois que o registro da chave expira (`expire_idempotency`), o mesmo
+    pedido volta a criar um anúncio: não há guarda durável para o criar (decisão do dono,
+    2026-11-26; ao contrário da compra, que tem `UNIQUE(listing)`).
+    """
+    pedido = request_fingerprint("market_create", str(seller.pk), str(instance_id), price)
+
+    def operar() -> tuple[int, dict[str, Any]]:
+        return 201, _corpo(_gravar_anuncio(seller, instance_id, price))
+
+    return _uma_vez(seller, idempotency_key, pedido, operar)
+
+
+def cancel_listing(user: User, listing_id: uuid.UUID, *, idempotency_key: str) -> ListingOutcome:
+    """Cancela um anúncio, uma única vez por `(vendedor, chave)`; a repetição devolve o 200 gravado.
+
+    Erros: `InvalidIdempotencyKey`, `IdempotencyKeyReused` e os de `_fechar_anuncio`. Cancelar com
+    OUTRA chave um anúncio já fechado continua dando `ListingNotActive` (409): a guarda durável
+    do cancelar é o estado do anúncio.
+    """
+    pedido = request_fingerprint("market_cancel", str(user.pk), str(listing_id))
+
+    def operar() -> tuple[int, dict[str, Any]]:
+        return 200, _corpo(_fechar_anuncio(user, listing_id))
+
+    return _uma_vez(user, idempotency_key, pedido, operar)
+
+
+def _gravar_anuncio(seller: User, instance_id: uuid.UUID, price: int) -> MarketListing:
     """Cria um anúncio ativo para um item do vendedor.
 
     A instância é travada antes das conferências: só o dono pode anunciá-la, um item consumido
@@ -131,7 +204,7 @@ def create_listing(seller: User, instance_id: uuid.UUID, price: int) -> MarketLi
         raise ItemAlreadyListed from erro
 
 
-def cancel_listing(user: User, listing_id: uuid.UUID) -> MarketListing:
+def _fechar_anuncio(user: User, listing_id: uuid.UUID) -> MarketListing:
     """Cancela um anúncio ativo do vendedor.
 
     A linha do anúncio é travada antes de conferir dono e estado. Um anúncio de outra pessoa e

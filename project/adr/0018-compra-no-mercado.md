@@ -28,6 +28,11 @@ A 4.3 deixou anunciar, cancelar e listar. A compra é a primeira operação que 
 - **A chave é validada antes do bloqueio:** a ordem das checagens não pode revelar a quem bloqueou. O serviço recebe `hide_sellers` (a view os lê do `friends`). O replay de uma compra de um vendedor que o comprador bloqueou depois dá 404, não o recibo.
 - **O 409 da compra de anúncio fechado revela que o id já existiu** (o `GET` dá 404). Aceito: o UUID não é adivinhável e o anúncio já foi público.
 
+## Adendo da 4.4b: `Idempotency-Key` em criar e cancelar (Sessão 37, dono, 2026-11-26)
+- **Obrigatória** nas duas rotas (400 `invalid_idempotency_key` sem ela), como na compra e em `trades`. A ponte com `economy.idempotency` segue só em `services.py`: `create_listing` e `cancel_listing` rodam dentro do `run_once` (escopo `user:<id>`, impressão digital `market_create`/`market_cancel` com jogador e alvo) e devolvem `ListingOutcome(body, status, replayed)`.
+- **A repetição devolve o corpo gravado** (um retrato): o replay do criar de um anúncio já cancelado mostra `active`. Cancelar repetido com a MESMA chave dá 200 (antes 409); com OUTRA chave num anúncio fechado continua 409. Mesma chave com outro item, preço ou operação: 422.
+- **Sem guarda durável do criar (aceito):** depois que o registro expira (7 dias) um criar antigo reenviado recria o anúncio; o teste `test_a_chave_do_criar_expirada_deixa_criar_de_novo_limite_aceito` documenta. **Descartada:** coluna `idempotency_key` com `UNIQUE(vendedor, chave)` (migração em tabela de posse; o ADR já recusou a coluna na venda). Reabrir se o risco pesar.
+
 ## Consequências
 - Quem criar outra operação que mexa em dinheiro e posse segue a mesma regra: a ponte fica no serviço, e o caso entra em `tests/test_lock_order.py`.
 - A `system` é um ponto quente: toda compra com taxa trava a carteira global (já no PENDING). Aceito nesta escala.

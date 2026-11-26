@@ -21,7 +21,7 @@ from apps.marketplace import services, views
 from apps.marketplace.models import MarketListing
 from apps.trades import services as trades_services
 
-from .conftest import LISTINGS_URL, criar_instancia, criar_skin, logado
+from .conftest import LISTINGS_URL, criar_instancia, criar_skin, logado, nova_chave
 
 UM_ID_QUALQUER = "7c0f8e1a-0000-4000-8000-000000000001"
 CONFIG_DO_ALLAUTH = "/_allauth/browser/v1/config"
@@ -33,9 +33,13 @@ def _url(listing_id: Any, acao: str = "") -> str:
     return f"{LISTINGS_URL}{listing_id}/{acao}/" if acao else f"{LISTINGS_URL}{listing_id}/"
 
 
-def _criar(cliente: APIClient, instancia: Any, price: Any = 1000) -> Any:
+def _criar(cliente: APIClient, instancia: Any, price: Any = 1000, chave: str | None = None) -> Any:
+    """POST de criar; sem `chave`, cada chamada é uma intenção nova (chave nova)."""
     return cliente.post(
-        LISTINGS_URL, {"instance_id": str(instancia.pk), "price": price}, format="json"
+        LISTINGS_URL,
+        {"instance_id": str(instancia.pk), "price": price},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=chave or nova_chave(),
     )
 
 
@@ -46,8 +50,11 @@ def _criada(cliente: APIClient, instancia: Any, price: Any = 1000) -> dict[str, 
     return dados
 
 
-def _cancelar(cliente: APIClient, listing_id: Any) -> Any:
-    return cliente.post(_url(listing_id, "cancel"), {}, format="json")
+def _cancelar(cliente: APIClient, listing_id: Any, chave: str | None = None) -> Any:
+    """POST de cancelar; sem `chave`, cada chamada é uma intenção nova (chave nova)."""
+    return cliente.post(
+        _url(listing_id, "cancel"), {}, format="json", HTTP_IDEMPOTENCY_KEY=chave or nova_chave()
+    )
 
 
 def _dono(instancia: Any) -> uuid.UUID:
@@ -233,7 +240,10 @@ def test_item_de_outro_dono_da_404_igual_ao_de_item_inexistente(cena: SimpleName
     alheio = _criar(ana, cena.c1)
     do_amigo = _criar(ana, cena.b1)
     inexistente = ana.post(
-        LISTINGS_URL, {"instance_id": UM_ID_QUALQUER, "price": 1000}, format="json"
+        LISTINGS_URL,
+        {"instance_id": UM_ID_QUALQUER, "price": 1000},
+        format="json",
+        HTTP_IDEMPOTENCY_KEY=nova_chave(),
     )
 
     assert (alheio.status_code, do_amigo.status_code, inexistente.status_code) == (404, 404, 404)
@@ -511,6 +521,11 @@ def test_post_com_token_csrf_passa(cena: SimpleNamespace, acao: str) -> None:
     url, corpo, esperado = _posts(cena)[acao]
     cliente, token = _navegador(cena.ana)
 
-    resposta = cliente.post(url, corpo, format="json", headers={"X-CSRFToken": token})
+    resposta = cliente.post(
+        url,
+        corpo,
+        format="json",
+        headers={"X-CSRFToken": token, "Idempotency-Key": nova_chave()},
+    )
 
     assert resposta.status_code == esperado, resposta.content
