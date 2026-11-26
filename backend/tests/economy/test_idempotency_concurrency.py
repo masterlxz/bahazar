@@ -164,3 +164,69 @@ def test_transferencias_cruzadas_nao_travam_e_o_ledger_fecha() -> None:
     assert (_saldo(ana), _saldo(bruno)) == (SALDO_INICIAL, SALDO_INICIAL)
     assert _grupos_de_transferencia() == N
     assert audit.check_ledger() == []
+
+
+def test_repeticoes_com_a_expiracao_apagando_registros_nao_deixam_escapar_erro_cru() -> None:
+    """Corrida expiração × retry com threads reais (A2 g).
+
+    Uma thread apaga todos os registros em laço (o que `expire_idempotency` faz, só que sem
+    parar); N threads repetem a MESMA chave. Cada chamada tem de acabar em `Outcome` ou em
+    `IdempotencyExhausted`; `IntegrityError` ou `DoesNotExist` crus nunca podem escapar, e todo
+    corpo repetido (`replayed`) é um corpo que a operação de fato produziu. NÃO fixa qual desfecho
+    aparece (depende de o `DELETE` cair entre o `INSERT` e o `SELECT`) nem que a operação rode uma
+    vez só: depois da expiração a guarda contra execução dupla é do CHAMADOR (docstring de
+    `idempotency`).
+    """
+    repeticoes = 15
+    produzidos: list[dict[str, Any]] = []
+
+    def operacao() -> tuple[int, dict[str, Any]]:
+        corpo = {"execucao": str(uuid.uuid4())}
+        produzidos.append(corpo)
+        return 201, corpo
+
+    parar = threading.Event()
+
+    def apagar() -> None:
+        try:
+            while not parar.is_set():
+                IdempotencyRecord.objects.all().delete()
+        finally:
+            connection.close()
+
+    def repetir() -> list[Any]:
+        try:
+            saidas: list[Any] = []
+            for _ in range(repeticoes):
+                try:
+                    saidas.append(
+                        idempotency.run_once(
+                            scope="user:corrida",
+                            key="chave-unica",
+                            request_hash="h",
+                            operation=operacao,
+                        )
+                    )
+                except idempotency.IdempotencyExhausted as erro:
+                    saidas.append(erro)
+            return saidas
+        finally:
+            connection.close()
+
+    with ThreadPoolExecutor(N + 1) as pool:
+        apagador = pool.submit(apagar)
+        try:
+            por_thread = [
+                f.result(timeout=ESPERA_MAXIMA_S) for f in [pool.submit(repetir) for _ in range(N)]
+            ]
+        finally:
+            parar.set()
+        apagador.result(timeout=ESPERA_MAXIMA_S)
+
+    saidas = [s for lista in por_thread for s in lista]
+    assert len(saidas) == N * repeticoes
+    assert produzidos, "nenhuma chamada executou a operação"
+    for saida in saidas:
+        assert isinstance(saida, idempotency.Outcome | idempotency.IdempotencyExhausted)
+        if isinstance(saida, idempotency.Outcome) and saida.replayed:
+            assert saida.body in produzidos

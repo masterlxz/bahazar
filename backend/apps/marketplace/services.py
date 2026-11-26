@@ -15,6 +15,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.economy.idempotency import IdempotencyExhausted as EconomyExhausted
 from apps.economy.idempotency import IdempotencyKeyReused as EconomyKeyReused
 from apps.economy.idempotency import run_once
 from apps.economy.rules import normalize_idempotency_key, request_fingerprint
@@ -124,6 +125,8 @@ def _uma_vez(
         )
     except EconomyKeyReused as erro:
         raise IdempotencyKeyReused from erro
+    except EconomyExhausted as erro:
+        raise IdempotencyUnavailable from erro
     return ListingOutcome(saida.body, saida.status, saida.replayed)
 
 
@@ -262,6 +265,13 @@ class IdempotencyKeyReused(MarketError):
     message = "Esta chave de idempotência já foi usada com outro pedido."
 
 
+class IdempotencyUnavailable(MarketError):
+    """O `run_once` esgotou as tentativas: nada foi feito e repetir com a MESMA chave é seguro."""
+
+    code = EconomyExhausted.code
+    message = EconomyExhausted.message
+
+
 def _travar_jogadores(*ids: uuid.UUID) -> None:
     """Trava os jogadores por id crescente, a mesma ordem de `trades` e `friends` (ADR 0016).
 
@@ -373,6 +383,8 @@ def buy_listing(
         raise InsufficientFunds from erro
     except EconomyKeyReused as erro:
         raise IdempotencyKeyReused from erro
+    except EconomyExhausted as erro:
+        raise IdempotencyUnavailable from erro
     corpo = saida.body
     return PurchaseResult(
         id=uuid.UUID(corpo["id"]),

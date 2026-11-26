@@ -216,11 +216,14 @@ def test_registro_que_some_a_cada_tentativa_esgota_o_limite_sem_executar_nem_pen
     gets = _expiracao_no_get(monkeypatch, sempre=True)
     chamadas: list[int] = []
 
-    with pytest.raises(RuntimeError, match="tentativas") as exc:
+    with pytest.raises(idempotency.IdempotencyExhausted) as exc:
         idempotency.run_once(
             scope=ESCOPO, key=CHAVE, request_hash=HASH, operation=_operacao(chamadas, {"n": 1})
         )
 
+    assert isinstance(exc.value, RuntimeError)  # quem já capturava `RuntimeError` segue pegando
+    assert exc.value.code == "idempotency_unavailable"
+    assert "NÃO foi executado" in str(exc.value)  # a mensagem diz o que importa ao operador
     assert chamadas == []  # nunca chegou a executar a operação
     assert len(gets) == idempotency.MAX_ATTEMPTS  # tentou o máximo e parou (sem laço infinito)
     assert isinstance(exc.value.__cause__, IntegrityError)  # a causa real não se perdeu

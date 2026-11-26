@@ -147,6 +147,7 @@ Formato real hoje: `{code, message}` (sem `details`); a diária acrescenta `avai
 |---|---|---|
 | trocas e mercado (POST) | `invalid_idempotency_key` (cabeçalho ausente ou não UUID) | 400 |
 | trocas e mercado (POST) | `idempotency_key_reused` (mesma chave, outro pedido) | 422 |
+| trocas e mercado (POST) | `idempotency_unavailable` (a chave expirou e voltou a colidir; nada executou) | 503 |
 | `POST /trades/` | `invalid_body`, `invalid_recipient`, `invalid_items`, `invalid_item_id`, `too_many_items` (corpo) | 400 |
 | `POST /trades/` e resolução | `self_trade`, `empty_side`, `duplicate_item`, `invalid_item_id`, `too_many_items` | 400 |
 | `POST /trades/` e resolução | `not_friends`, `item_not_owned`, `item_consumed`, `item_already_offered`, `too_many_pending_offers`, `offer_not_pending`, `item_locked` (item anunciado no mercado) | 409 |
@@ -158,7 +159,7 @@ Formato real hoje: `{code, message}` (sem `details`); a diária acrescenta `avai
 | compra | `insufficient_funds` | 422 |
 | `POST /wallet/daily/` | `daily_not_ready` (com `available_at`) | 409 |
 
-Observações: `item_consumed` e `item_locked` existem nos dois módulos com o mesmo código e HTTP; o texto (`message`) muda e não é contrato. O frontend traduz pelo `code`, nunca pelo `message`. O esgotamento do `run_once` hoje vira 500; o plano é um `503 idempotency_unavailable` (PR 3 do plano da Sessão 40, ainda não feito).
+Observações: `item_consumed` e `item_locked` existem nos dois módulos com o mesmo código e HTTP; o texto (`message`) muda e não é contrato. O frontend traduz pelo `code`, nunca pelo `message`. O esgotamento do `run_once` (a chave expirou durante o pedido e voltou a colidir `MAX_ATTEMPTS` vezes) vira `503 idempotency_unavailable` nas rotas de trocas e do mercado: o pedido NÃO executou e repetir com a MESMA chave é seguro (Sessão 42).
 
 ## 7. Tempo real
 Decisão em duas fases (YAGNI):

@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.economy.idempotency import IdempotencyKeyReused, run_once
+from apps.economy.idempotency import IdempotencyExhausted, IdempotencyKeyReused, run_once
 from apps.economy.rules import normalize_idempotency_key, request_fingerprint
 from apps.friends import selectors as friends_selectors
 from apps.inventory.services import ItemLocked
@@ -104,6 +104,9 @@ def _executar_uma_vez(
         )
     except IdempotencyKeyReused as erro:
         return _erro(erro.code, erro.message, status.HTTP_422_UNPROCESSABLE_ENTITY)
+    except IdempotencyExhausted as erro:
+        # A chave expirou e voltou a colidir: nada executou, repetir com a mesma chave é seguro.
+        return _erro(erro.code, erro.message, status.HTTP_503_SERVICE_UNAVAILABLE)
     except services.TradeError as erro:
         return _erro_do_servico(erro)
     except ItemLocked as erro:

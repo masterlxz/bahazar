@@ -467,7 +467,8 @@ def _sem_status(raiz: type, mapa: Mapping[Any, int]) -> list[str]:
 def test_toda_subclasse_de_market_error_tem_status_na_view() -> None:
     assert _sem_status(services.MarketError, views._STATUS_DO_ERRO) == []
     assert services.MarketError not in views._STATUS_DO_ERRO
-    assert set(views._STATUS_DO_ERRO.values()) <= {400, 404, 409, 422}  # 422: saldo e chave
+    # 422: saldo e chave reusada; 503: a idempotência esgotou as tentativas (nada executou)
+    assert set(views._STATUS_DO_ERRO.values()) <= {400, 404, 409, 422, 503}
 
 
 def test_o_helper_acusa_uma_subclasse_nova_sem_status() -> None:
