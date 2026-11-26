@@ -15,8 +15,9 @@ from rest_framework.test import APIClient
 
 from apps.economy import services as economy
 from apps.economy.audit import check_ledger
-from apps.economy.models import Wallet, WalletTransaction
+from apps.economy.models import IdempotencyRecord, Wallet, WalletTransaction
 from apps.friends import services as friends
+from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
 from apps.marketplace import services
 from apps.marketplace.models import ListingStatus, MarketListing, MarketTransaction
@@ -49,7 +50,7 @@ def _saldo_system() -> int:
     return Wallet.objects.get(kind="system").balance
 
 
-def _nada_mudou(cena: SimpleNamespace, anuncio: MarketListing, preco: int) -> None:
+def _nada_mudou(cena: SimpleNamespace, anuncio: MarketListing) -> None:
     assert SkinInstance.objects.get(pk=anuncio.instance_id).owner_id == cena.ana.pk
     anuncio.refresh_from_db()
     assert anuncio.status == ListingStatus.ACTIVE
@@ -57,7 +58,6 @@ def _nada_mudou(cena: SimpleNamespace, anuncio: MarketListing, preco: int) -> No
     assert MarketTransaction.objects.count() == 0
     assert _saldo(cena.bruno) == SALDO_INICIAL
     assert _saldo(cena.ana) == SALDO_INICIAL
-    assert preco > 0
     assert check_ledger() == []
 
 
@@ -147,7 +147,7 @@ def test_saldo_insuficiente_da_422_nao_muda_nada_e_a_chave_nao_queima(
 
     assert recusada.status_code == 422
     assert recusada.json()["code"] == "insufficient_funds"
-    _nada_mudou(cena, anuncio, 3000)
+    _nada_mudou(cena, anuncio)
 
     economy.post_entries(
         [
@@ -170,7 +170,7 @@ def test_comprar_o_proprio_anuncio_da_409_e_nao_muda_nada(cena: SimpleNamespace)
 
     assert resposta.status_code == 409
     assert resposta.json()["code"] == "cannot_buy_own_listing"
-    _nada_mudou(cena, anuncio, 1000)
+    _nada_mudou(cena, anuncio)
 
 
 def test_anuncio_cancelado_ou_ja_vendido_da_409(cena: SimpleNamespace) -> None:
@@ -200,7 +200,7 @@ def test_anuncio_inexistente_e_anuncio_escondido_pelo_bloqueio_dao_o_mesmo_404(
     assert inexistente.status_code == 404
     assert escondido.status_code == 404
     assert escondido.json() == inexistente.json()
-    _nada_mudou(cena, anuncio, 1000)
+    _nada_mudou(cena, anuncio)
 
 
 def test_o_bloqueado_compra_do_bloqueador_como_qualquer_um(cena: SimpleNamespace) -> None:
@@ -279,7 +279,7 @@ def test_sem_chave_valida_da_400_e_nao_compra(cena: SimpleNamespace, cabecalho: 
 
     assert resposta.status_code == 400
     assert resposta.json()["code"] == "invalid_idempotency_key"
-    _nada_mudou(cena, anuncio, 1000)
+    _nada_mudou(cena, anuncio)
 
 
 def test_o_corpo_da_compra_nao_decide_nada(cena: SimpleNamespace) -> None:
@@ -303,8 +303,8 @@ def test_anonimo_nao_compra(cena: SimpleNamespace) -> None:
 
     resposta = APIClient().post(_url(anuncio.pk), {}, format="json", HTTP_IDEMPOTENCY_KEY=_chave())
 
-    assert resposta.status_code in (401, 403)
-    _nada_mudou(cena, anuncio, 1000)
+    assert resposta.status_code == 403  # sessão sem `WWW-Authenticate`: o DRF responde 403
+    _nada_mudou(cena, anuncio)
 
 
 @pytest.mark.parametrize("metodo", ["get", "put", "patch", "delete"])
@@ -325,3 +325,114 @@ def test_o_servico_devolve_a_venda_e_marca_a_repeticao(cena: SimpleNamespace) ->
 
     assert (primeira.replayed, repetida.replayed) == (False, True)
     assert (primeira.id, primeira.price, primeira.fee) == (repetida.id, 1000, 50)
+
+
+# --- achados da revisão adversária e da auditoria da 4.4a (Sessão 35) ---------------------------
+
+
+def _expirar_os_registros_de_idempotencia() -> None:
+    """O que `expire_idempotency` faz depois da janela: a chave do cliente fica livre de novo."""
+    IdempotencyRecord.objects.all().delete()
+
+
+def test_a_mesma_chave_em_outro_anuncio_depois_de_expirar_e_uma_compra_nova(
+    cena: SimpleNamespace,
+) -> None:
+    """Antes, a chave do ledger levava a do cliente: o UNIQUE do ledger estourava (500)."""
+    um, outro = anunciar(cena.ana, cena.a1, 1000), anunciar(cena.ana, cena.a2, 1000)
+    bruno = logado(cena.bruno)
+    chave = _chave()
+    assert _comprar(bruno, um.pk, chave).status_code == 201
+    _expirar_os_registros_de_idempotencia()
+
+    resposta = _comprar(bruno, outro.pk, chave)
+
+    assert resposta.status_code == 201, resposta.content
+    assert _saldo(cena.bruno) == SALDO_INICIAL - 2000
+    assert _saldo(cena.ana) == SALDO_INICIAL + 1900
+    assert MarketTransaction.objects.count() == 2
+    assert check_ledger() == []
+
+
+def test_a_mesma_chave_no_mesmo_anuncio_depois_de_expirar_da_409_e_nao_move_nada(
+    cena: SimpleNamespace,
+) -> None:
+    """A guarda durável é o estado `sold` e o `UNIQUE(listing)`, não o registro da requisição."""
+    anuncio = anunciar(cena.ana, cena.a1, 1000)
+    bruno = logado(cena.bruno)
+    chave = _chave()
+    assert _comprar(bruno, anuncio.pk, chave).status_code == 201
+    _expirar_os_registros_de_idempotencia()
+
+    resposta = _comprar(bruno, anuncio.pk, chave)
+
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == "listing_not_active"
+    assert _saldo(cena.bruno) == SALDO_INICIAL - 1000
+    assert MarketTransaction.objects.count() == 1
+    assert check_ledger() == []
+
+
+def test_a_chave_do_ledger_e_a_do_anuncio_e_nao_a_do_cliente(cena: SimpleNamespace) -> None:
+    anuncio = anunciar(cena.ana, cena.a1, 1000)
+    chave = _chave()
+
+    resposta = _comprar(logado(cena.bruno), anuncio.pk, chave)
+
+    linhas = WalletTransaction.objects.filter(group_id=resposta.json()["ledger_group_id"])
+    assert {linha.idempotency_key for linha in linhas} == {f"market_buy:{anuncio.pk}"}
+
+
+@pytest.mark.parametrize(
+    "erro",
+    [
+        inventory_services.NotOwner,
+        inventory_services.ConsumedInstance,
+        inventory_services.ItemLocked,
+    ],
+)
+def test_erro_do_inventory_na_compra_vira_409_listing_unavailable_e_nao_move_nada(
+    cena: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, erro: type[Exception]
+) -> None:
+    """Sob as travas o estado real é inalcançável; o `monkeypatch` simula uma guarda nova."""
+    anuncio = anunciar(cena.ana, cena.a1, 1000)
+
+    def falhar(*args: Any, **kwargs: Any) -> None:
+        raise erro
+
+    monkeypatch.setattr(inventory_services, "change_owner", falhar)
+
+    resposta = _comprar(logado(cena.bruno), anuncio.pk)
+
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == "listing_unavailable"
+    _nada_mudou(cena, anuncio)
+
+
+def test_preco_acima_do_teto_gravado_direto_no_banco_da_409_e_nao_move_nada(
+    cena: SimpleNamespace,
+) -> None:
+    anuncio = anunciar(cena.ana, cena.a1, 1000)
+    MarketListing.objects.filter(pk=anuncio.pk).update(price=2**53)
+
+    resposta = _comprar(logado(cena.bruno), anuncio.pk)
+
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == "listing_unavailable"
+    _nada_mudou(cena, anuncio)
+
+
+def test_chave_invalida_da_400_igual_para_anuncio_escondido_e_para_anuncio_normal(
+    cena: SimpleNamespace,
+) -> None:
+    """A chave é validada ANTES do bloqueio: a ordem das checagens não revela o bloqueio."""
+    normal = anunciar(cena.ana, cena.a1, 1000)
+    escondido = anunciar(cena.carla, cena.c1, 1000)
+    friends.block(cena.bruno, cena.carla.username)
+    bruno = logado(cena.bruno)
+
+    um = bruno.post(_url(normal.pk), {}, format="json", HTTP_IDEMPOTENCY_KEY="nao-e-uuid")
+    outro = bruno.post(_url(escondido.pk), {}, format="json", HTTP_IDEMPOTENCY_KEY="nao-e-uuid")
+
+    assert (um.status_code, outro.status_code) == (400, 400)
+    assert um.json() == outro.json()

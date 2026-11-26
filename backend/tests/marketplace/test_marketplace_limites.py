@@ -5,6 +5,7 @@ preço é o maior inteiro que o JavaScript do frontend representa sem arredondar
 valor 120/min da leitura é HIPÓTESE (sem fonte), como o 30/min de criar e o 60/min de cancelar.
 """
 
+import uuid
 from types import SimpleNamespace
 from typing import Any
 
@@ -58,6 +59,21 @@ def test_cancelar_leva_429_na_61a_tentativa_por_minuto(cena: SimpleNamespace) ->
     # 404: o anúncio não existe; a resposta é barata e conta para o throttle, que roda antes
 
     assert estados == [404] * 60 + [429]
+
+
+def test_comprar_leva_429_na_31a_tentativa_por_minuto(cena: SimpleNamespace) -> None:
+    """Sem `throttle_classes` na view da compra, a rota ficaria sem limite e nenhum teste cairia."""
+    bruno = logado(cena.bruno)
+    url = f"{LISTINGS_URL}{UM_ID_QUALQUER}/buy/"
+    chaves = [str(uuid.uuid4()) for _ in range(31)]
+
+    estados = [
+        bruno.post(url, {}, format="json", HTTP_IDEMPOTENCY_KEY=chave).status_code
+        for chave in chaves
+    ]
+    # 404: o anúncio não existe; a resposta é barata e conta para o throttle, que roda antes
+
+    assert estados == [404] * 30 + [429]
 
 
 def test_ler_a_vitrine_nao_gasta_a_cota_de_criar(cena: SimpleNamespace) -> None:
