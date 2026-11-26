@@ -383,8 +383,8 @@ def buy_listing(
         raise InsufficientFunds from erro
     except EconomyKeyReused as erro:
         raise IdempotencyKeyReused from erro
-    except EconomyExhausted as erro:
-        raise IdempotencyUnavailable from erro
+    except EconomyExhausted:
+        raise
     corpo = saida.body
     return PurchaseResult(
         id=uuid.UUID(corpo["id"]),
