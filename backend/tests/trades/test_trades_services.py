@@ -13,6 +13,7 @@ from typing import Any
 import pytest
 
 from apps.friends.models import Friendship
+from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
 from apps.trades import rules, selectors, services
 from apps.trades.models import TradeOffer, TradeOfferItem
@@ -201,9 +202,14 @@ def test_o_indice_unico_do_banco_fecha_a_corrida_que_a_checagem_em_python_perde(
 
     Só o índice único parcial pode recusar. O serviço traduz a violação em `ItemAlreadyOffered`
     e a oferta nova não fica gravada (o savepoint desfaz a linha da oferta).
+
+    As guardas de movimento (`assert_movable`) também leem "item em oferta pendente" em Python
+    (`offer_guard`), então ficam desligadas aqui junto com `busy_instance_ids`: senão elas
+    recusariam com `ItemLocked` antes de o índice ser alcançado e o teste não provaria o banco.
     """
     _oferecer(cena.ana, cena.bruno, [cena.a1], [cena.b1])
     monkeypatch.setattr(selectors, "busy_instance_ids", lambda ids: set())
+    monkeypatch.setattr(inventory_services, "_MOVE_GUARDS", [])
 
     with pytest.raises(services.ItemAlreadyOffered):
         _oferecer(cena.ana, cena.bruno, [cena.a1], [cena.b2])
