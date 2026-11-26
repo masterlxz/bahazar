@@ -115,7 +115,7 @@ class ListingDetailView(APIView):
     http_method_names = ["get", "head", "options"]
 
     def get(self, request: Request, listing_id: uuid.UUID) -> Response:
-        anuncio = selectors.active_listing(listing_id, _vendedores_ocultos(request))
+        anuncio = selectors.active_listing(listing_id)
         if anuncio is None:
             return _erro(
                 services.ListingNotFound.code,
