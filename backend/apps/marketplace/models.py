@@ -84,7 +84,7 @@ class MarketTransaction(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    listing = models.OneToOneField(
+    listing = models.ForeignKey(
         MarketListing,
         on_delete=models.PROTECT,
         related_name="sale",
