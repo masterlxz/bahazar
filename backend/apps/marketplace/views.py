@@ -32,7 +32,7 @@ _STATUS_DO_ERRO: dict[type[services.MarketError], int] = {
     services.InsufficientFunds: status.HTTP_422_UNPROCESSABLE_ENTITY,
     services.IdempotencyKeyReused: status.HTTP_422_UNPROCESSABLE_ENTITY,
     services.InvalidIdempotencyKey: status.HTTP_400_BAD_REQUEST,
-    services.IdempotencyUnavailable: status.HTTP_503_SERVICE_UNAVAILABLE,
+    services.IdempotencyUnavailable: status.HTTP_409_CONFLICT,
 }
 
 
