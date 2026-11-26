@@ -274,7 +274,8 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
         }
 
     try:
-        saida = run_once(scope=f"user:{buyer.pk}", key=chave, request_hash=pedido, operation=operar)
+        novo = str(uuid.uuid4())
+        saida = run_once(scope=f"user:{buyer.pk}", key=novo, request_hash=pedido, operation=operar)
     except EconomyInsufficientFunds as erro:
         raise InsufficientFunds from erro
     except EconomyKeyReused as erro:
