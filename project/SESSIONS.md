@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-26 — Sessão 38 (revisão adversária da 4.4b e os buracos que ela achou)
+
+- **Modo:** sessão individual. Um agente só de leitura (`adversarial-reviewer`) sobre o commit `0366a6b`, com ordem de ler por `git show`/`git diff` e sem trocar de branch (conferi: continuou na `main`). **O relatório é saída de modelo, não verdade:** conferi no código o que dava para ler (as frases do `PENDING.md` e do `ARQUITETURA.md`). Nada foi reproduzido pelo agente.
+- **O que achou:** nenhum bug de comportamento em produção. Importante: (I1) nenhum teste cancelava o anúncio B com a chave já usada em A, e a mutação 4 não o cobria; (I2) o replay do criar devolve `status: active` também depois da VENDA, e o ADR só citava o cancelado; (I3) o docstring de `idempotency.py`, o `PENDING.md` (item do `transfer`), o `ARQUITETURA.md` §5 e o `PLANO.md` diziam que toda operação sob `run_once` precisa de guarda durável, ou que o reenvio antigo não recria, sem a exceção do criar. Sugestões: `jsonb` reordena as chaves do replay (S1); faltavam mutações para o 404 do cancelar e para o escopo sem o jogador (S3).
+- **Feito** (PR #237, só testes, docs e um comentário no docstring de `economy/idempotency.py`; nenhum código de produção mudou): 3 testes novos em `test_marketplace_idempotencia.py` (cancelar B com a chave de A dá 422; replay do criar depois da venda devolve o retrato `active`; corpo inválido com chave inválida dá `invalid_body`); exceção do criar escrita no `idempotency.py`, `PENDING.md`, `ARQUITETURA.md`, `PLANO.md` (janela de 7 dias) e no adendo do ADR 0018 (retrato em qualquer estado e `jsonb`).
+- **Provas (CI lido por mim, com `headSha`):** final `77c13f1`: **1229 passaram**. Como não há código novo, não há controle de "antes falha": a prova são as mutações do coordenador (um PR rascunho cada, #238 e #239, fechados, branches apagadas; passaram ruff, format e mypy e falharam em teste), **2 de 2, o teste previsto e só ele:** (8) fingerprint do cancelar sem o anúncio: 1 falha, `test_cancelar_outro_anuncio_com_a_chave_ja_usada_da_422_e_o_outro_segue_ativo` (a que a mutação 4 não cobria); (9) cancelar devolve o 404 em vez de levantar (chave queimada): 1 falha, `test_cancelar_anuncio_de_outra_pessoa_da_404_e_a_chave_nao_fica_queimada`.
+- **Não verificado:** nada rodou fora do CI; o teste de `pg_locks` do `INSERT` do registro contra `trades` e a compra não existe (a ordem de trava do registro é raciocínio de leitura); o teste de expiração ainda apaga os registros direto, sem usar `expire_idempotency`; mutação "escopo `user:<id>` sem o jogador" não rodada; o `jsonb` reordenando as chaves é conhecimento do PostgreSQL, não medido.
+- **Aberto:** validação no PC do dono (`migrate marketplace` com dados e uma compra de ponta a ponta); `open_wallet` (hipótese); A1 (arquitetura por nome importado); sobras da A2 e M1.
+
 ### 2026-11-26 — Sessão 37 (4.4b: `Idempotency-Key` em criar e cancelar anúncio)
 
 - **Modo:** sessão individual, plan mode. Decisões do dono (2 perguntas): **cabeçalho obrigatório** nas duas rotas e **sem guarda durável do criar depois da expiração (7 dias)**: aceito e documentado (ADR 0018, adendo).
