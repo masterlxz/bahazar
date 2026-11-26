@@ -162,7 +162,8 @@ def cancel_listing(user: User, listing_id: uuid.UUID, *, idempotency_key: str) -
     def operar() -> tuple[int, dict[str, Any]]:
         return 200, _corpo(_fechar_anuncio(user, listing_id))
 
-    return _uma_vez(user, idempotency_key, pedido, operar)
+    status, corpo = operar()
+    return ListingOutcome(corpo, status, not pedido)
 
 
 def _gravar_anuncio(seller: User, instance_id: uuid.UUID, price: int) -> MarketListing:
