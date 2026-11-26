@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-26 — Sessão 44 (testes de deadlock sem sorteio de `id`)
+
+- **Modo:** sessão individual, sem plan mode (só testes, sem decisão nova; o item vem do achado da Sessão 43). Uma intenção: tirar o flake de ~2,4% dos testes de deadlock.
+- **Feito** (PR #264, só testes): `tests/economy/conftest.py` ganha `system_com_id_baixo()` (a `system` com `id` fixo `UUID(int=1)`, criada ANTES dos jogadores; falha na hora se já existir com outro `id`); `jogador_sem_saldo_inicial(prefixo, *, depois_da_system=False)` e `_jogador_com_carteira_depois_da_system` (`test_daily_concurrency.py`) deixam de sortear em laço e passam a usá-la. `E[s^40] = 1/41` deixa de existir: a carteira de qualquer jogador (UUID aleatório) fica depois da `system` por construção.
+- **Provas (CI lido por mim, com `headSha`):** não há controle "antes falha" (o flake só aparece ~1 vez em 41; não dá para provar por uma execução). Final `c8bf854`: **1266 passaram**. **Mutações do coordenador** (um PR rascunho cada, #265 e #266, fechados, branches apagadas; passaram ruff, format e mypy e falharam em teste, de forma **determinística**), **2 de 2:** (1) `system` com `id` máximo: 2 falhas (`test_a_diaria_nao_forma_ciclo_...` e `test_open_wallet_nao_forma_ciclo_...`, `assert carteira.id > sistema.id`); (2) jogador criado antes da `system` de `id` baixo: 1 falha (`test_a_diaria_nao_forma_ciclo_...`, "crie a system com id baixo ANTES de criar jogadores").
+- **Desvio:** o 1º push (`c7f4790`) fez `jogador_sem_saldo_inicial` exigir sempre a `system` de `id` baixo, e o caso "abrir carteira" do `test_lock_order` caiu (a `cena` já criara jogadores, então a `system` tinha `id` aleatório): a trava determinística apanhou o uso sem ordem. `depois_da_system=True` voltou a ser parâmetro e só o exige quando a ordem importa.
+- **Não verificado:** nada rodou fora do CI; a ausência do flake não é provável por execução (2,4% por teste afetado): só a leitura do código e as 2 mutações sustentam a correção.
+- **Aberto:** PRs 5 e 6 do plano da Sessão 40 (M1 com (b) e (c); erros do DRF); validação no PC do dono (`migrate marketplace` com dados e uma compra de ponta a ponta).
+
 ### 2026-11-26 — Sessão 43 (PR 4 do plano da Sessão 40: throttle nos 4 POST de troca)
 
 - **Modo:** sessão individual, plan mode. Decisão do dono (1 pergunta): **criar 30/min; aceitar, recusar e cancelar 60/min por jogador**, hipóteses sem fonte; criar com escopo próprio (`trade_create`) e as 3 resoluções num balde só (`trade_resolve`). Descartados: 10/30 por minuto (quebraria o teste que cria 21 ofertas pelo API) e um balde único para os 4.
