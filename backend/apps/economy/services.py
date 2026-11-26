@@ -1,6 +1,8 @@
 """Casca transacional da economia: única porta de escrita de saldo e ledger (GUIDELINES 2).
 
-Ordem de travas: carteiras SEMPRE em ordem de UUID (evita deadlock quando houver 2+ jogadores).
+Ordem de travas (ADR 0016): jogadores antes de carteiras, e as carteiras SEMPRE em ordem de UUID
+(evita deadlock quando houver 2+ jogadores). Quem trava uma carteira à mão antes de chamar
+`post_entries` pode formar ciclo com quem trava a `system` e depois a carteira dele.
 """
 
 import uuid
@@ -8,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, NamedTuple
 
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -207,12 +210,19 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
 def claim_daily(user: Any, now: datetime | None = None) -> DailyClaim:
     """Resgata a diária. Liberada 24h depois do último resgate; sequência de 24h a 48h.
 
-    A trava da linha da carteira serializa resgates do mesmo jogador; o UNIQUE
-    `(user, claim_number)` é a rede de segurança do banco.
+    A trava da linha do USUÁRIO serializa resgates do mesmo jogador; o UNIQUE
+    `(user, claim_number)` é a rede de segurança do banco. Trava-se o usuário, e não a carteira,
+    porque a ordem global é jogadores antes de carteiras (ADR 0016): a carteira é travada depois,
+    por `post_entries`, junto com a `system` e por `id`. Travar a carteira ANTES formava um ciclo
+    com a compra (que trava a `system` e depois a carteira do jogador, quando `system.id` é o
+    menor): deadlock, e 500 para um dos dois. A carteira abre antes da transação, como em
+    `transfer`: `open_wallet` trava a `system`, e isso dentro da transação seria fora de ordem.
     """
     agora = now if now is not None else _now()
+    carteira = ensure_wallet(user)
     with transaction.atomic():
-        carteira = Wallet.objects.select_for_update().get(pk=ensure_wallet(user).pk)
+        usuario_model: Any = get_user_model()
+        list(usuario_model.objects.select_for_update().filter(pk=user.pk))
         ultimo = DailyClaim.objects.filter(user=user).order_by("-claim_number").first()
         decorrido = None if ultimo is None else agora - ultimo.claimed_at
 
