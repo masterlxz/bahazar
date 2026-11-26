@@ -157,7 +157,7 @@ def cancel_listing(user: User, listing_id: uuid.UUID, *, idempotency_key: str) -
     OUTRA chave um anúncio já fechado continua dando `ListingNotActive` (409): a guarda durável
     do cancelar é o estado do anúncio.
     """
-    pedido = request_fingerprint("market_cancel", str(user.pk), str(listing_id))
+    pedido = request_fingerprint("market_cancel", str(user.pk))
 
     def operar() -> tuple[int, dict[str, Any]]:
         return 200, _corpo(_fechar_anuncio(user, listing_id))
