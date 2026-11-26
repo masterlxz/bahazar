@@ -261,7 +261,7 @@ def buy_listing(
             inventory_services.change_owner(
                 instancia.pk, from_owner=vendedor, to_owner=buyer, authorized_by=anuncio.pk
             )
-        except inventory_services.InventoryError as erro:
+        except inventory_services.ItemLocked as erro:
             raise ListingUnavailable from erro
         linhas = [
             Entry(origem.id, -anuncio.price, kind=_LEDGER_COMPRA),
