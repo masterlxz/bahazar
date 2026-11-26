@@ -123,7 +123,7 @@ def _proibidos_importados(nome: str, fonte: str) -> list[str]:
         f"{modulo}.{importado}" if importado else modulo
         for modulo, importado in _importacoes(fonte)
         if any(modulo == p or modulo.startswith(f"{p}.") for p in _PROIBIDOS)
-        and (importado is None or importado not in permitidos.get(modulo, frozenset()))
+        and modulo not in permitidos
     ]
 
 
