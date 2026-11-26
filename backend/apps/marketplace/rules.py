@@ -26,7 +26,7 @@ def split_price(price: int) -> tuple[int, int]:
     """
     if not price_is_valid(price):
         raise ValueError("o preço precisa ser um inteiro positivo dentro do limite")
-    taxa = price * MARKET_FEE_BPS // _BPS
+    taxa = -(-price * MARKET_FEE_BPS // _BPS)
     return price - taxa, taxa
 
 
