@@ -233,7 +233,7 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
         if anuncio.status != ListingStatus.ACTIVE:
             raise ListingNotActive
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
-        if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
+        if instancia is None or instancia.consumed_at:
             raise ListingUnavailable
         para_vendedor, taxa = rules.split_price(anuncio.price)
         try:
