@@ -106,7 +106,7 @@ def _executar_uma_vez(
         return _erro(erro.code, erro.message, status.HTTP_422_UNPROCESSABLE_ENTITY)
     except IdempotencyExhausted as erro:
         # A chave expirou e voltou a colidir: nada executou, repetir com a mesma chave é seguro.
-        return _erro(erro.code, erro.message, status.HTTP_503_SERVICE_UNAVAILABLE)
+        raise erro
     except services.TradeError as erro:
         return _erro_do_servico(erro)
     except ItemLocked as erro:
