@@ -88,5 +88,4 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
-        migrations.RunSQL(sql=CRIAR, reverse_sql=REMOVER),
     ]
