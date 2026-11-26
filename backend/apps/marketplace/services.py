@@ -237,9 +237,7 @@ def buy_listing(buyer: User, listing_id: uuid.UUID, *, idempotency_key: str) -> 
             raise ListingUnavailable
         para_vendedor, taxa = rules.split_price(anuncio.price)
         try:
-            inventory_services.change_owner(
-                instancia.pk, from_owner=vendedor, to_owner=buyer, authorized_by=anuncio.pk
-            )
+            inventory_services.change_owner(instancia.pk, from_owner=vendedor, to_owner=buyer)
         except inventory_services.ItemLocked as erro:
             raise ItemLocked from erro
         linhas = [
