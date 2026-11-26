@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="marketlisting",
             constraint=models.CheckConstraint(
-                condition=models.Q(("status__in", ["active", "sold", "cancelled"])),
+                condition=models.Q(("status__in", ["active", "sold", "cancelled", "pending"])),
                 name="marketlisting_status_valid",
             ),
         ),
