@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="marketlisting",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("status", "active")),
+                condition=models.Q(("status", "sold")),
                 fields=("instance",),
                 name="marketlist_one_active_instance",
             ),
