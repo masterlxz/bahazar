@@ -7,6 +7,7 @@ As esperas são provadas pela fila de `pg_locks` (`_disputar`), não por sorte d
 """
 
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
@@ -33,6 +34,11 @@ def _comprar(comprador: Any, anuncio: Any) -> Any:
     return services.buy_listing(comprador, anuncio.pk, idempotency_key=str(uuid.uuid4()))
 
 
+def _tarefa_de_compra(comprador: Any, anuncio: Any) -> Callable[[], Any]:
+    """Uma compra pronta para a thread, com uma chave nova a cada execução."""
+    return lambda: _comprar(comprador, anuncio)
+
+
 def _saldo(usuario: Any) -> int:
     return Wallet.objects.get(user=usuario).balance
 
@@ -43,7 +49,7 @@ def test_oito_compradores_ao_mesmo_tempo_so_um_leva_e_o_ledger_fecha(
     anuncio = anunciar(cena.ana, cena.a1, 1000)
     compradores = [criar_usuario(f"comprador_{i}") for i in range(8)]
 
-    resultados = _largar([(lambda c=c: _comprar(c, anuncio)) for c in compradores])
+    resultados = _largar([_tarefa_de_compra(c, anuncio) for c in compradores])
 
     vencedores = [r for r in resultados if isinstance(r, services.PurchaseResult)]
     perdedores = [r for r in resultados if isinstance(r, services.ListingNotActive)]
@@ -67,7 +73,7 @@ def test_o_mesmo_comprador_com_chaves_diferentes_ao_mesmo_tempo_paga_uma_vez(
     """Duas abas, duas chaves: a idempotência não ajuda, a trava do anúncio é quem decide."""
     anuncio = anunciar(cena.ana, cena.a1, 1000)
 
-    resultados = _largar([(lambda: _comprar(cena.bruno, anuncio)) for _ in range(4)])
+    resultados = _largar([_tarefa_de_compra(cena.bruno, anuncio) for _ in range(4)])
 
     assert sum(isinstance(r, services.PurchaseResult) for r in resultados) == 1
     assert sum(isinstance(r, services.ListingNotActive) for r in resultados) == 3

@@ -273,7 +273,7 @@ def test_a_mesma_chave_para_outro_anuncio_da_422(cena: SimpleNamespace) -> None:
 @pytest.mark.parametrize("cabecalho", [None, "", "nao-e-uuid", "123"])
 def test_sem_chave_valida_da_400_e_nao_compra(cena: SimpleNamespace, cabecalho: str | None) -> None:
     anuncio = anunciar(cena.ana, cena.a1, 1000)
-    extra = {} if cabecalho is None else {"HTTP_IDEMPOTENCY_KEY": cabecalho}
+    extra: dict[str, Any] = {} if cabecalho is None else {"HTTP_IDEMPOTENCY_KEY": cabecalho}
 
     resposta = logado(cena.bruno).post(_url(anuncio.pk), {}, format="json", **extra)
 
