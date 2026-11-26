@@ -85,6 +85,11 @@ def create_listing(seller: User, instance_id: uuid.UUID, price: int) -> MarketLi
     """
     try:
         with transaction.atomic():
+            # O vendedor primeiro, a instância depois: a mesma ordem de `trades` (jogadores, depois
+            # instâncias). O INSERT do anúncio toma `KEY SHARE` na linha do vendedor (FK), que
+            # conflita com o `FOR UPDATE` que `trades` segura nos jogadores; travando a instância
+            # antes, as duas transações esperariam uma pela outra (deadlock, 500 para o jogador).
+            list(User.objects.select_for_update().filter(pk=seller.pk))
             instancia = SkinInstance.objects.select_for_update().filter(pk=instance_id).first()
             if instancia is None or instancia.owner_id != seller.pk:
                 raise InstanceNotFound

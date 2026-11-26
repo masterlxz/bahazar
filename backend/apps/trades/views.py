@@ -86,9 +86,9 @@ def _executar_uma_vez(
     executar de novo: se a oferta mudou de estado desde então, a resposta repetida não reflete
     isso (para o estado atual, `GET /trades/<id>/`). A mesma chave com outro pedido dá 422. Um
     `TradeError` passa por `run_once` (a transação desfaz, a chave não queima) e vira
-    `{code, message}` aqui. A tradução do `ItemLocked` do `inventory` é preventiva para outras
-    guardas de movimentação (anúncios na 4.3): hoje o caminho é simulado no teste, pois a
-    única guarda registrada exclui a oferta que o aceite está executando.
+    `{code, message}` aqui. O `ItemLocked` do `inventory` vira 409: criar oferta com item
+    anunciado no mercado (a guarda do mercado) o levanta de verdade. No aceite ele continua
+    preventivo, pois a guarda de `trades` exclui a oferta que o aceite está executando.
     """
     try:
         chave = normalize_idempotency_key(request.headers.get(IDEMPOTENCY_HEADER, ""))
@@ -107,7 +107,7 @@ def _executar_uma_vez(
     except services.TradeError as erro:
         return _erro_do_servico(erro)
     except ItemLocked as erro:
-        # Tradução preventiva para outras guardas (anúncios na 4.3); hoje é simulada no teste.
+        # Criar oferta com item anunciado (guarda do mercado); no aceite é só preventivo.
         return _erro(erro.code, str(erro), status.HTTP_409_CONFLICT)
     return Response(saida.body, status=saida.status)
 
