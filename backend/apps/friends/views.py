@@ -135,7 +135,7 @@ class BlockView(APIView):
     """Bloquear (POST) e desbloquear (DELETE). Só o bloqueador desbloqueia."""
 
     permission_classes = [IsAuthenticated]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ScopedRateThrottle][:0]
     throttle_scope = "friend_block"
     http_method_names = ["post", "delete", "options"]
 
