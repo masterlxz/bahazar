@@ -257,7 +257,6 @@ export default function InventoryPage() {
               Preço de referência via{" "}
               <a
                 href="https://skinport.com"
-                target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
               >
