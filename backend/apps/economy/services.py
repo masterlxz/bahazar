@@ -208,7 +208,6 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     def operar() -> tuple[int, dict[str, Any]]:
         usuario_model: Any = get_user_model()
         ids = [sender.pk, recipient.pk]
-        list(usuario_model.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
         if usuario_model.objects.filter(pk__in=ids, is_active=True).count() != 2:
             raise PlayerUnavailable
         grupo = post_entries(
