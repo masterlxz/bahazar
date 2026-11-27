@@ -335,7 +335,9 @@ def expire_offer(offer_id: uuid.UUID) -> bool:
         )
         if oferta is None:
             return False
-        _encerrar(oferta, rules.EXPIRE)
+        oferta.status = TradeStatus.EXPIRED
+        oferta.resolved_at = timezone.now()
+        oferta.save(update_fields=["status", "resolved_at"])
         return True
 
 
