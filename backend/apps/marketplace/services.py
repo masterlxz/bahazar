@@ -356,7 +356,9 @@ def buy_listing(
         # Vendedor desativado conta como anúncio FECHADO: o mesmo `ListingNotActive` de um
         # vendido ou cancelado, em qualquer estado. Quem raspou a vitrine só pode pedir a compra
         # de um `id` visto, e a resposta não pode distinguir "fechado" de "conta desativada".
-        if anuncio.status != ListingStatus.ACTIVE or vendedor.pk not in ativos:
+        if vendedor.pk not in ativos:
+            raise ListingNotFound
+        if anuncio.status != ListingStatus.ACTIVE:
             raise ListingNotActive
         # O comprador é o ator: a resposta só fala dele.
         if buyer.pk not in ativos:
