@@ -267,7 +267,9 @@ def test_a_checagem_de_is_active_le_o_banco_depois_de_travar_os_jogadores(
     sqls = [c["sql"] for c in captura.captured_queries]
     de_jogadores = [s for s in range(len(sqls)) if f'FROM "{USUARIO}"' in sqls[s]]
     trava = [s for s in de_jogadores if _FOR_UPDATE.search(sqls[s])]
-    leitura = [s for s in de_jogadores if "COUNT(*)" in sqls[s] and '"is_active"' in sqls[s]]
+    leitura = [
+        s for s in de_jogadores if '"is_active"' in sqls[s] and not _FOR_UPDATE.search(sqls[s])
+    ]
     assert trava and leitura, nome
     assert trava[0] < leitura[0], nome
 
