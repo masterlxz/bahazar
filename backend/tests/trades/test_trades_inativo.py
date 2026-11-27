@@ -16,6 +16,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
+from apps.friends.models import Friendship
 from apps.inventory.models import SkinInstance
 from apps.trades import services
 from apps.trades.models import TradeOffer
@@ -171,3 +172,34 @@ def test_cancelar_uma_oferta_para_quem_foi_desativado_funciona(cena: SimpleNames
     assert resposta.status_code == 200
     oferta.refresh_from_db()
     assert oferta.status == "cancelled"
+
+
+# --- a leitura é do banco, e a amizade vem antes também no aceite --------------------------------
+
+
+def test_destinatario_desativado_so_no_banco_e_recusado_mesmo_com_o_objeto_ativo_em_memoria(
+    cena: SimpleNamespace,
+) -> None:
+    """`cena.bruno` segue com `is_active=True` em memória; só o banco sabe que foi desativado."""
+    _desativar(cena.bruno)
+    assert cena.bruno.is_active is True
+
+    with pytest.raises(services.PlayerUnavailable):
+        services.create_offer(cena.ana, cena.bruno, [cena.a1.pk], [cena.b1.pk])
+
+    assert TradeOffer.objects.count() == 0
+
+
+def test_aceitar_sem_amizade_com_quem_propos_desativado_da_not_friends(
+    cena: SimpleNamespace,
+) -> None:
+    """Mesma regra de `create_offer`: a amizade é conferida antes, e `not_friends` não revela
+    que a outra conta está desativada."""
+    oferta = _a1_por_b1(cena)
+    Friendship.objects.all().delete()
+    _desativar(cena.ana)
+
+    with pytest.raises(services.NotFriends):
+        services.accept_offer(cena.bruno, oferta.pk)
+
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.pk, cena.bruno.pk)

@@ -174,6 +174,11 @@ def _comprar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
     return lambda: market.buy_listing(cena.bruno, anuncio.pk, idempotency_key=chave)
 
 
+def _transferir(cena: SimpleNamespace) -> Callable[[], Any]:
+    chave = str(uuid.uuid4())
+    return lambda: economy.transfer(cena.ana, cena.bruno, 100, idempotency_key=chave)
+
+
 # Cada linha: "se o jogador faz X, o banco trava estas tabelas, nesta ordem".
 CASOS: list[tuple[str, Callable[[SimpleNamespace], Callable[[], Any]], list[str]]] = [
     ("criar oferta de troca", _criar_oferta, [USUARIO, INSTANCIA]),
@@ -189,6 +194,7 @@ CASOS: list[tuple[str, Callable[[SimpleNamespace], Callable[[], Any]], list[str]
     ("criar anúncio", _criar_anuncio, [USUARIO, INSTANCIA]),
     ("cancelar anúncio", _cancelar_anuncio, [ANUNCIO]),
     ("comprar anúncio", _comprar_anuncio, [USUARIO, ANUNCIO, INSTANCIA, CARTEIRA]),
+    ("transferir entre jogadores", _transferir, [USUARIO, CARTEIRA]),
     ("resgatar diária", _resgatar_diaria, [USUARIO, CARTEIRA]),
     ("abrir carteira", _abrir_carteira, [USUARIO, CARTEIRA]),
     ("lançar no ledger", _lancamento, [CARTEIRA]),
@@ -219,6 +225,7 @@ _COM_VARIAS_LINHAS = (
     "bloquear jogador com oferta pendente",
     "desfazer amizade com oferta pendente",
     "comprar anúncio",
+    "transferir entre jogadores",
     "lançar no ledger",
 )
 
@@ -235,6 +242,34 @@ def test_a_trava_de_varios_jogadores_ou_carteiras_sai_ordenada_por_id(
     assert de_varias_linhas, nome
     for tabela, sql in de_varias_linhas:
         assert f'ORDER BY "{tabela}"."id"' in sql, (nome, sql)
+
+
+@pytest.mark.parametrize(
+    "nome",
+    [
+        "criar oferta de troca",
+        "aceitar oferta de troca",
+        "comprar anúncio",
+        "transferir entre jogadores",
+    ],
+)
+def test_a_checagem_de_is_active_le_o_banco_depois_de_travar_os_jogadores(
+    cena: SimpleNamespace, nome: str
+) -> None:
+    """J4: a leitura de `is_active` vem DEPOIS do `FOR UPDATE` dos jogadores. Antes dele, uma
+    desativação que confirma no meio deixaria a operação agir sobre um estado velho."""
+    montar = next(m for n, m, _ in CASOS if n == nome)
+    operacao = montar(cena)
+
+    with CaptureQueriesContext(connection) as captura:
+        operacao()
+
+    sqls = [c["sql"] for c in captura.captured_queries]
+    de_jogadores = [s for s in range(len(sqls)) if f'FROM "{USUARIO}"' in sqls[s]]
+    trava = [s for s in de_jogadores if _FOR_UPDATE.search(sqls[s])]
+    leitura = [s for s in de_jogadores if "COUNT(*)" in sqls[s] and '"is_active"' in sqls[s]]
+    assert trava and leitura, nome
+    assert trava[0] < leitura[0], nome
 
 
 @pytest.mark.parametrize(

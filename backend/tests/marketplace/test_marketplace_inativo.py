@@ -97,6 +97,21 @@ def test_a_recusa_nao_queima_a_chave_e_reativado_a_mesma_chave_compra(
     assert _saldo(cena.bruno) == SALDO_INICIAL - 1000
 
 
+def test_anuncio_ja_vendido_de_vendedor_desativado_da_o_erro_de_estado_e_nao_player_unavailable(
+    cena: SimpleNamespace,
+) -> None:
+    """O estado do anúncio vem antes: quem tem o id de um anúncio vendido não aprende, por ele,
+    que o vendedor foi desativado."""
+    anuncio = anunciar(cena.ana, cena.a1, 1000)
+    assert _comprar(logado(cena.bruno), anuncio.pk).status_code == 201
+    _desativar(cena.ana)
+
+    resposta = _comprar(logado(cena.carla), anuncio.pk)
+
+    assert resposta.status_code == 409
+    assert resposta.json()["code"] == services.ListingNotActive.code
+
+
 def test_repetir_uma_compra_ja_feita_devolve_o_recibo_mesmo_com_o_vendedor_desativado_depois(
     cena: SimpleNamespace,
 ) -> None:
