@@ -346,7 +346,6 @@ def buy_listing(
 
     def operar() -> tuple[int, dict[str, Any]]:
         _travar_jogadores(buyer.pk, vendedor.pk)
-        _exigir_ativos(buyer.pk, vendedor.pk)
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
