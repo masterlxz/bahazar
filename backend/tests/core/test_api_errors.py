@@ -234,7 +234,10 @@ def test_nome_de_sala_invalido_da_400_invalid_request(ana: Any, nome: str) -> No
 def test_resgate_sem_codigo_da_400_invalid_request_e_nao_repassa_o_code_do_campo(
     bruno: Any,
 ) -> None:
-    """O erro de campo se chama `code` e é uma LISTA: ele não pode passar por `code` de domínio."""
+    """O erro de campo da validação do resgate se chama `code` e é uma lista.
+
+    O corpo sai `invalid_request` com a mensagem fixa: o campo `code` não é repassado.
+    """
     resposta = logado(bruno).post(JOIN_URL, {}, format="json")
 
     _confere(resposta, 400, "invalid_request", INVALID_REQUEST)

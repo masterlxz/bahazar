@@ -252,7 +252,7 @@ describe("InvitesSection", () => {
   it.each([
     [409, ERRO_LIMITE_DE_CONVITES, "A sala já tem 10 convites ativos. Revogue um para gerar outro."],
     [400, ERRO_POLITICA_DO_CONVITE, "Use de 1 a 30 dias e de 1 a 50 usos."],
-    [403, { detail: "Traceback (most recent call last)" }, "Só o dono ou um administrador pode gerar convites."],
+    [403, { code: "permission_denied", message: "Traceback (most recent call last)" }, "Só o dono ou um administrador pode gerar convites."],
     [500, { code: "boom", message: "Traceback (most recent call last)" }, "Não foi possível gerar o convite. Tente novamente."],
   ])("erro %i ao gerar mostra a mensagem própria, nunca o texto do servidor", async (status, corpo, mensagem) => {
     mockFetch({
