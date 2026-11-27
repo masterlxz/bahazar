@@ -113,7 +113,7 @@ class FriendDetailView(APIView):
     @property
     def throttle_scope(self) -> str | None:
         """Só o DELETE gasta cota: remover a amizade cancela as ofertas do par. O GET não."""
-        return "friend_remove" if self.request.method == "DELETE" else None
+        return "friend_remove" if self.request.method == "PUT" else None
 
     def get(self, request: Request, username: str) -> Response:
         dono = selectors.find_user(username)
