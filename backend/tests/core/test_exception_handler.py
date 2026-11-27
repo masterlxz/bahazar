@@ -1,7 +1,7 @@
 """O `EXCEPTION_HANDLER` da API isolado: o mapa de exceção para `{code, message}`.
 
 As rotas reais estão em `test_api_errors.py`; aqui ficam as ramificações que nenhuma rota atual
-provoca (exceção de domínio com `code`, `APIException` sem mapa, exceção que não é da API).
+provoca (`APIException` sem mapa, exceção que não é da API, cabeçalhos).
 """
 
 from typing import Any
@@ -25,12 +25,6 @@ from rest_framework.exceptions import (
 )
 
 from .conftest import ApiExceptionHandler
-
-
-class ErroDeDominio(APIException):
-    """Exceção nossa que já carrega `{code, message}` no detalhe: o handler não a reescreve."""
-
-    status_code = status.HTTP_409_CONFLICT
 
 
 class NaoAutenticadoComCabecalho(NotAuthenticated):
@@ -89,7 +83,7 @@ def test_texto_da_excecao_nao_vaza_para_a_mensagem(handler: ApiExceptionHandler)
 
     assert resposta.data == {
         "code": "parse_error",
-        "message": "O corpo da requisição não é um JSON válido.",
+        "message": "O corpo da requisição é inválido.",
     }
 
 
@@ -110,38 +104,24 @@ def test_401_preserva_www_authenticate(handler: ApiExceptionHandler) -> None:
     assert resposta.data["code"] == "not_authenticated"
 
 
-def test_excecao_de_dominio_com_code_fica_intacta(handler: ApiExceptionHandler) -> None:
-    detalhe = {"code": "self_trade", "message": "Você não pode trocar consigo."}
-
-    resposta = handler(ErroDeDominio(detalhe), {})
-
-    assert resposta.status_code == 409
-    assert dict(resposta.data) == detalhe
-
-
-def test_excecao_de_dominio_preserva_chaves_extras(handler: ApiExceptionHandler) -> None:
-    detalhe = {"code": "daily_not_ready", "message": "Ainda não.", "available_at": "2026-11-28"}
-
-    resposta = handler(ErroDeDominio(detalhe), {})
-
-    assert dict(resposta.data) == detalhe
-
-
-def test_validation_error_com_campo_chamado_code_nao_e_tomado_por_dominio(
+def test_validation_error_com_campo_chamado_code_vira_invalid_request(
     handler: ApiExceptionHandler,
 ) -> None:
-    """Campo `code` com TEXTO (não lista) num `ValidationError` é erro de campo, não de domínio."""
-    resposta = handler(ValidationError({"code": "Informe o código."}), {})
+    """Um campo se chamar `code` (texto ou lista) não muda nada: o corpo é o do mapa."""
+    for detalhe in ({"code": "Informe o código."}, {"code": ["Informe o código."]}):
+        resposta = handler(ValidationError(detalhe), {})
 
-    assert resposta.status_code == 400
-    assert resposta.data == {"code": "invalid_request", "message": "Requisição inválida."}
+        assert resposta.status_code == 400
+        assert resposta.data == {"code": "invalid_request", "message": "Requisição inválida."}
 
 
-def test_detalhe_sem_code_de_excecao_sem_mapa_vira_code_error(
-    handler: ApiExceptionHandler,
-) -> None:
-    resposta: Any = handler(ErroSemMapa({"outro": "formato"}), {})
+def test_detalhe_da_excecao_nunca_vaza_nem_com_chave_code(handler: ApiExceptionHandler) -> None:
+    """Toda exceção passa pelo mapa: o detalhe dela (até um `{code, message}`) não é repassado."""
+    for detalhe in ({"outro": "formato"}, {"code": "x", "message": "y", "extra": 1}):
+        resposta: Any = handler(ErroSemMapa(detalhe), {})
 
-    assert resposta.status_code == 418
-    assert resposta.data["code"] == "error"
-    assert "outro" not in resposta.data
+        assert resposta.status_code == 418
+        assert resposta.data == {
+            "code": "error",
+            "message": "Não foi possível processar a requisição.",
+        }

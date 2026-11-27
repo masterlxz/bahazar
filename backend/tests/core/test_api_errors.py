@@ -11,6 +11,7 @@ import uuid
 from typing import Any
 
 import pytest
+from django.conf import settings
 from rest_framework.test import APIClient
 
 from .conftest import (
@@ -28,7 +29,7 @@ from .conftest import (
 
 pytestmark = pytest.mark.django_db
 
-PARSE_ERROR = "O corpo da requisição não é um JSON válido."
+PARSE_ERROR = "O corpo da requisição é inválido."
 NOT_FOUND = "Não encontrado."
 METHOD_NOT_ALLOWED = "Método não permitido."
 THROTTLED = "Muitas requisições. Tente novamente em instantes."
@@ -138,15 +139,18 @@ def test_metodo_errado_da_405_e_mantem_o_cabecalho_allow(
 
 
 def test_throttle_da_429_throttled_com_retry_after(bruno: Any) -> None:
-    """O escopo `invite_redeem` deixa 10 por minuto; a 11ª tentativa é barrada."""
+    """A tentativa seguinte ao limite do escopo `invite_redeem` (lido da configuração) é barrada."""
+    configuracao: Any = settings.REST_FRAMEWORK
+    limite = int(configuracao["DEFAULT_THROTTLE_RATES"]["invite_redeem"].split("/")[0])
     respostas = [
-        logado(bruno).post(JOIN_URL, {"code": f"palpite-{i}"}, format="json") for i in range(11)
+        logado(bruno).post(JOIN_URL, {"code": f"palpite-{i}"}, format="json")
+        for i in range(limite + 1)
     ]
 
-    assert [r.status_code for r in respostas] == [404] * 10 + [429]
-    _confere(respostas[9], 404, "not_found", NOT_FOUND)  # a tentativa 10 ainda não é o limite
-    _confere(respostas[10], 429, "throttled", THROTTLED)
-    espera = respostas[10]["Retry-After"]
+    assert [r.status_code for r in respostas] == [404] * limite + [429]
+    _confere(respostas[limite - 1], 404, "not_found", NOT_FOUND)  # a última dentro do limite
+    _confere(respostas[limite], 429, "throttled", THROTTLED)
+    espera = respostas[limite]["Retry-After"]
     assert re.fullmatch(r"\d+", espera)
     assert int(espera) > 0
 
