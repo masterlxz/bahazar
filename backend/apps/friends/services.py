@@ -161,7 +161,6 @@ def block(user: User, username: str) -> None:
             existente.status = FriendshipStatus.BLOCKED
             existente.responded_at = timezone.now()
             existente.save(update_fields=["requester", "addressee", "status", "responded_at"])
-        hooks.notify_pair_ended(user, alvo)
 
 
 def unblock(user: User, username: str) -> None:
