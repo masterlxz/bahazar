@@ -62,7 +62,11 @@ def friends_of(user: User) -> QuerySet[User]:
 
 def blocked_by(user: User) -> QuerySet[User]:
     """Quem `user` bloqueou, por nome. NUNCA quem bloqueou `user`: a linha de bloqueio guarda o
-    bloqueador em `requester`, e filtrar o outro lado vazaria quem escondeu a conta."""
+    bloqueador em `requester`, e filtrar o outro lado vazaria quem escondeu a conta.
+
+    Exceção consciente: nas trocas o bloqueio esconde as ofertas do par nos DOIS sentidos
+    (`pair_is_blocked`), então o bloqueado percebe que foi bloqueado. Decisão do dono (PR #269);
+    o mercado segue a regra oposta (ADR 0017). Ver `SEGURANCA.md`, linha "Amizade"."""
     bloqueados = Friendship.objects.filter(requester=user, status=FriendshipStatus.BLOCKED).values(
         "addressee_id"
     )
