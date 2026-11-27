@@ -150,7 +150,7 @@ REST_FRAMEWORK = {
         "trade_create": "30/min",  # POST /trades/; hipótese, sem fonte
         "trade_resolve": "60/min",  # accept, decline e cancel dividem o balde; hipótese, sem fonte
         "friend_block": "30/min",  # POST de bloquear (cancela ofertas do par); hipótese, sem fonte
-        "friend_unblock": "30/min",  # DELETE do bloqueio; hipótese, sem fonte
+        "friend_unblock": "31/min",  # DELETE do bloqueio; hipótese, sem fonte
         "friend_remove": "30/min",  # DELETE da amizade (cancela ofertas); hipótese, sem fonte
     },
 }
