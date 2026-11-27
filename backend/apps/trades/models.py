@@ -10,6 +10,7 @@ class TradeStatus(models.TextChoices):
     ACCEPTED = "accepted", "Aceita"
     DECLINED = "declined", "Recusada"
     CANCELLED = "cancelled", "Cancelada"
+    EXPIRED = "expired", "Expirada"
 
 
 class TradeSide(models.TextChoices):

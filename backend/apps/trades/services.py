@@ -319,7 +319,24 @@ def cancel_pending_between(a: User, b: User) -> None:
 
 
 def expire_offer(offer_id: uuid.UUID) -> bool:
-    raise NotImplementedError  # esqueleto do controle (Sessão 49)
+    """Expira UMA oferta pendente e solta os itens; `False` se ela não está mais pendente.
+
+    Quem decide que a oferta venceu é `trades.expiry`; aqui só se grava, sob a trava da linha.
+    Ordem de trava: a oferta, depois os itens (o `UPDATE` do `_encerrar`), prefixo da ordem de
+    `accept_offer` (jogadores, oferta, instâncias, itens) e de `cancel_pending_between`. Não trava
+    jogadores. O estado é relido sob a trava: uma oferta que alguém acabou de resolver sai do
+    filtro e não é regravada.
+    """
+    with transaction.atomic():
+        oferta = (
+            TradeOffer.objects.select_for_update()
+            .filter(pk=offer_id, status=TradeStatus.PENDING)
+            .first()
+        )
+        if oferta is None:
+            return False
+        _encerrar(oferta, rules.EXPIRE)
+        return True
 
 
 def decline_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
