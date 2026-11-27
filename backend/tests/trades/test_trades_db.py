@@ -101,7 +101,7 @@ def test_banco_recusa_auto_oferta(cena: SimpleNamespace) -> None:
 def test_banco_recusa_estado_desconhecido(cena: SimpleNamespace) -> None:
     with pytest.raises(IntegrityError, match="tradeoffer_status_valid"):
         with transaction.atomic():
-            _oferta(cena, status="expired", resolved_at=datetime.now(UTC))
+            _oferta(cena, status="archived", resolved_at=datetime.now(UTC))
 
 
 def test_banco_recusa_lado_desconhecido(cena: SimpleNamespace) -> None:
