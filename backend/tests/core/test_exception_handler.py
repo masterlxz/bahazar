@@ -117,7 +117,8 @@ def test_validation_error_com_campo_chamado_code_vira_invalid_request(
 
 def test_detalhe_da_excecao_nunca_vaza_nem_com_chave_code(handler: ApiExceptionHandler) -> None:
     """Toda exceção passa pelo mapa: o detalhe dela (até um `{code, message}`) não é repassado."""
-    for detalhe in ({"outro": "formato"}, {"code": "x", "message": "y", "extra": 1}):
+    detalhes: list[dict[str, Any]] = [{"outro": "formato"}, {"code": "x", "message": "y", "n": 1}]
+    for detalhe in detalhes:
         resposta: Any = handler(ErroSemMapa(detalhe), {})
 
         assert resposta.status_code == 418
