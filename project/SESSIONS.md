@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 53 (preço e atribuição "via Skinport" no catálogo)
+
+- **Modo:** sessão individual, sem plan mode (continuação direta da Sessão 52). **Decisão do dono:** o catálogo deve exibir o preço de referência (eu recomendei; ele aprovou).
+- **Feito** (PR #320): `CatalogSkin` ganha `reference_price` (centavos; a API da lista já o devolvia, `SkinListSerializer`, lido em 2026-11-27); `SkinCard` mostra `formatUsd(reference_price)`; `SkinsPage` mostra a atribuição uma vez, só com skins. A atribuição virou o componente `components/AtribuicaoSkinport.tsx` (2 usos: catálogo e inventário), e o `InventoryPage` o usa em vez do trecho inline da Sessão 52 (refatoração mínima, coberta pelos testes do #312). `SkinCard.test.tsx` ganhou `reference_price` no `skinBase` (o tipo agora o exige).
+- **Provas (CI lido por mim, com `headSha`):** controle `4352db3` (só testes): **3 falhas** (preço, atribuição e "uma vez por tela"); "catálogo vazio" e "400" já passavam sem a implementação. Final `55075ce`: verde (frontend 20 de 20 arquivos, Python 1439). **Mutações do coordenador** (#321 a #326, fechados, branches apagadas; previsão e resultado iguais, pelos nomes): N1 preço x100 derrubou "cada card mostra o preço…"; N2 `>= 0` derrubou "catálogo vazio…"; N3 nota nunca renderiza derrubou "a tela diz…" e "uma vez por tela…"; N4 nota por card derrubou os mesmos dois; N5 href `skinport.net` no componente derrubou "a tela diz…" e, no inventário, "com itens…" e "amigo…"; N6 `rel` sem `noreferrer` derrubou "a tela diz…" e "o link sai…" (inventário). 6 de 6. O teste "400" não tem mutação que o derrube (a nota nunca renderiza nesse caminho): guarda.
+- **Desvio:** a 1ª versão da N3 (apagar a linha) deixaria o `import` sem uso e o lint/tsc falharia antes de qualquer teste; troquei por `< 0` (compila, nunca renderiza).
+- **Não verificado:** nada rodou fora do CI; a tela não foi vista no navegador (layout do preço e da nota); `formatUsd` lança `RangeError` se a API devolver preço não inteiro (o `reference_price` é `BigIntegerField`, então não deve ocorrer; sem teste); o tipo `CatalogSkin` ainda declara `image_url`/`image_source`, que o `SkinListSerializer` não devolve (já era assim, não mexi).
+- **Aberto:** e-mail para `info@skinport.com` e API key própria (dono); atribuição em telas novas com preço; agendar `expire_trade_offers` no deploy; validação no PC do dono.
+
 ### 2026-11-27 — Sessão 52 (atribuição "via Skinport" no inventário)
 
 - **Modo:** sessão individual, sem plan mode (mudança pequena de frontend, sem decisão estrutural). Pedido: o item de atribuição visual do ADR 0015 (ponto 4).

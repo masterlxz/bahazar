@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useParams, useSearchParams } from "react-router";
 
+import { AtribuicaoSkinport } from "../../components/AtribuicaoSkinport";
 import { Button } from "../../components/ui/button";
 import { formatDateTime } from "../../lib/datetime";
 import { formatUsd } from "../../lib/money";
@@ -252,19 +253,7 @@ export default function InventoryPage() {
               ))}
             </ul>
           )}
-          {dados.results.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Preço de referência via{" "}
-              <a
-                href="https://skinport.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Skinport
-              </a>
-            </p>
-          )}
+          {dados.results.length > 0 && <AtribuicaoSkinport />}
           {dados.count > 0 && (
             <nav aria-label="Paginação" className="flex items-center justify-between gap-3">
               <Button

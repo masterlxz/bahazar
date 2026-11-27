@@ -1,5 +1,6 @@
 import { useSearchParams } from "react-router";
 
+import { AtribuicaoSkinport } from "../../components/AtribuicaoSkinport";
 import { ApiError } from "../../services/http";
 import { catalogParams } from "../../services/skins";
 import type { CatalogQuery } from "../../services/skins";
@@ -69,6 +70,7 @@ export default function SkinsPage() {
               ))}
             </ul>
           )}
+          {skins.data.results.length > 0 && <AtribuicaoSkinport />}
           <Pagination
             dados={skins.data}
             pagina={pagina}

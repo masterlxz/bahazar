@@ -171,6 +171,8 @@ export interface CatalogSkin {
   weapon: string;
   rarity: string;
   collection: string | null;
+  /** Centavos de USD (`SkinListSerializer`, lido em 2026-11-27). */
+  reference_price: number;
   image_url: string | null;
   image_source: "none" | "placeholder" | "steam";
 }

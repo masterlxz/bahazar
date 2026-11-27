@@ -1,3 +1,4 @@
+import { formatUsd } from "../../../lib/money";
 import type { CatalogSkin } from "../../../types/api";
 
 /** Cores de fundo por raridade (Consumer=cinza, Industrial=azul-claro, Mil-Spec=azul,
@@ -39,6 +40,7 @@ export function SkinCard({ skin }: SkinCardProps) {
       <span className="font-semibold text-sm truncate">{skin.name}</span>
       <span className="text-xs text-muted-foreground">{skin.weapon}</span>
       <span className="text-xs font-medium capitalize">{skin.rarity.toLowerCase()}</span>
+      <span className="text-sm font-semibold">{formatUsd(skin.reference_price)}</span>
       {skin.collection && (
         <span className="text-xs text-muted-foreground truncate">{skin.collection}</span>
       )}

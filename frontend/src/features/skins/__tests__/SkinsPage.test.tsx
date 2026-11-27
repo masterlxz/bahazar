@@ -19,6 +19,7 @@ describe("SkinsPage: catálogo /skins", () => {
     weapon: "AK-47",
     rarity: "Classified",
     collection: "Phoenix",
+    reference_price: 2575,
     image_url: null,
     image_source: "none",
   };
@@ -29,6 +30,7 @@ describe("SkinsPage: catálogo /skins", () => {
     weapon: "AWP",
     rarity: "Covert",
     collection: "Dust",
+    reference_price: 1999,
     image_url: null,
     image_source: "none",
   };
@@ -39,6 +41,7 @@ describe("SkinsPage: catálogo /skins", () => {
     weapon: "P250",
     rarity: "Consumer Grade",
     collection: "",
+    reference_price: 5,
     image_url: null,
     image_source: "none",
   };
@@ -369,6 +372,73 @@ describe("SkinsPage: catálogo /skins", () => {
         expect(placeholders[5]).toHaveClass("bg-red-500");        // Covert
         expect(placeholders[6]).toHaveClass("bg-orange-500");     // Contraband
       });
+    });
+  });
+
+  // ADR 0015: o preço de referência vem da Skinport, e toda tela que o mostra diz isso.
+  describe("preço de referência e atribuição (Skinport)", () => {
+    const ATRIBUICAO = /Preço de referência via/;
+
+    it("cada card mostra o preço formatado a partir dos centavos do servidor", async () => {
+      simular({});
+
+      renderApp("/skins");
+
+      await screen.findByRole("list", { name: "Skins do catálogo" });
+      const [ak, awp, p250] = lista();
+      expect(within(ak!).getByText(/US\$\s25,75/)).toBeInTheDocument();
+      expect(within(awp!).getByText(/US\$\s19,99/)).toBeInTheDocument();
+      // 5 centavos: o cliente não faz conta, só formata o inteiro.
+      expect(within(p250!).getByText(/US\$\s0,05/)).toBeInTheDocument();
+    });
+
+    it("a tela diz que o preço é 'via Skinport', com link para skinport.com que sai sem entregar a janela", async () => {
+      simular({});
+
+      renderApp("/skins");
+
+      await screen.findByRole("list", { name: "Skins do catálogo" });
+      expect(screen.getByText(ATRIBUICAO)).toBeInTheDocument();
+      const link = screen.getByRole("link", { name: "Skinport" });
+      expect(link).toHaveAttribute("href", "https://skinport.com");
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link.getAttribute("rel")).toContain("noopener");
+      expect(link.getAttribute("rel")).toContain("noreferrer");
+    });
+
+    it("a atribuição aparece uma vez por tela, não uma por card", async () => {
+      simular({});
+
+      renderApp("/skins");
+
+      await screen.findByRole("list", { name: "Skins do catálogo" });
+      expect(lista()).toHaveLength(3);
+      expect(screen.getAllByText(ATRIBUICAO)).toHaveLength(1);
+      expect(screen.getAllByRole("link", { name: "Skinport" })).toHaveLength(1);
+    });
+
+    it("catálogo vazio (nenhum preço na tela) não mostra a atribuição", async () => {
+      simular({ [catalogRoute()]: { status: 200, body: pagina([]) } });
+
+      renderApp("/skins");
+
+      await screen.findByText("Nenhuma skin encontrada.");
+      expect(screen.queryByText(ATRIBUICAO)).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "Skinport" })).not.toBeInTheDocument();
+    });
+
+    it("com o filtro inválido (400) não há lista nem atribuição", async () => {
+      simular({
+        [catalogRoute({ wear: "Quebrado" })]: {
+          status: 400,
+          body: { wear: ['"Quebrado" is not a valid choice.'] },
+        },
+      });
+
+      renderApp("/skins?wear=Quebrado");
+
+      await screen.findByRole("alert");
+      expect(screen.queryByText(ATRIBUICAO)).not.toBeInTheDocument();
     });
   });
 });
