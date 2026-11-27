@@ -198,7 +198,8 @@ def create_offer(
             _travar_jogadores(proposer.pk, recipient.pk)
             if not friends_selectors.can_view(proposer, recipient):
                 raise NotFriends
-            _exigir_ativos(proposer.pk, recipient.pk)
+            if not (proposer.is_active and recipient.is_active):
+                raise PlayerUnavailable
             if rules.pending_limit_exceeded(selectors.pending_count(proposer)):
                 raise TooManyPendingOffers
             # Depois do teto por proponente (o mais amplo): quem estourou os dois recebe o erro de
