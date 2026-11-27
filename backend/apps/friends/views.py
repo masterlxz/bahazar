@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
@@ -15,6 +15,7 @@ from . import selectors, services
 from .serializers import FriendSerializer, FriendshipSerializer
 
 _USERNAME_MAX = 20
+_ESCOPO_DO_BLOQUEIO = {"POST": "friend_block", "DELETE": "friend_unblock"}
 
 
 def _eu(request: Request) -> User:
@@ -106,7 +107,13 @@ class FriendDetailView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
     http_method_names = ["get", "delete", "head", "options"]
+
+    @property
+    def throttle_scope(self) -> str | None:
+        """Só o DELETE gasta cota: remover a amizade cancela as ofertas do par. O GET não."""
+        return "friend_remove" if self.request.method == "DELETE" else None
 
     def get(self, request: Request, username: str) -> Response:
         dono = selectors.find_user(username)
@@ -137,16 +144,14 @@ class BlockView(APIView):
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "friend_block"
     http_method_names = ["post", "delete", "options"]
 
-    def get_throttles(self) -> list[BaseThrottle]:
-        """Só o POST gasta a cota: bloquear cancela as ofertas do par (escrita com trava).
-
-        `ScopedRateThrottle` vale para a view inteira; sem esta troca, desbloquear gastaria a
-        cota de bloquear.
-        """
-        return super().get_throttles() if self.request.method == "POST" else []
+    @property
+    def throttle_scope(self) -> str | None:
+        """Um balde por método: bloquear cancela as ofertas do par (escrita com trava) e
+        desbloquear fecha o ciclo. `ScopedRateThrottle` lê o escopo da view; sem escopo
+        (OPTIONS), não limita."""
+        return _ESCOPO_DO_BLOQUEIO.get(self.request.method or "")
 
     def post(self, request: Request, username: str) -> Response:
         try:
