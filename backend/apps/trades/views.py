@@ -45,6 +45,7 @@ _STATUS_DO_ERRO: dict[type[services.TradeError], int] = {
     services.ItemAlreadyOffered: status.HTTP_409_CONFLICT,
     services.OfferNotPending: status.HTTP_409_CONFLICT,
     services.TooManyPendingOffers: status.HTTP_409_CONFLICT,
+    services.TooManyPendingForRecipient: status.HTTP_409_CONFLICT,
     services.OfferNotFound: status.HTTP_404_NOT_FOUND,
     services.NotAllowed: status.HTTP_403_FORBIDDEN,
 }

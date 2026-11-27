@@ -3,11 +3,13 @@
 Ordem global de trava: os DOIS jogadores por id (a mesma de `friends.services`, que trava o par
 antes de pedir, aceitar, bloquear ou remover), depois a oferta, depois as instâncias por UUID.
 O aceite segue essa ordem inteira. Criar não tem o passo da oferta (ela ainda não existe): trava
-os jogadores e depois as instâncias. Recusar e cancelar só travam a oferta. A ordem única só vale
-DENTRO de `trades` (e frente a `friends.services`, que trava os jogadores por id): operações de
-outros módulos, como `inventory.services.change_owner` chamado sozinho, não a seguem sozinhas
-(ver o aviso no docstring dele). Dentro de `trades`, as FKs dos inserts tomam KEY SHARE em linhas
-que a transação já travou. A posse do item só muda em `inventory.services.change_owner`.
+os jogadores e depois as instâncias. Recusar e cancelar só travam a oferta. Bloquear ou desfazer
+a amizade (`friends.services`) trava os jogadores e, pelo gancho `cancel_pending_between`, as
+ofertas pendentes do par por id (sem instâncias: o `UPDATE` dos itens só os solta). A ordem única
+só vale DENTRO de `trades` (e frente a `friends.services`, que trava os jogadores por id):
+operações de outros módulos, como `inventory.services.change_owner` chamado sozinho, não a seguem
+sozinhas (ver o aviso no docstring dele). Dentro de `trades`, as FKs dos inserts tomam KEY SHARE em
+linhas que a transação já travou. A posse do item só muda em `inventory.services.change_owner`.
 """
 
 import re
@@ -15,6 +17,7 @@ import uuid
 from collections.abc import Sequence
 
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -67,6 +70,11 @@ class TooManyItems(TradeError):
 class TooManyPendingOffers(TradeError):
     code = "too_many_pending_offers"
     message = "Você já tem trocas pendentes demais."
+
+
+class TooManyPendingForRecipient(TradeError):
+    code = "too_many_pending_for_recipient"
+    message = "Você já tem trocas pendentes demais com este jogador."
 
 
 class NotFriends(TradeError):
@@ -165,7 +173,8 @@ def create_offer(
     """O proponente oferece itens seus e pede itens do destinatário (só entre amigos aceitos).
 
     Segue a mesma ordem de trava do aceite: os dois jogadores por id, depois as instâncias por
-    UUID. Amizade, teto de pendentes, dono, consumo e ocupação são conferidos SOB essa trava,
+    UUID. Amizade, tetos de pendentes (por proponente e por par), dono, consumo e ocupação são
+    conferidos SOB essa trava,
     antes de gravar: lendo antes dela, uma troca de dono no meio deixaria uma oferta obsoleta.
     O índice único parcial do banco continua como rede de segurança (e é ele quem recusa se uma
     checagem em Python deixar passar); o `IntegrityError` dele vira `ItemAlreadyOffered`.
@@ -183,6 +192,12 @@ def create_offer(
                 raise NotFriends
             if rules.pending_limit_exceeded(selectors.pending_count(proposer)):
                 raise TooManyPendingOffers
+            # Depois do teto por proponente (o mais amplo): quem estourou os dois recebe o erro de
+            # sempre. Sob a mesma trava, pelo mesmo motivo.
+            if rules.pending_pair_limit_exceeded(
+                selectors.pending_count_between(proposer, recipient)
+            ):
+                raise TooManyPendingForRecipient
             travadas = SkinInstance.objects.select_for_update().filter(pk__in=todos)
             instancias = {i.pk: i for i in travadas.order_by("pk")}
             _conferir_itens(instancias, esperados)
@@ -282,6 +297,25 @@ def _resolver_sem_troca(actor: User, offer_id: uuid.UUID, acao: str) -> TradeOff
     _oferta_para(actor, offer_id)
     with transaction.atomic():
         return _encerrar(_travar_oferta(actor, offer_id, acao), acao)
+
+
+def cancel_pending_between(a: User, b: User) -> None:
+    """Cancela as ofertas PENDENTES do par, nos dois sentidos, e libera os itens delas.
+
+    É o gancho de `friends` (`register_pair_ended_hook`, em `apps.py`): roda dentro da transação
+    de `block` e `remove_friend`, depois de os jogadores estarem travados. Ordem de trava: os
+    jogadores (já travados por quem chama), depois as ofertas por id, depois os itens (o
+    `UPDATE` do `_encerrar`). Trava a oferta e relê só as `pending`: uma que alguém acabou de
+    resolver sai do filtro e não é regravada. Oferta resolvida nunca é tocada.
+
+    Não levanta exceção em condição normal (ela desfaria o bloqueio): só consulta e grava
+    linhas que acabou de travar. Precisa de uma transação aberta (o `select_for_update`).
+    """
+    pendentes = TradeOffer.objects.select_for_update().filter(
+        Q(proposer=a, recipient=b) | Q(proposer=b, recipient=a), status=TradeStatus.PENDING
+    )
+    for oferta in pendentes.order_by("pk"):
+        _encerrar(oferta, rules.CANCEL)
 
 
 def decline_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:

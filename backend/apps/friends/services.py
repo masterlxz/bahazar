@@ -3,6 +3,10 @@
 Toda operação sobre um par trava as DUAS linhas de usuário em ordem de id. Sem isso, ana->bruno
 e bruno->ana simultâneos travariam em ordem oposta (deadlock), e aceitar x bloquear poderiam
 passar uma pela outra.
+
+`block` e `remove_friend` avisam `hooks.notify_pair_ended` depois de gravar, ainda sob essa trava
+e dentro da transação: é como `trades` cancela as ofertas pendentes do par sem que `friends` o
+conheça. A ordem global de trava segue: jogadores (por id), depois o que o gancho travar.
 """
 
 import uuid
@@ -13,7 +17,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 
-from . import rules, selectors
+from . import hooks, rules, selectors
 from .models import Friendship, FriendshipStatus
 
 
@@ -122,6 +126,7 @@ def _alvo(username: str, user: User) -> User:
 
 
 def remove_friend(user: User, username: str) -> None:
+    """Desfaz a amizade e avisa os ganchos do par (as ofertas pendentes dele são canceladas)."""
     alvo = _alvo(username, user)
     with transaction.atomic():
         _travar(user.pk, alvo.pk)
@@ -129,13 +134,15 @@ def remove_friend(user: User, username: str) -> None:
         if amizade is None or amizade.status != FriendshipStatus.ACCEPTED:
             raise NotFound
         amizade.delete()
+        hooks.notify_pair_ended(user, alvo)
 
 
 def block(user: User, username: str) -> None:
     """Bloqueia `alvo`: derruba amizade ou pedido e grava `user` como bloqueador.
 
     Idempotente. Se o alvo já tinha bloqueado `user`, o bloqueio dele é mantido (o de `user`
-    não o substitui), para que só ele possa desfazê-lo.
+    não o substitui), para que só ele possa desfazê-lo. Avisa os ganchos do par (as ofertas
+    pendentes dele são canceladas) sempre, também na repetição: ela limpa o que sobrou.
     """
     alvo = _alvo(username, user)
     with transaction.atomic():
@@ -154,6 +161,7 @@ def block(user: User, username: str) -> None:
             existente.status = FriendshipStatus.BLOCKED
             existente.responded_at = timezone.now()
             existente.save(update_fields=["requester", "addressee", "status", "responded_at"])
+        hooks.notify_pair_ended(user, alvo)
 
 
 def unblock(user: User, username: str) -> None:

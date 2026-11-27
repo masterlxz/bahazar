@@ -5,7 +5,7 @@ inventário, troca etc. a consultam em vez de comparar status de amizade. Quando
 responde **404**, nunca 403: 403 confirmaria que o recurso existe.
 """
 
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 
 from apps.accounts.models import User
 
@@ -23,6 +23,22 @@ def _par(a: User, b: User) -> Q:
 
 def friendship_between(a: User, b: User) -> Friendship | None:
     return Friendship.objects.filter(_par(a, b)).first()
+
+
+def pair_is_blocked(a_field: str, b_field: str) -> Exists:
+    """Subconsulta "há bloqueio, em qualquer direção, entre estes dois jogadores?".
+
+    `a_field` e `b_field` nomeiam, na consulta de fora, as duas colunas que apontam para os
+    jogadores (por exemplo `"proposer"` e `"recipient"` de uma oferta). Quem lê dados de um par
+    usa `.filter(~pair_is_blocked(...))` para esconder o par bloqueado: a regra "bloqueio" fica
+    aqui, em `friends`, e quem consome não compara status de amizade. Só o bloqueio esconde; um
+    ex-amigo (sem linha) e um pedido pendente não.
+    """
+    bloqueios = Friendship.objects.filter(status=FriendshipStatus.BLOCKED).filter(
+        Q(requester=OuterRef(a_field), addressee=OuterRef(b_field))
+        | Q(requester=OuterRef(b_field), addressee=OuterRef(a_field))
+    )
+    return Exists(bloqueios)
 
 
 def can_view(viewer: User, owner: User) -> bool:
