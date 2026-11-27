@@ -252,7 +252,7 @@ export default function InventoryPage() {
               ))}
             </ul>
           )}
-          {dados.results.length > 0 && (
+          {dados.results.length >= 0 && (
             <p className="text-xs text-muted-foreground">
               Preço de referência via{" "}
               <a
