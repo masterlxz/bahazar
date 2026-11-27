@@ -616,3 +616,76 @@ describe("InventoryPage: cabeçalho e logout", () => {
     expect(client.getQueryCache().findAll({ queryKey: ["inventory"] })).toHaveLength(0);
   });
 });
+
+// ADR 0015, ponto 4: toda tela que mostra preço vindo da Skinport diz de onde ele vem.
+describe("InventoryPage: atribuição do preço de referência (Skinport)", () => {
+  const ATRIBUICAO = /Preço de referência via/;
+
+  it("com itens, a tela diz que o preço é 'via Skinport', com link para skinport.com", async () => {
+    simular({ [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK]) } });
+
+    renderApp("/inventario");
+
+    await screen.findByRole("list", { name: "Itens do inventário" });
+    expect(screen.getByText(ATRIBUICAO)).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Skinport" });
+    expect(link).toHaveAttribute("href", "https://skinport.com");
+  });
+
+  it("o link sai da aplicação sem entregar a janela de origem (rel noopener noreferrer)", async () => {
+    simular({ [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK]) } });
+
+    renderApp("/inventario");
+
+    const link = await screen.findByRole("link", { name: "Skinport" });
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    expect(link.getAttribute("rel")).toContain("noreferrer");
+  });
+
+  it("o inventário de um amigo também mostra a atribuição", async () => {
+    simular({
+      [inventoryRoute({}, "carla_03")]: { status: 200, body: pagina([ITEM_DA_CARLA]) },
+    });
+
+    renderApp("/inventario/carla_03");
+
+    await screen.findByText("Fade");
+    expect(screen.getByText(ATRIBUICAO)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Skinport" })).toHaveAttribute(
+      "href",
+      "https://skinport.com",
+    );
+  });
+
+  it("a atribuição aparece uma vez por tela, não uma por item", async () => {
+    simular({
+      [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK, ITEM_AWP, ITEM_BARATO]) },
+    });
+
+    renderApp("/inventario");
+
+    await screen.findByRole("list", { name: "Itens do inventário" });
+    expect(screen.getAllByText(ATRIBUICAO)).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: "Skinport" })).toHaveLength(1);
+  });
+
+  it("sem itens (nenhum preço na tela), não há atribuição", async () => {
+    simular({ [inventoryRoute()]: { status: 200, body: pagina([]) } });
+
+    renderApp("/inventario");
+
+    await screen.findByText("Nenhum item encontrado.");
+    expect(screen.queryByText(ATRIBUICAO)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Skinport" })).not.toBeInTheDocument();
+  });
+
+  it("no 404 (inventário não encontrado), não há atribuição", async () => {
+    simular({ [inventoryRoute({}, "zed")]: { status: 404, body: ERRO_NAO_ENCONTRADO } });
+
+    renderApp("/inventario/zed");
+
+    await screen.findByText(NAO_ENCONTRADO);
+    expect(screen.queryByText(ATRIBUICAO)).not.toBeInTheDocument();
+  });
+});

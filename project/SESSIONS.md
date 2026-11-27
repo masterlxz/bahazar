@@ -2,6 +2,16 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 52 (atribuição "via Skinport" no inventário)
+
+- **Modo:** sessão individual, sem plan mode (mudança pequena de frontend, sem decisão estrutural). Pedido: o item de atribuição visual do ADR 0015 (ponto 4).
+- **Achado de escopo:** o `PENDING.md` falava em `/skins`, detalhe e inventário, mas só o **inventário** mostra preço (`CatalogSkin` não tem `reference_price`; não há tela de detalhe). A nota entra só onde há preço; o resto fica no `PENDING.md` com a regra "quando passar a mostrar preço".
+- **Feito** (PR #312): em `InventoryPage.tsx`, uma nota "Preço de referência via Skinport" (link `https://skinport.com`, `target=_blank`, `rel="noopener noreferrer"`) abaixo da lista, **uma vez por tela**, só quando há itens; vale no meu inventário e no de um amigo. Testes: `describe` novo em `InventoryPage.test.tsx` (6 casos).
+- **Provas (CI lido por mim, com `headSha`):** controle `844004b` (só testes): **4 falhas e 218 passaram** (os 2 casos "sem itens" e "404" já passavam sem a nota; só a mutação M4 prova o primeiro, e o do 404 não tem mutação que o derrube: nesse caminho `dados` é nulo). Final `f24085c`: verde (frontend 20 de 20 arquivos, Python 1439). **Mutações do coordenador** (um PR rascunho cada, #313 a #319, fechados, branches apagadas; previsão e resultado iguais, pelos nomes): M1 href `skinport.net` derrubou "com itens…" e "o inventário de um amigo…"; M2 sem `target` e M3 `rel` sem `noreferrer` derrubaram "o link sai da aplicação…"; M4 `>= 0` derrubou "sem itens…"; M5 nota dentro de cada item derrubou "a atribuição aparece uma vez por tela…"; M6 texto "Preço via" derrubou 3 ("com itens…", "amigo…" e "uma vez por tela…"); M7 só no meu inventário derrubou "o inventário de um amigo…". 7 de 7.
+- **Desvio de processo:** encadeei 5 `Edit` seguidos de `Bash` que foram barrados pelo classificador; as mutações ficaram empilhadas no mesmo arquivo, nada foi commitado, desfiz com `git checkout --` e refiz uma por vez (PRs só saíram depois).
+- **Não verificado:** nada rodou fora do CI; a tela não foi vista no navegador (posição e aparência da nota); o texto exato dos termos da Skinport não foi relido (o ADR diz "boa prática, não exigido"); `eslint`/prettier só pelo CI.
+- **Aberto:** o e-mail para `info@skinport.com` e a API key própria (dono); atribuição em `/skins` e detalhe quando mostrarem preço; agendar `expire_trade_offers` no deploy; validação no PC do dono.
+
 ### 2026-11-27 — Sessão 51 (ADR 0020: bloqueio nas trocas)
 
 - **Modo:** sessão individual, sem plan mode (só texto; o dono pediu o ADR). Uma intenção.
