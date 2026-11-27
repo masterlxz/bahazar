@@ -375,7 +375,7 @@ describe("InventoryPage: erros do servidor", () => {
 
   it("uma página que não existe (404 em `page`) oferece voltar à primeira", async () => {
     simular({
-      [inventoryRoute({ page: "9" })]: { status: 404, body: { detail: "Invalid page." } },
+      [inventoryRoute({ page: "9" })]: { status: 404, body: { code: "not_found", message: "Não encontrado." } },
       [inventoryRoute()]: { status: 200, body: pagina([ITEM_AK]) },
     });
 

@@ -137,6 +137,8 @@ HEADLESS_FRONTEND_URLS = {
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Erros do DRF (JSON quebrado, página inválida, CSRF, 405, 429...) saem como `{code, message}`.
+    "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
     # Só vale em view com `throttle_classes = [ScopedRateThrottle]` e `throttle_scope`.
     # O limite mora no cache do Django: em produção, o cache em banco (ver prod.py).
     "DEFAULT_THROTTLE_RATES": {
