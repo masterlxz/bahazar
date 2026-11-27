@@ -312,7 +312,7 @@ def cancel_pending_between(a: User, b: User) -> None:
     linhas que acabou de travar. Precisa de uma transação aberta (o `select_for_update`).
     """
     pendentes = TradeOffer.objects.select_for_update().filter(
-        Q(proposer=a, recipient=b) | Q(proposer=b, recipient=a), status=TradeStatus.PENDING
+        Q(proposer=a, recipient=b), status=TradeStatus.PENDING
     )
     for oferta in pendentes.order_by("pk"):
         _encerrar(oferta, rules.CANCEL)
