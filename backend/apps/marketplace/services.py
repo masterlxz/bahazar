@@ -355,10 +355,10 @@ def buy_listing(
             raise ListingNotFound
         # Vendedor desativado: o anúncio some, como o de quem o comprador bloqueou, em QUALQUER
         # estado e ANTES do erro de estado (`ListingNotActive` revelaria que o anúncio existe).
-        if vendedor.pk not in ativos:
-            raise ListingNotFound
         if anuncio.status != ListingStatus.ACTIVE:
             raise ListingNotActive
+        if vendedor.pk not in ativos:
+            raise ListingNotFound
         # O comprador é o ator: a resposta só fala dele.
         if buyer.pk not in ativos:
             raise PlayerUnavailable
