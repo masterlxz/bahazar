@@ -45,12 +45,73 @@ def _nenhum_item_preso() -> None:
     assert not TradeOfferItem.objects.filter(active=True).exists()
 
 
+def _bloquear_sem_servico(bloqueador: Any, outro: Any) -> None:
+    """Grava o bloqueio como `friends.block` grava, mas SEM cancelar as ofertas (dado antigo)."""
+    Friendship.objects.filter(
+        requester__in=[bloqueador, outro], addressee__in=[bloqueador, outro]
+    ).update(requester=bloqueador, addressee=outro, status="blocked")
+
+
 def test_bloquear_sem_oferta_nenhuma_so_bloqueia(cena: SimpleNamespace) -> None:
     friends_services.block(cena.ana, cena.bruno.username)
 
     relacao = Friendship.objects.get()
     assert (relacao.status, relacao.requester_id) == ("blocked", cena.ana.id)
     assert TradeOffer.objects.count() == 0
+
+
+def test_desfazer_a_amizade_sem_oferta_nenhuma_so_desfaz(cena: SimpleNamespace) -> None:
+    """O gancho roda sem nada a cancelar e não levanta: a amizade some e nada mais muda."""
+    donos_antes = _donos()
+
+    friends_services.remove_friend(cena.ana, cena.bruno.username)
+
+    assert Friendship.objects.count() == 0
+    assert TradeOffer.objects.count() == 0
+    assert _donos() == donos_antes
+
+
+# --- bloqueio repetido: o remédio para o dado antigo ------------------------------------------
+# Ofertas que ficaram `pending` de um bloqueio feito ANTES do gancho existir (ou por fora do
+# serviço) só são canceladas por um `block` novo, que avisa o gancho também quando o bloqueio
+# já existe (POST /friends/<u>/block/ repetido).
+
+
+def test_bloqueio_repetido_do_mesmo_bloqueador_cancela_as_pendentes_que_sobraram(
+    cena: SimpleNamespace, skin: Any
+) -> None:
+    ofertas = criar_ofertas(cena.ana, cena.bruno, 2, skin)
+    _bloquear_sem_servico(cena.ana, cena.bruno)
+    assert [_retrato(o)[0] for o in ofertas] == ["pending", "pending"]  # o dado antigo
+
+    friends_services.block(cena.ana, cena.bruno.username)
+
+    for oferta in ofertas:
+        status, fim, ativos = _retrato(oferta)
+        assert (status, fim is not None, ativos) == ("cancelled", True, [False, False])
+    _nenhum_item_preso()
+    relacao = Friendship.objects.get()
+    assert (relacao.status, relacao.requester_id) == ("blocked", cena.ana.id)
+
+
+def test_o_bloqueado_que_bloqueia_de_volta_cancela_as_pendentes_e_nao_toma_o_bloqueio(
+    cena: SimpleNamespace, skin: Any
+) -> None:
+    """bruno bloqueou ana (dado antigo, ofertas pendentes nos dois sentidos); ana bloqueia bruno.
+
+    É o ramo "o outro já bloqueou": o bloqueio original é mantido (só bruno desfaz), mas o aviso
+    ao gancho acontece do mesmo jeito.
+    """
+    de_ana = criar_ofertas(cena.ana, cena.bruno, 2, skin)
+    de_bruno = criar_ofertas(cena.bruno, cena.ana, 1, skin)
+    _bloquear_sem_servico(cena.bruno, cena.ana)
+
+    friends_services.block(cena.ana, cena.bruno.username)
+
+    assert [_retrato(o)[0] for o in [*de_ana, *de_bruno]] == ["cancelled"] * 3
+    _nenhum_item_preso()
+    relacao = Friendship.objects.get()
+    assert (relacao.status, relacao.requester_id) == ("blocked", cena.bruno.id)
 
 
 @pytest.mark.parametrize("quantas", [1, 3])
