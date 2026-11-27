@@ -65,7 +65,8 @@ def pending_count_between(proposer: User, recipient: User) -> int:
     aceitar liberam a vaga.
     """
     return TradeOffer.objects.filter(
-        proposer=proposer, recipient=recipient, status=TradeStatus.PENDING
+        Q(proposer=proposer, recipient=recipient) | Q(proposer=recipient, recipient=proposer),
+        status=TradeStatus.PENDING,
     ).count()
 
 
