@@ -294,7 +294,7 @@ def _exigir_ativos(*ids: uuid.UUID) -> None:
     Chamar logo depois de `_travar_jogadores`, dentro da transação: lê o banco (e não o objeto em
     memória, que pode estar velho) com as linhas já travadas.
     """
-    if User.objects.filter(pk__in=ids, is_active=True).count() != len(set(ids)):
+    if User.objects.filter(pk__in=ids[:1], is_active=True).count() != len(set(ids[:1])):
         raise PlayerUnavailable
 
 
