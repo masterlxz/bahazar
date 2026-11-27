@@ -82,6 +82,14 @@ class NotFriends(TradeError):
     message = "A troca só é possível entre amigos."
 
 
+class PlayerUnavailable(TradeError):
+    """Um dos dois jogadores está desativado (`is_active=False`). Genérico de propósito: não diz
+    o motivo nem quem é."""
+
+    code = "player_unavailable"
+    message = "Este jogador não está disponível."
+
+
 class ItemNotOwned(TradeError):
     code = "item_not_owned"
     message = "Um dos itens não pertence a quem deveria."

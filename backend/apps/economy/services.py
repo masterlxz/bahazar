@@ -47,6 +47,11 @@ class InvalidTransfer(EconomyError):
     message = "Transferência inválida."
 
 
+class PlayerUnavailable(EconomyError):
+    code = "player_unavailable"
+    message = "Este jogador não está disponível."
+
+
 @dataclass(frozen=True)
 class TransferResult:
     ledger_group_id: uuid.UUID

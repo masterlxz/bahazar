@@ -237,6 +237,14 @@ class ListingUnavailable(MarketError):
     message = "O item deste anúncio não está mais disponível."
 
 
+class PlayerUnavailable(MarketError):
+    """Comprador ou vendedor está desativado (`is_active=False`). Genérico de propósito: não diz
+    o motivo nem quem é."""
+
+    code = "player_unavailable"
+    message = "Este jogador não está disponível."
+
+
 @dataclass(frozen=True)
 class PurchaseResult:
     """A venda concluída. `replayed` é verdadeiro quando a mesma chave devolveu o resultado de
