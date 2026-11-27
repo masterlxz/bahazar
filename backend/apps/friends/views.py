@@ -136,7 +136,7 @@ class BlockView(APIView):
 
     permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "friend_block"
+    throttle_scope = "trade_create"
     http_method_names = ["post", "delete", "options"]
 
     def get_throttles(self) -> list[BaseThrottle]:
