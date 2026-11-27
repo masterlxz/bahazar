@@ -188,8 +188,9 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     - `InvalidTransfer`: valor inválido, ou remetente igual ao destinatário.
     - `InsufficientFunds`: o remetente não tem o valor; nada é gravado.
     - `PlayerUnavailable`: o remetente ou o destinatário está desativado (`is_active=False`,
-      risco J4). A leitura é do banco, SEM trava de jogador: travar aqui inverteria a ordem
-      jogador→carteira do ADR 0016. A janela de corrida com uma desativação é de milissegundos.
+      risco J4). Os dois jogadores são travados por `pk` e a leitura vem depois, na mesma
+      transação: jogadores antes de carteiras, a ordem do ADR 0016 (a mesma de `claim_daily`).
+      As carteiras já foram abertas antes da transação, então nenhuma está travada aqui.
     """
     chave = rules.normalize_idempotency_key(idempotency_key)
     try:
@@ -206,8 +207,9 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
 
     def operar() -> tuple[int, dict[str, Any]]:
         usuario_model: Any = get_user_model()
-        ativos = usuario_model.objects.filter(pk__in=[sender.pk, recipient.pk], is_active=True)
-        if ativos.count() != 2:
+        ids = [sender.pk, recipient.pk]
+        list(usuario_model.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+        if usuario_model.objects.filter(pk__in=ids, is_active=True).count() != 2:
             raise PlayerUnavailable
         grupo = post_entries(
             [Entry(origem.id, -amount), Entry(destino.id, amount)],

@@ -122,6 +122,8 @@ def change_owner(
     Só o dono muda: id, float, skin e origem ficam como estão (nada é criado nem apagado).
     Trava a linha e confere dono e consumo já sob a trava. Quem move vários itens (a troca)
     trava todos antes, em ordem de UUID, para nunca cruzar esperas com outra operação.
+    Não confere `is_active`: quem chama (`trades`, `marketplace`) recusa jogador desativado ANTES,
+    sob a trava dos jogadores (J4); uma operação nova que mova itens precisa fazer o mesmo.
 
     Depois do dono e do consumo (assim `ItemLocked` nunca revela a um não dono que o item existe
     e está em uso), roda as guardas registradas (`register_move_guard`): se alguma levantar
