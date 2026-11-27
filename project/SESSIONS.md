@@ -2,6 +2,13 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 51 (ADR 0020: bloqueio nas trocas)
+
+- **Modo:** sessão individual, sem plan mode (só texto; o dono pediu o ADR). Uma intenção.
+- **Feito:** `adr/0020-bloqueio-nas-trocas-esconde-nos-dois-sentidos.md` (contexto, decisão em 4 pontos, 4 alternativas descartadas, consequências e custo de reverter) e o link no `SEGURANCA.md` (linha "Amizade"). Nenhum código muda.
+- **Não verificado:** a decisão vem do registro da Sessão 45 e do código lido (`hooks.py`, `trades/apps.py`, `_visiveis`); os motivos das duas primeiras alternativas descartadas foram **reconstruídos por mim** e estão marcados assim no ADR (o dono decidiu o efeito, não ditou a justificativa). O dono deve confirmá-los ou corrigi-los ao ler.
+- **Aberto:** agendar `expire_trade_offers` no deploy; validação no PC do dono.
+
 ### 2026-11-27 — Sessão 50 (throttle nos DELETE de desbloquear e remover amizade)
 
 - **Modo:** sessão individual, sem plan mode (mesma receita do PR #287). Pedido do dono: o item "throttle do DELETE do bloqueio e do `remove_friend`". Valores (hipóteses sem fonte, minhas): 30/min por jogador em cada um, escopos `friend_unblock` e `friend_remove`.
