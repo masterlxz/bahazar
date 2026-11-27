@@ -315,7 +315,9 @@ def cancel_pending_between(a: User, b: User) -> None:
         Q(proposer=a, recipient=b) | Q(proposer=b, recipient=a), status=TradeStatus.PENDING
     )
     for oferta in pendentes.order_by("pk"):
-        _encerrar(oferta, rules.CANCEL)
+        oferta.status = TradeStatus(rules.status_after(rules.CANCEL))
+        oferta.resolved_at = timezone.now()
+        oferta.save(update_fields=["status", "resolved_at"])
 
 
 def decline_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
