@@ -187,8 +187,9 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     - `ValueError`: a chave não é um UUID.
     - `InvalidTransfer`: valor inválido, ou remetente igual ao destinatário.
     - `InsufficientFunds`: o remetente não tem o valor; nada é gravado.
-
-    Não checa `is_active` do destinatário nem do remetente (pendência de produto, risco J4).
+    - `PlayerUnavailable`: o remetente ou o destinatário está desativado (`is_active=False`,
+      risco J4). A leitura é do banco, SEM trava de jogador: travar aqui inverteria a ordem
+      jogador→carteira do ADR 0016. A janela de corrida com uma desativação é de milissegundos.
     """
     chave = rules.normalize_idempotency_key(idempotency_key)
     try:
@@ -204,6 +205,10 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     destino = ensure_wallet(recipient)
 
     def operar() -> tuple[int, dict[str, Any]]:
+        usuario_model: Any = get_user_model()
+        ativos = usuario_model.objects.filter(pk__in=[sender.pk, recipient.pk], is_active=True)
+        if ativos.count() != 2:
+            raise PlayerUnavailable
         grupo = post_entries(
             [Entry(origem.id, -amount), Entry(destino.id, amount)],
             kind=TransactionKind.TRANSFER,

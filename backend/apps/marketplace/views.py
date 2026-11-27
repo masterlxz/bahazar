@@ -29,6 +29,7 @@ _STATUS_DO_ERRO: dict[type[services.MarketError], int] = {
     services.ListingNotActive: status.HTTP_409_CONFLICT,
     services.CannotBuyOwnListing: status.HTTP_409_CONFLICT,
     services.ListingUnavailable: status.HTTP_409_CONFLICT,
+    services.PlayerUnavailable: status.HTTP_409_CONFLICT,
     services.InsufficientFunds: status.HTTP_422_UNPROCESSABLE_ENTITY,
     services.IdempotencyKeyReused: status.HTTP_422_UNPROCESSABLE_ENTITY,
     services.InvalidIdempotencyKey: status.HTTP_400_BAD_REQUEST,

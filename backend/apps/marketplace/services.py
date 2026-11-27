@@ -288,6 +288,16 @@ def _travar_jogadores(*ids: uuid.UUID) -> None:
     list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
 
 
+def _exigir_ativos(*ids: uuid.UUID) -> None:
+    """`PlayerUnavailable` se algum dos jogadores está desativado (`is_active=False`).
+
+    Chamar logo depois de `_travar_jogadores`, dentro da transação: lê o banco (e não o objeto em
+    memória, que pode estar velho) com as linhas já travadas.
+    """
+    if User.objects.filter(pk__in=ids, is_active=True).count() != len(set(ids)):
+        raise PlayerUnavailable
+
+
 def buy_listing(
     buyer: User,
     listing_id: uuid.UUID,
@@ -336,6 +346,7 @@ def buy_listing(
 
     def operar() -> tuple[int, dict[str, Any]]:
         _travar_jogadores(buyer.pk, vendedor.pk)
+        _exigir_ativos(buyer.pk, vendedor.pk)
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
