@@ -2,6 +2,15 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 46 (throttle de 30/min no POST de bloquear)
+
+- **Modo:** sessão individual, plan mode (o valor do teto é decisão do dono). Uma intenção: limitar a escrita com trava que o `block` virou no PR #269. Plano aprovado pelo dono: 30/min por jogador, só no POST.
+- **Feito** (PR #287): escopo `friend_block: "30/min"` em `config/settings/base.py` (hipótese sem fonte); `BlockView` ganha `ScopedRateThrottle` e `get_throttles` que só vale no POST (molde de `TradeListCreateView`), para desbloquear não gastar a cota. Testes: `tests/friends/test_blocks_limites.py` (config, 429 na 31ª, DELETE não gasta, balde por usuário, balde próprio que não gasta a cota de `trade_create`).
+- **Provas (CI lido por mim, com `headSha`):** controle `53788b5` (só testes): **2 falhas e 1403 passaram** (config e 429; DELETE e "por usuário" já passavam sem throttle, só a mutação os prova). Final `35c621e`: **1406 passaram**. **Mutações do coordenador** (um PR rascunho cada, #288 a #293, fechados, branches apagadas; todas passaram ruff e format e falharam em teste, pelos nomes): (1) sem `throttle_classes`: `test_bloquear_leva_429_na_31a_tentativa_por_minuto`; (2) throttle em todo método: `test_desbloquear_nao_gasta_nem_sofre_o_limite`; (4) taxa 31/min: `test_o_escopo_de_bloquear_tem_taxa_configurada` e a da 31ª; (5) `get_throttles` vazio: a da 31ª; **(3) escopo `trade_create` SOBREVIVEU** (1405 passaram: `trade_create` também é 30/min e o teste de config só lê o settings, sem ligar a view ao escopo). Corrigido com `test_o_balde_de_bloquear_e_proprio_e_nao_gasta_a_cota_de_criar_troca`; mutação 3b sobre ele (#293): falhou nesse teste, 1 falha e 1405 passaram.
+- **Desvio:** minha previsão da tabela de mutações dizia que a 3 cairia na config; estava errada (config não prende a view). A mutação 1 foi escrita como `[ScopedRateThrottle][:0]` porque apagar a linha deixava o import sem uso e o ruff barraria (não provaria nada).
+- **Não verificado:** nada rodou fora do CI; o cache do throttle é por processo (LocMem em teste, banco em produção), nada medido com vários processos; o valor 30/min é hipótese; 404 de usuário inexistente gasta cota (o throttle roda antes da view), por desenho.
+- **Aberto:** `DELETE` do bloqueio e `remove_friend` sem throttle; registrar a exceção do bloqueio nos dois sentidos (`SEGURANCA.md`, docstring de `blocked_by`); 400 de `friends/views.py:51` sem `code`; expiração de ofertas; validação no PC do dono (`migrate marketplace` com dados e uma compra de ponta a ponta).
+
 ### 2026-11-27 — Sessão 45 (equipe: PR 5, M1 com (b) e (c), e PR 6, erros do DRF)
 
 - **Modo:** equipe de 2 workers (`implementador`), plan mode, worktrees próprios, escopos disjuntos (`worktree.sh conflicts` sem sobreposição). Decisões do dono: cancelar as pendentes do par na mesma transação (gancho, sem `friends` importar `trades`); só o **bloqueio** esconde as ofertas; teto de **3 pendentes por par** (hipótese); `EXCEPTION_HANDLER` global.

@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
@@ -134,7 +135,17 @@ class BlockView(APIView):
     """Bloquear (POST) e desbloquear (DELETE). Só o bloqueador desbloqueia."""
 
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "friend_block"
     http_method_names = ["post", "delete", "options"]
+
+    def get_throttles(self) -> list[BaseThrottle]:
+        """Só o POST gasta a cota: bloquear cancela as ofertas do par (escrita com trava).
+
+        `ScopedRateThrottle` vale para a view inteira; sem esta troca, desbloquear gastaria a
+        cota de bloquear.
+        """
+        return super().get_throttles() if self.request.method == "POST" else []
 
     def post(self, request: Request, username: str) -> Response:
         try:
