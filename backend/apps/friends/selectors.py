@@ -34,7 +34,7 @@ def pair_is_blocked(a_field: str, b_field: str) -> Exists:
     aqui, em `friends`, e quem consome não compara status de amizade. Só o bloqueio esconde; um
     ex-amigo (sem linha) e um pedido pendente não.
     """
-    bloqueios = Friendship.objects.filter(status=FriendshipStatus.BLOCKED).filter(
+    bloqueios = Friendship.objects.exclude(status=FriendshipStatus.ACCEPTED).filter(
         Q(requester=OuterRef(a_field), addressee=OuterRef(b_field))
         | Q(requester=OuterRef(b_field), addressee=OuterRef(a_field))
     )
