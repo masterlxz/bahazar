@@ -50,7 +50,7 @@ class ReceivedRequestsView(APIView):
         username = dados.get("username") if hasattr(dados, "get") else None
         if not isinstance(username, str) or not 0 < len(username.strip()) <= _USERNAME_MAX:
             return Response(
-                {"code": "invalid_username", "message": "Informe o nome de usuário."},
+                {"code": "invalid_body", "message": "Informe o nome de usuário."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
