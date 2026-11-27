@@ -11,6 +11,7 @@ describe("SkinCard: placeholder por raridade", () => {
     weapon: "AK-47",
     rarity: "Classified" as const,
     collection: "Phoenix",
+    reference_price: 2575,
     image_url: null,
     image_source: "none" as const,
   };
