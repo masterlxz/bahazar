@@ -360,8 +360,6 @@ def buy_listing(
         if anuncio.status != ListingStatus.ACTIVE:
             raise ListingNotActive
         # O comprador é o ator: a resposta só fala dele.
-        if buyer.pk not in ativos:
-            raise PlayerUnavailable
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable
