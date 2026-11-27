@@ -525,6 +525,69 @@ def test_aceitar_e_bloquear_ao_mesmo_tempo_nunca_deixam_troca_depois_do_bloqueio
         assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.id, cena.bruno.id)
 
 
+# --- expiração (`expire_offer`) x os outros caminhos ---------------------------------------------
+
+
+def test_expirar_espera_a_linha_da_oferta_e_nao_regrava_a_que_acabou_de_ser_cancelada(
+    cena: SimpleNamespace,
+) -> None:
+    """A vizinha segura a LINHA DA OFERTA e a cancela; `expire_offer` chegava e esperava.
+
+    Ele tem de travar a oferta (`select_for_update`) e reler `status='pending'` depois da espera:
+    a oferta já `cancelled` sai do filtro, devolve `False` e o `resolved_at` fica o da vizinha.
+    Mutações: tirar o `select_for_update()` (a operação não esperaria: `esperou` falso) ou o
+    filtro de status sob a trava (ela regravaria `expired` por cima de `cancelled`).
+    """
+    oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+    fim_da_vizinha: list[Any] = []
+
+    def cancelar() -> None:
+        fim_da_vizinha.append(services.cancel_offer(cena.ana, oferta.id).resolved_at)
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_linha_da_oferta(oferta),
+        depois=cancelar,
+        operacao=lambda: services.expire_offer(oferta.id),
+    )
+
+    assert esperou, "a expiração não esperou a trava da oferta"
+    assert resultado is False
+    atual = TradeOffer.objects.get(pk=oferta.pk)
+    assert (atual.status, atual.resolved_at) == ("cancelled", fim_da_vizinha[0])
+    assert not TradeOfferItem.objects.filter(offer=oferta, active=True).exists()
+
+
+def test_aceitar_e_expirar_ao_mesmo_tempo_terminam_com_um_so_estado_coerente(
+    cena: SimpleNamespace,
+) -> None:
+    """Corrida pura (a disputa acima prova a trava): o fim é coerente e não há deadlock.
+
+    Ou o aceite vence (`accepted`, donos trocados) e a expiração devolve `False`; ou a expiração
+    vence (`expired`, donos onde estavam) e o aceite falha com `OfferNotPending`. Nunca sobra
+    item ativo. Uma exceção que não seja `TradeError` (deadlock) propagaria e falharia o teste.
+    """
+    oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+
+    aceite, expirou = _largar(
+        [
+            lambda: services.accept_offer(cena.bruno, oferta.id),
+            lambda: services.expire_offer(oferta.id),
+        ]
+    )
+
+    atual = TradeOffer.objects.get(pk=oferta.pk)
+    assert not TradeOfferItem.objects.filter(active=True).exists()
+    if type(aceite) is TradeOffer:
+        assert expirou is False
+        assert atual.status == "accepted"
+        assert (_dono(cena.a1), _dono(cena.b1)) == (cena.bruno.id, cena.ana.id)
+    else:
+        assert type(aceite) is services.OfferNotPending
+        assert expirou is True
+        assert atual.status == "expired"
+        assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.id, cena.bruno.id)
+
+
 # --- revalidação SOB trava (caracterização: o código já faz isto) --------------------------------
 
 

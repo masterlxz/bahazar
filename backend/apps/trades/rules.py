@@ -12,10 +12,12 @@ PENDING = "pending"
 ACCEPTED = "accepted"
 DECLINED = "declined"
 CANCELLED = "cancelled"
+EXPIRED = "expired"
 
 ACCEPT = "accept"
 DECLINE = "decline"
 CANCEL = "cancel"
+EXPIRE = "expire"
 
 # Problemas de forma da oferta e de estado de cada item (o serviço traduz em erros com `code`).
 SELF_TRADE = "self_trade"
@@ -38,7 +40,7 @@ MAX_PENDING_PER_PROPOSER = 20
 PENDING_PER_PAIR_LIMIT = 3
 
 # O estado terminal que cada ação produz.
-_STATUS_AFTER = {ACCEPT: ACCEPTED, DECLINE: DECLINED, CANCEL: CANCELLED}
+_STATUS_AFTER = {ACCEPT: ACCEPTED, DECLINE: DECLINED, CANCEL: CANCELLED, EXPIRE: EXPIRED}
 
 
 def offer_shape_problem(

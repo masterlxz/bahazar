@@ -101,7 +101,7 @@ def test_banco_recusa_auto_oferta(cena: SimpleNamespace) -> None:
 def test_banco_recusa_estado_desconhecido(cena: SimpleNamespace) -> None:
     with pytest.raises(IntegrityError, match="tradeoffer_status_valid"):
         with transaction.atomic():
-            _oferta(cena, status="expired", resolved_at=datetime.now(UTC))
+            _oferta(cena, status="archived", resolved_at=datetime.now(UTC))
 
 
 def test_banco_recusa_lado_desconhecido(cena: SimpleNamespace) -> None:
@@ -119,8 +119,15 @@ def test_banco_recusa_lado_desconhecido(cena: SimpleNamespace) -> None:
         ("accepted", None),
         ("declined", None),
         ("cancelled", None),
+        ("expired", None),
     ],
-    ids=["pendente com data de fim", "aceita sem data", "recusada sem data", "cancelada sem data"],
+    ids=[
+        "pendente com data de fim",
+        "aceita sem data",
+        "recusada sem data",
+        "cancelada sem data",
+        "expirada sem data",
+    ],
 )
 def test_banco_exige_data_de_fim_so_nas_ofertas_resolvidas(
     cena: SimpleNamespace, status: str, resolved_at: datetime | None
@@ -130,7 +137,7 @@ def test_banco_exige_data_de_fim_so_nas_ofertas_resolvidas(
             _oferta(cena, status=status, resolved_at=resolved_at)
 
 
-@pytest.mark.parametrize("status", ["accepted", "declined", "cancelled"])
+@pytest.mark.parametrize("status", ["accepted", "declined", "cancelled", "expired"])
 def test_banco_aceita_oferta_resolvida_com_data_de_fim(cena: SimpleNamespace, status: str) -> None:
     oferta = _oferta(cena, status=status, resolved_at=datetime(2026, 11, 25, 12, 0, tzinfo=UTC))
 
