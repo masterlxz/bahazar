@@ -328,11 +328,7 @@ def expire_offer(offer_id: uuid.UUID) -> bool:
     filtro e não é regravada.
     """
     with transaction.atomic():
-        oferta = (
-            TradeOffer.objects.select_for_update()
-            .filter(pk=offer_id, status=TradeStatus.PENDING)
-            .first()
-        )
+        oferta = TradeOffer.objects.select_for_update().filter(pk=offer_id).first()
         if oferta is None:
             return False
         _encerrar(oferta, rules.EXPIRE)
