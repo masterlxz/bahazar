@@ -24,6 +24,7 @@ from django.test.utils import CaptureQueriesContext
 from apps.accounts.models import User
 from apps.economy import services as economy
 from apps.economy.models import Wallet
+from apps.friends import services as friends
 from apps.marketplace import services as market
 from apps.trades import services as trades
 
@@ -135,6 +136,17 @@ def _cancelar_oferta(cena: SimpleNamespace) -> Callable[[], Any]:
     return lambda: trades.cancel_offer(cena.ana, oferta.pk)
 
 
+def _bloquear_com_oferta_pendente(cena: SimpleNamespace) -> Callable[[], Any]:
+    """`friends.block` trava os jogadores e, pelo gancho, a oferta pendente do par."""
+    _oferta(cena)
+    return lambda: friends.block(cena.ana, cena.bruno.username)
+
+
+def _desfazer_amizade_com_oferta_pendente(cena: SimpleNamespace) -> Callable[[], Any]:
+    _oferta(cena)
+    return lambda: friends.remove_friend(cena.ana, cena.bruno.username)
+
+
 def _criar_anuncio(cena: SimpleNamespace) -> Callable[[], Any]:
     chave = str(uuid.uuid4())
     return lambda: market.create_listing(cena.ana, cena.a1.pk, 1000, idempotency_key=chave)
@@ -168,6 +180,12 @@ CASOS: list[tuple[str, Callable[[SimpleNamespace], Callable[[], Any]], list[str]
     ("aceitar oferta de troca", _aceitar_oferta, [USUARIO, OFERTA, INSTANCIA]),
     ("recusar oferta de troca", _recusar_oferta, [OFERTA]),
     ("cancelar oferta de troca", _cancelar_oferta, [OFERTA]),
+    ("bloquear jogador com oferta pendente", _bloquear_com_oferta_pendente, [USUARIO, OFERTA]),
+    (
+        "desfazer amizade com oferta pendente",
+        _desfazer_amizade_com_oferta_pendente,
+        [USUARIO, OFERTA],
+    ),
     ("criar anúncio", _criar_anuncio, [USUARIO, INSTANCIA]),
     ("cancelar anúncio", _cancelar_anuncio, [ANUNCIO]),
     ("comprar anúncio", _comprar_anuncio, [USUARIO, ANUNCIO, INSTANCIA, CARTEIRA]),
@@ -198,6 +216,8 @@ def test_cada_operacao_trava_na_ordem_global(
 _COM_VARIAS_LINHAS = (
     "criar oferta de troca",
     "aceitar oferta de troca",
+    "bloquear jogador com oferta pendente",
+    "desfazer amizade com oferta pendente",
     "comprar anúncio",
     "lançar no ledger",
 )
@@ -215,3 +235,23 @@ def test_a_trava_de_varios_jogadores_ou_carteiras_sai_ordenada_por_id(
     assert de_varias_linhas, nome
     for tabela, sql in de_varias_linhas:
         assert f'ORDER BY "{tabela}"."id"' in sql, (nome, sql)
+
+
+@pytest.mark.parametrize(
+    "nome", ["bloquear jogador com oferta pendente", "desfazer amizade com oferta pendente"]
+)
+def test_o_gancho_do_par_trava_so_as_ofertas_pendentes_do_par_em_ordem_de_id(
+    cena: SimpleNamespace, nome: str
+) -> None:
+    """O gancho pega VÁRIAS ofertas de uma vez: sem `ORDER BY`, duas operações do mesmo par
+    (bloquear e outra que trave ofertas) poderiam esperar em ordem oposta. Só `pending` entra:
+    travar a oferta resolvida bloquearia à toa quem a está lendo."""
+    montar = next(m for n, m, _ in CASOS if n == nome)
+
+    consultas = consultas_travadas(montar(cena))
+
+    ofertas = [sql for tabela, sql in consultas if tabela == OFERTA]
+    assert len(ofertas) == 1, nome
+    assert 'ORDER BY "trades_tradeoffer"."id"' in ofertas[0], ofertas[0]
+    filtro = ofertas[0].split(" WHERE ", 1)[1]  # depois do SELECT, que lista todas as colunas
+    assert '"trades_tradeoffer"."status"' in filtro, ofertas[0]
