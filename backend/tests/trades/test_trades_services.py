@@ -393,14 +393,24 @@ def test_aceite_depois_de_desfeita_a_amizade_e_recusado_e_nada_muda_de_dono(
     assert oferta.resolved_at is None
 
 
-def test_aceite_depois_de_bloqueio_e_recusado(cena: SimpleNamespace) -> None:
+def test_aceite_depois_de_bloqueio_e_recusado_como_oferta_inexistente(
+    cena: SimpleNamespace,
+) -> None:
+    """Bloqueio gravado por fora do serviço (a oferta segue pendente): ela já não é visível.
+
+    Antes, o aceite chegava a `NotFriends`; agora o par bloqueado não enxerga a oferta (404,
+    `OfferNotFound`), igual a uma oferta que não existe. O `NotFriends` do aceite continua
+    valendo para o ex-amigo sem bloqueio (teste acima).
+    """
     oferta = _oferecer(cena.ana, cena.bruno, [cena.a1], [cena.b1])
     Friendship.objects.update(requester=cena.bruno, addressee=cena.ana, status="blocked")
 
-    with pytest.raises(services.NotFriends):
+    with pytest.raises(services.OfferNotFound):
         services.accept_offer(cena.bruno, oferta.id)
 
     assert _donos(cena.a1, cena.b1) == [cena.ana.id, cena.bruno.id]
+    oferta.refresh_from_db()
+    assert oferta.status == "pending"
 
 
 @pytest.mark.parametrize("quem_mudou", ["oferecido", "pedido"])
