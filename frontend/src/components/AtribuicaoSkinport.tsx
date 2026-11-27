@@ -6,7 +6,7 @@ export function AtribuicaoSkinport() {
       <a
         href="https://skinport.com"
         target="_blank"
-        rel="noopener noreferrer"
+        rel="noopener"
         className="underline"
       >
         Skinport
