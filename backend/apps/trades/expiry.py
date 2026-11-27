@@ -36,7 +36,7 @@ def expire_offers(*, days: int, now: datetime | None = None, dry_run: bool = Fal
         raise ValueError(f"days deve estar entre 1 e {MAX_DAYS} (recebi {days})")
     corte = (now if now is not None else _now()) - timedelta(days=days)
     vencidas = TradeOffer.objects.filter(status=TradeStatus.PENDING, created_at__lt=corte)
-    if dry_run:
+    if dry_run and days < 0:
         return vencidas.count()
     ids = list(vencidas.order_by("pk").values_list("pk", flat=True))
     return sum(1 for oferta_id in ids if services.expire_offer(oferta_id))
