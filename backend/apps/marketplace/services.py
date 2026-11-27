@@ -346,14 +346,12 @@ def buy_listing(
 
     def operar() -> tuple[int, dict[str, Any]]:
         _travar_jogadores(buyer.pk, vendedor.pk)
+        _exigir_ativos(buyer.pk, vendedor.pk)
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
         if anuncio.status != ListingStatus.ACTIVE:
             raise ListingNotActive
-        # Depois do estado do anúncio: um anúncio já vendido ou cancelado dá o mesmo erro de
-        # sempre, ainda que o vendedor esteja desativado. Antes de mexer em instância e ledger.
-        _exigir_ativos(buyer.pk, vendedor.pk)
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable
