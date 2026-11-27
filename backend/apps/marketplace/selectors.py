@@ -14,9 +14,14 @@ def _vendaveis() -> QuerySet[MarketListing]:
     Um `UPDATE` direto, o admin ou um trade-up que consome o item não passa pela guarda de
     movimento: o anúncio seguiria `active` no banco com um item que já não pode ser vendido. A
     vitrine esconde esse caso em vez de mostrá-lo; a compra (4.4) revalida sob trava mesmo assim.
+
+    O vendedor desativado (`is_active=False`, J4) também some: o anúncio dele nunca poderia ser
+    comprado, e a compra dá o mesmo 404 de anúncio inexistente, para ninguém distinguir uma conta
+    desativada de um anúncio que não existe. É o ponto único da vitrine e do detalhe.
     """
     return MarketListing.objects.filter(
         status=ListingStatus.ACTIVE,
+        seller__is_active=True,
         instance__consumed_at__isnull=True,
         instance__owner_id=F("seller_id"),
     )

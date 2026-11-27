@@ -238,8 +238,8 @@ class ListingUnavailable(MarketError):
 
 
 class PlayerUnavailable(MarketError):
-    """Comprador ou vendedor está desativado (`is_active=False`). Genérico de propósito: não diz
-    o motivo nem quem é."""
+    """O COMPRADOR está desativado (`is_active=False`). Genérico de propósito: não diz o motivo.
+    O vendedor desativado não usa este erro: o anúncio dele conta como fechado."""
 
     code = "player_unavailable"
     message = "Este jogador não está disponível."
@@ -288,14 +288,13 @@ def _travar_jogadores(*ids: uuid.UUID) -> None:
     list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
 
 
-def _exigir_ativos(*ids: uuid.UUID) -> None:
-    """`PlayerUnavailable` se algum dos jogadores está desativado (`is_active=False`).
+def _ativos(*ids: uuid.UUID) -> set[uuid.UUID]:
+    """Os ids, entre os jogadores dados, que NÃO estão desativados (`is_active=True`).
 
     Chamar logo depois de `_travar_jogadores`, dentro da transação: lê o banco (e não o objeto em
     memória, que pode estar velho) com as linhas já travadas.
     """
-    if User.objects.filter(pk__in=ids, is_active=True).count() != len(set(ids)):
-        raise PlayerUnavailable
+    return set(User.objects.filter(pk__in=ids, is_active=True).values_list("pk", flat=True))
 
 
 def buy_listing(
@@ -324,10 +323,14 @@ def buy_listing(
     confere o estado (ativo, dono, consumo), porque a leitura anterior pode estar velha. O dono
     muda antes do lançamento no ledger para que a instância fique travada antes das carteiras.
 
+    Vendedor desativado (`is_active=False`, J4): `ListingNotActive`, a mesma resposta de um
+    anúncio fechado (a vitrine e o detalhe o escondem). Comprador desativado: `PlayerUnavailable`.
+    A leitura é do banco, depois de travar os jogadores.
+
     Erros: `InvalidIdempotencyKey`, `ListingNotFound`, `CannotBuyOwnListing`, `ListingNotActive`,
-    `ListingUnavailable`, `InsufficientFunds` e `IdempotencyKeyReused`. Qualquer erro do
-    `inventory` na troca de dono, e um preço fora do limite gravado direto no banco, viram
-    `ListingUnavailable`: o item não pode ser vendido, e nada além disso é revelado.
+    `PlayerUnavailable`, `ListingUnavailable`, `InsufficientFunds` e `IdempotencyKeyReused`.
+    Qualquer erro do `inventory` na troca de dono, e um preço fora do limite gravado direto no
+    banco, viram `ListingUnavailable`: o item não pode ser vendido, e nada além disso é revelado.
     """
     try:
         chave = normalize_idempotency_key(idempotency_key)
@@ -346,14 +349,18 @@ def buy_listing(
 
     def operar() -> tuple[int, dict[str, Any]]:
         _travar_jogadores(buyer.pk, vendedor.pk)
+        ativos = _ativos(buyer.pk, vendedor.pk)
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
-        if anuncio.status != ListingStatus.ACTIVE:
+        # Vendedor desativado conta como anúncio FECHADO: o mesmo `ListingNotActive` de um
+        # vendido ou cancelado, em qualquer estado. Quem raspou a vitrine só pode pedir a compra
+        # de um `id` visto, e a resposta não pode distinguir "fechado" de "conta desativada".
+        if anuncio.status != ListingStatus.ACTIVE or vendedor.pk not in ativos:
             raise ListingNotActive
-        # Depois do estado do anúncio: um anúncio já vendido ou cancelado dá o mesmo erro de
-        # sempre, ainda que o vendedor esteja desativado. Antes de mexer em instância e ledger.
-        _exigir_ativos(buyer.pk, vendedor.pk)
+        # O comprador é o ator: a resposta só fala dele.
+        if buyer.pk not in ativos:
+            raise PlayerUnavailable
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable
