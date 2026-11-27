@@ -356,11 +356,10 @@ def buy_listing(
         # Vendedor desativado conta como anúncio FECHADO: o mesmo `ListingNotActive` de um
         # vendido ou cancelado, em qualquer estado. Quem raspou a vitrine só pode pedir a compra
         # de um `id` visto, e a resposta não pode distinguir "fechado" de "conta desativada".
-        if anuncio.status != ListingStatus.ACTIVE or vendedor.pk not in ativos:
-            raise ListingNotActive
-        # O comprador é o ator: a resposta só fala dele.
         if buyer.pk not in ativos:
             raise PlayerUnavailable
+        if anuncio.status != ListingStatus.ACTIVE or vendedor.pk not in ativos:
+            raise ListingNotActive
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable
