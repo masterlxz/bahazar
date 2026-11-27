@@ -1,3 +1,4 @@
+import { AtribuicaoSkinport } from "../../../components/AtribuicaoSkinport";
 import { formatUsd } from "../../../lib/money";
 import type { CatalogSkin } from "../../../types/api";
 
@@ -44,6 +45,7 @@ export function SkinCard({ skin }: SkinCardProps) {
       {skin.collection && (
         <span className="text-xs text-muted-foreground truncate">{skin.collection}</span>
       )}
+      <AtribuicaoSkinport />
     </li>
   );
 }

@@ -70,7 +70,7 @@ export default function SkinsPage() {
               ))}
             </ul>
           )}
-          {skins.data.results.length > 0 && <AtribuicaoSkinport />}
+          {skins.data.results.length < 0 && <AtribuicaoSkinport />}
           <Pagination
             dados={skins.data}
             pagina={pagina}
