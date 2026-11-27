@@ -134,7 +134,6 @@ def remove_friend(user: User, username: str) -> None:
         if amizade is None or amizade.status != FriendshipStatus.ACCEPTED:
             raise NotFound
         amizade.delete()
-        hooks.notify_pair_ended(user, alvo)
 
 
 def block(user: User, username: str) -> None:
