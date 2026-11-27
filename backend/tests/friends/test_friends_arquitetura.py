@@ -36,6 +36,23 @@ def test_friends_nao_importa_outros_apps_de_jogo() -> None:
     assert achados == []
 
 
+def test_friends_nao_importa_trades_nem_inventory() -> None:
+    """`trades` importa `friends` (para `can_view`): o caminho inverso fecharia um ciclo.
+
+    Quem precisa reagir ao fim de um par registra um gancho em `friends.hooks`; é assim que
+    `trades` cancela as ofertas pendentes sem que `friends` o conheça.
+    """
+    achados = [
+        f"{arquivo.name}: {linha.strip()}"
+        for arquivo in APP.glob("*.py")
+        for linha in arquivo.read_text().splitlines()
+        if linha.lstrip().startswith(("import ", "from "))
+        and any(p in linha for p in ("apps.trades", "apps.inventory"))
+    ]
+
+    assert achados == []
+
+
 def test_a_regra_de_visibilidade_so_e_decidida_em_rules() -> None:
     """Nenhuma view compara status de amizade: elas chamam `selectors.can_view`."""
     fonte = (APP / "views.py").read_text()

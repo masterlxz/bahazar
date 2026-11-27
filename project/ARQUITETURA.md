@@ -141,7 +141,7 @@ Corpo contém ids das instâncias **escolhidas pelo usuário** (entrada legítim
 - Paginação por cursor em listas grandes (extrato, vitrine); tamanho máximo fixo.
 
 ### Códigos de erro que o frontend precisa conhecer (trocas e mercado)
-Formato real hoje: `{code, message}` (sem `details`); a diária acrescenta `available_at`. Erros do DRF (JSON quebrado, `?page` inválida, 403 do CSRF, 405, 429) saem como `{detail}`: pendência (d) da A2. Lido do código em 2026-11-26 (`trades/views.py`, `trades/serializers.py`, `marketplace/views.py`, `marketplace/serializers.py`); se divergir, o código vale.
+Formato real hoje: `{code, message}` (sem `details`); a diária acrescenta `available_at`. Os erros **levantados no DRF** (JSON quebrado, `?page` inválida, 403 do CSRF, 405, 429, sem sessão, 406, 415, validação de serializer) saem como `{code, message}` pelo `EXCEPTION_HANDLER` global `apps/core/exceptions.py` (PR #267): `parse_error` 400, `not_found` 404, `method_not_allowed` 405, `throttled` 429, `permission_denied` 403 (inclui o CSRF), `not_authenticated` 403 (só há `SessionAuthentication`: o anônimo recebe 403, nunca 401), `not_acceptable` 406, `unsupported_media_type` 415, `invalid_request` 400 (sem o detalhamento por campo) e `error` para outra `APIException`. Ficam **fora** do handler: as `Response({code, message})` montadas nas views, o 400 de `friends/views.py:51` (`{"username": [...]}`, que ainda sai sem `code`) e os erros do allauth (`errors[].code`). Lido do código em 2026-11-26 (`trades/views.py`, `trades/serializers.py`, `marketplace/views.py`, `marketplace/serializers.py`); se divergir, o código vale.
 
 | Rota | `code` | HTTP |
 |---|---|---|
@@ -150,7 +150,7 @@ Formato real hoje: `{code, message}` (sem `details`); a diária acrescenta `avai
 | trocas e mercado (POST) | `idempotency_unavailable` (a chave expirou e voltou a colidir; nada executou) | 503 |
 | `POST /trades/` | `invalid_body`, `invalid_recipient`, `invalid_items`, `invalid_item_id`, `too_many_items` (corpo) | 400 |
 | `POST /trades/` e resolução | `self_trade`, `empty_side`, `duplicate_item`, `invalid_item_id`, `too_many_items` | 400 |
-| `POST /trades/` e resolução | `not_friends`, `item_not_owned`, `item_consumed`, `item_already_offered`, `too_many_pending_offers`, `offer_not_pending`, `item_locked` (item anunciado no mercado) | 409 |
+| `POST /trades/` e resolução | `not_friends`, `item_not_owned`, `item_consumed`, `item_already_offered`, `too_many_pending_offers`, `too_many_pending_for_recipient` (3 pendentes por proponente e destinatário, hipótese), `offer_not_pending`, `item_locked` (item anunciado no mercado) | 409 |
 | trocas | `offer_not_found` | 404 |
 | trocas | `not_allowed` | 403 |
 | `POST /listings/` | `invalid_body`, `invalid_price` (corpo) | 400 |

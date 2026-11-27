@@ -26,6 +26,7 @@ from django.db import connection, transaction
 
 from apps.accounts.models import User
 from apps.friends import services as friends_services
+from apps.friends.models import Friendship
 from apps.inventory import services as inventory_services
 from apps.inventory.models import SkinInstance
 from apps.trades import rules, services
@@ -234,6 +235,29 @@ def test_criacoes_simultaneas_do_mesmo_proponente_respeitam_o_teto_de_pendentes(
     assert TradeOffer.objects.filter(status="pending").count() == 2
 
 
+def test_criacoes_simultaneas_para_o_mesmo_destinatario_respeitam_o_teto_por_par(
+    cena: SimpleNamespace, skin: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Teto por par 2 com N pedidos juntos de ana para bruno: exatamente 2 entram.
+
+    Corrida pura (não prova a trava sozinha; a disputa determinística logo abaixo prova): a
+    contagem por par é lida com os jogadores travados, e é isso que impede dois pedidos de verem
+    "só 1 pendente para o bruno" ao mesmo tempo. O teto por proponente (20) fica longe.
+    """
+    monkeypatch.setattr("apps.trades.rules.PENDING_PER_PAIR_LIMIT", 2)
+    dar = [criar_instancia(cena.ana, skin) for _ in range(N)]
+    pedir = [criar_instancia(cena.bruno, skin) for _ in range(N)]
+
+    def propor(i: int) -> Callable[[], Any]:
+        return lambda: services.create_offer(cena.ana, cena.bruno, [dar[i].id], [pedir[i].id])
+
+    resultados = _largar([propor(i) for i in range(N)])
+
+    nomes = sorted(type(r).__name__ for r in resultados)
+    assert nomes == ["TooManyPendingForRecipient"] * (N - 2) + ["TradeOffer"] * 2
+    assert TradeOffer.objects.filter(status="pending").count() == 2
+
+
 # --- a criação revalida sob trava --------------------------------------------------------------
 
 
@@ -379,28 +403,126 @@ def test_trava_dos_jogadores_e_em_ordem_de_id(skin: Any, operacao: str) -> None:
     assert isinstance(resultado, TradeOffer)
 
 
-def test_aceite_espera_quem_segura_os_jogadores_e_depois_ve_a_amizade_desfeita(
-    cena: SimpleNamespace,
+@pytest.mark.parametrize("fim_do_par", ["desfazer a amizade", "bloquear"])
+def test_aceite_espera_quem_segura_os_jogadores_e_depois_ve_a_oferta_cancelada(
+    cena: SimpleNamespace, fim_do_par: str
 ) -> None:
-    """Aceitar x desfazer a amizade no mesmo par (`friends.services`), de forma determinística.
+    """Aceitar x acabar o par (`friends.services`), de forma determinística.
 
-    A vizinha segura os dois jogadores, desfaz a amizade e só então comita. O aceite tem de
-    ESPERAR na trava dos jogadores (provado pela fila do pid dele) e, ao acordar, ver a amizade
-    já desfeita: falha com `NotFriends` e nada muda de dono. Sem a trava dos jogadores o aceite
-    não esperaria, leria a amizade ainda viva e trocaria os itens.
+    A vizinha segura os dois jogadores, desfaz a amizade (ou bloqueia) e só então comita; o
+    serviço de `friends` cancela a oferta pendente na mesma transação. O aceite tem de ESPERAR na
+    trava dos jogadores (provado pela fila do pid dele) e, ao acordar, ver a oferta já
+    `cancelled`: falha com `OfferNotPending` e nada muda de dono. Sem a trava dos jogadores o
+    aceite não esperaria, leria a oferta ainda pendente e trocaria os itens; sem o cancelamento,
+    o aceite acordaria com a oferta pendente e falharia com `NotFriends` (item preso).
     """
     oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+    acabar = {
+        "desfazer a amizade": friends_services.remove_friend,
+        "bloquear": friends_services.block,
+    }[fim_do_par]
 
     esperou, resultado = _disputar(
         trava=lambda: _travar_usuarios(cena.ana, cena.bruno),
-        depois=lambda: friends_services.remove_friend(cena.ana, cena.bruno.username),
+        depois=lambda: acabar(cena.ana, cena.bruno.username),
         operacao=lambda: services.accept_offer(cena.bruno, oferta.id),
     )
 
     assert esperou, "o aceite não esperou a trava dos jogadores"
-    assert isinstance(resultado, services.NotFriends)
+    assert type(resultado) is services.OfferNotPending
     assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.id, cena.bruno.id)
-    assert TradeOffer.objects.get(pk=oferta.pk).status == "pending"
+    atual = TradeOffer.objects.get(pk=oferta.pk)
+    assert (atual.status, atual.resolved_at is not None) == ("cancelled", True)
+    assert not TradeOfferItem.objects.filter(offer=oferta, active=True).exists()
+
+
+def test_bloquear_espera_o_aceite_que_segura_os_jogadores_e_nao_toca_a_oferta_aceita(
+    cena: SimpleNamespace,
+) -> None:
+    """O outro lado da corrida: a vizinha segura os jogadores e ACEITA; o bloqueio esperava.
+
+    O bloqueio acorda com a oferta já `accepted` e só grava o bloqueio: a troca feita fica como
+    está (só `pending` é cancelada). Sem a trava dos jogadores em `friends.block`, ele não
+    esperaria.
+    """
+    oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+
+    esperou, _ = _disputar(
+        trava=lambda: _travar_usuarios(cena.ana, cena.bruno),
+        depois=lambda: services.accept_offer(cena.bruno, oferta.id),
+        operacao=lambda: friends_services.block(cena.ana, cena.bruno.username),
+    )
+
+    assert esperou, "o bloqueio não esperou a trava dos jogadores"
+    assert TradeOffer.objects.get(pk=oferta.pk).status == "accepted"
+    assert (_dono(cena.a1), _dono(cena.b1)) == (cena.bruno.id, cena.ana.id)
+    assert Friendship.objects.get().status == "blocked"
+
+
+def _travar_linha_da_oferta(oferta: Any) -> None:
+    list(TradeOffer.objects.select_for_update(no_key=True).filter(pk=oferta.pk))
+
+
+def test_bloquear_espera_a_linha_da_oferta_e_nao_regrava_a_que_acabou_de_ser_cancelada(
+    cena: SimpleNamespace,
+) -> None:
+    """A vizinha segura a LINHA DA OFERTA e a cancela; o bloqueio chegava ao gancho e esperava.
+
+    O gancho tem de travar a oferta (`select_for_update`) e reler `status='pending'` depois da
+    espera: a oferta já `cancelled` sai do filtro e o `resolved_at` fica o da vizinha. Mutação
+    que derruba este teste: tirar o `select_for_update()` do gancho. Ele leria a oferta ainda
+    `pending` sem esperar (`esperou` falso) e regravaria `resolved_at` mais tarde.
+    """
+    oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+    fim_da_vizinha: list[Any] = []
+
+    def cancelar() -> None:
+        fim_da_vizinha.append(services.cancel_offer(cena.ana, oferta.id).resolved_at)
+
+    esperou, _ = _disputar(
+        trava=lambda: _travar_linha_da_oferta(oferta),
+        depois=cancelar,
+        operacao=lambda: friends_services.block(cena.ana, cena.bruno.username),
+    )
+
+    assert esperou, "o bloqueio não esperou a trava da oferta"
+    atual = TradeOffer.objects.get(pk=oferta.pk)
+    assert atual.status == "cancelled"
+    assert atual.resolved_at == fim_da_vizinha[0]
+    assert Friendship.objects.get().status == "blocked"
+
+
+def test_aceitar_e_bloquear_ao_mesmo_tempo_nunca_deixam_troca_depois_do_bloqueio(
+    cena: SimpleNamespace,
+) -> None:
+    """Corrida pura (não prova a trava sozinha; as disputas acima provam): o fim é coerente.
+
+    Ou o aceite vence (oferta `accepted`, itens trocados) e o bloqueio vem depois; ou o bloqueio
+    vence (oferta `cancelled`, itens onde estavam) e o aceite falha. Nunca sobra oferta pendente,
+    item preso, nem aceite concluído com a oferta cancelada. Sem deadlock: uma exceção que não
+    seja `TradeError` propagaria e falharia o teste.
+    """
+    oferta = services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id])
+
+    resultados = _largar(
+        [
+            lambda: services.accept_offer(cena.bruno, oferta.id),
+            lambda: friends_services.block(cena.ana, cena.bruno.username),
+        ]
+    )
+
+    aceite = resultados[0]
+    atual = TradeOffer.objects.get(pk=oferta.pk)
+    assert Friendship.objects.get().status == "blocked"
+    assert not TradeOfferItem.objects.filter(active=True).exists()
+    if type(aceite) is TradeOffer:
+        assert atual.status == "accepted"
+        assert (_dono(cena.a1), _dono(cena.b1)) == (cena.bruno.id, cena.ana.id)
+    else:
+        # o bloqueio já estava visível: 404 (oferta escondida) ou 409 (já cancelada)
+        assert type(aceite).__name__ in ("OfferNotFound", "OfferNotPending")
+        assert atual.status == "cancelled"
+        assert (_dono(cena.a1), _dono(cena.b1)) == (cena.ana.id, cena.bruno.id)
 
 
 # --- revalidação SOB trava (caracterização: o código já faz isto) --------------------------------
@@ -481,6 +603,32 @@ def test_criar_confere_o_teto_de_pendentes_sob_a_trava_dos_jogadores(
 
     assert esperou, "a criação não esperou a trava dos jogadores"
     assert type(resultado) is services.TooManyPendingOffers
+    assert TradeOffer.objects.count() == 1
+
+
+def test_criar_confere_o_teto_por_par_sob_a_trava_dos_jogadores(
+    cena: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A vizinha segura os jogadores e abre a 1a oferta de ana para bruno (teto por par 1).
+
+    Mutação que derruba este teste: mover `selectors.pending_count_between` para ANTES de
+    `_travar_jogadores` em `create_offer`. A criação contaria 0 pendentes, esperaria a trava e
+    gravaria a oferta em vez de falhar com `TooManyPendingForRecipient`. O teto por proponente
+    (20) fica longe: quem recusa aqui é o teto do par.
+    """
+    monkeypatch.setattr("apps.trades.rules.PENDING_PER_PAIR_LIMIT", 1)
+
+    def abrir_outra() -> None:
+        services.create_offer(cena.ana, cena.bruno, [cena.a2.id], [cena.b2.id])
+
+    esperou, resultado = _disputar(
+        trava=lambda: _travar_usuarios(cena.ana, cena.bruno),
+        depois=abrir_outra,
+        operacao=lambda: services.create_offer(cena.ana, cena.bruno, [cena.a1.id], [cena.b1.id]),
+    )
+
+    assert esperou, "a criação não esperou a trava dos jogadores"
+    assert type(resultado).__name__ == "TooManyPendingForRecipient"
     assert TradeOffer.objects.count() == 1
 
 

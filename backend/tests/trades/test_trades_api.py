@@ -718,7 +718,12 @@ def test_item_em_outra_oferta_pendente_da_409_item_already_offered(
     assert TradeOffer.objects.count() == 1
 
 
-def test_o_teto_de_ofertas_pendentes_da_409(cena: SimpleNamespace) -> None:
+def test_o_teto_de_ofertas_pendentes_da_409(
+    cena: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Teto por proponente 2 (não os 20 de verdade): com o teto por par (3), 20 ofertas de ana
+    para o mesmo bruno nem chegariam lá. O teto de 20 em si está em `test_rules.py`."""
+    monkeypatch.setattr(rules, "MAX_PENDING_PER_PROPOSER", 2)
     ana = _logado(cena.ana)
     for i in range(rules.MAX_PENDING_PER_PROPOSER):
         dela = criar_instancia(cena.ana, criar_skin(f"pa-{i}"))
@@ -941,13 +946,16 @@ def test_o_numero_de_queries_da_lista_nao_cresce_com_o_numero_de_ofertas(
     cena: SimpleNamespace,
 ) -> None:
     ana = _logado(cena.ana)
+    tornar_amigos(cena.ana, cena.carla)  # o teto por par (3) pede mais de um destinatário
     _a1_por_b1(cena)
     com_uma = _consultas(ana, TRADES_URL)
 
     for i in range(5):
+        # 1 + 2 para o bruno (3, o teto do par) e 3 para a carla
+        para = cena.bruno if i < 2 else cena.carla
         dela = criar_instancia(cena.ana, criar_skin(f"la-{i}"))
-        dele = criar_instancia(cena.bruno, criar_skin(f"lb-{i}"))
-        _criada(ana, _corpo("bruno_02", [dela], [dele]))
+        dele = criar_instancia(para, criar_skin(f"lb-{i}"))
+        _criada(ana, _corpo(para.username, [dela], [dele]))
 
     assert _consultas(ana, TRADES_URL) == com_uma
 

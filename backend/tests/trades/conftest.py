@@ -64,6 +64,22 @@ def criar_instancia(
     )
 
 
+def criar_ofertas(de: Any, para: Any, quantas: int, skin: Any) -> list[Any]:
+    """`quantas` ofertas pendentes de `de` para `para`, cada uma com itens NOVOS (um de cada lado).
+
+    Os itens novos evitam `ItemAlreadyOffered` e deixam o `cena` (a1, a2, b1, b2, c1) livre. O
+    serviço é o de verdade: respeita amizade e tetos, então `de` e `para` precisam ser amigos.
+    """
+    from apps.trades import services
+
+    return [
+        services.create_offer(
+            de, para, [criar_instancia(de, skin).id], [criar_instancia(para, skin).id]
+        )
+        for _ in range(quantas)
+    ]
+
+
 @pytest.fixture
 def skin() -> Any:
     return criar_skin()

@@ -31,6 +31,12 @@ TOO_MANY_ITEMS = "too_many_items"
 MAX_ITEMS_PER_SIDE = 20
 MAX_PENDING_PER_PROPOSER = 20
 
+# Teto HIPÓTESE do dono (2026-11-27), sem fonte no projeto: quantas ofertas pendentes o MESMO
+# proponente pode ter para o MESMO destinatário (por sentido: bruno->ana tem a cota própria). Sem
+# ele, um amigo reservava itens de outro com até `MAX_PENDING_PER_PROPOSER` ofertas. Mudar aqui
+# muda a regra.
+PENDING_PER_PAIR_LIMIT = 3
+
 # O estado terminal que cada ação produz.
 _STATUS_AFTER = {ACCEPT: ACCEPTED, DECLINE: DECLINED, CANCEL: CANCELLED}
 
@@ -79,6 +85,11 @@ def item_problem(
 def pending_limit_exceeded(pending: int) -> bool:
     """Quem já tem `MAX_PENDING_PER_PROPOSER` ofertas pendentes não abre a próxima."""
     return pending >= MAX_PENDING_PER_PROPOSER
+
+
+def pending_pair_limit_exceeded(pending: int) -> bool:
+    """Quem já tem `PENDING_PER_PAIR_LIMIT` pendentes para o mesmo destinatário não abre outra."""
+    return pending >= PENDING_PER_PAIR_LIMIT
 
 
 def can_resolve(status: str) -> bool:
