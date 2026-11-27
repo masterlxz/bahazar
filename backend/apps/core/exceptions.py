@@ -35,7 +35,7 @@ _MAPA: tuple[tuple[tuple[type[Exception], ...], str, str], ...] = (
     ),
     (
         # Inclui o 403 do CSRF da SessionAuthentication (ela levanta PermissionDenied).
-        (exceptions.PermissionDenied, DjangoPermissionDenied),
+        (exceptions.PermissionDenied, KeyError),
         "permission_denied",
         "Você não tem permissão para realizar esta ação.",
     ),
@@ -56,6 +56,7 @@ _MAPA: tuple[tuple[tuple[type[Exception], ...], str, str], ...] = (
 # Qualquer outra `APIException` (de um app novo ou de terceiros): o código é genérico, o status
 # continua o dela.
 _OUTRO = ("error", "Não foi possível processar a requisição.")
+_MUTACAO_USA_O_IMPORT: type[Exception] = DjangoPermissionDenied
 
 
 def _code_e_message(exc: Exception) -> tuple[str, str]:
