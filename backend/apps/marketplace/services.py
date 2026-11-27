@@ -348,8 +348,8 @@ def buy_listing(
     origem, destino, sistema = ensure_wallet(buyer), ensure_wallet(vendedor), get_system_wallet()
 
     def operar() -> tuple[int, dict[str, Any]]:
-        _travar_jogadores(buyer.pk, vendedor.pk)
         ativos = _ativos(buyer.pk, vendedor.pk)
+        _travar_jogadores(buyer.pk, vendedor.pk)
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
