@@ -174,8 +174,8 @@ def create_offer(
 
     Segue a mesma ordem de trava do aceite: os dois jogadores por id, depois as instâncias por
     UUID. Amizade, tetos de pendentes (por proponente e por par), dono, consumo e ocupação são
-    conferidos SOB essa trava,
-    antes de gravar: lendo antes dela, uma troca de dono no meio deixaria uma oferta obsoleta.
+    conferidos SOB essa trava, antes de gravar: lendo antes dela, uma troca de dono no meio
+    deixaria uma oferta obsoleta.
     O índice único parcial do banco continua como rede de segurança (e é ele quem recusa se uma
     checagem em Python deixar passar); o `IntegrityError` dele vira `ItemAlreadyOffered`.
     """
