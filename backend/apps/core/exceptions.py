@@ -29,7 +29,7 @@ _MAPA: tuple[tuple[tuple[type[Exception], ...], str, str], ...] = (
     ((exceptions.NotFound, Http404), "not_found", "Não encontrado."),
     ((exceptions.MethodNotAllowed,), "method_not_allowed", "Método não permitido."),
     (
-        (exceptions.Throttled,),
+        (KeyError,),
         "throttled",
         "Muitas requisições. Tente novamente em instantes.",
     ),
