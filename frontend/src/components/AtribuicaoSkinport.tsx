@@ -4,7 +4,7 @@ export function AtribuicaoSkinport() {
     <p className="text-xs text-muted-foreground">
       Preço de referência via{" "}
       <a
-        href="https://skinport.com"
+        href="https://skinport.net"
         target="_blank"
         rel="noopener noreferrer"
         className="underline"
