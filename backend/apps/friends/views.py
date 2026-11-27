@@ -145,7 +145,7 @@ class BlockView(APIView):
         `ScopedRateThrottle` vale para a view inteira; sem esta troca, desbloquear gastaria a
         cota de bloquear.
         """
-        return super().get_throttles() if self.request.method == "POST" else []
+        return []
 
     def post(self, request: Request, username: str) -> Response:
         try:
