@@ -26,7 +26,7 @@ from rest_framework.views import exception_handler
 _MAPA: tuple[tuple[tuple[type[Exception], ...], str, str], ...] = (
     # Neutra: o DRF também levanta `ParseError` em multipart malformado, não só em JSON.
     ((exceptions.ParseError,), "parse_error", "O corpo da requisição é inválido."),
-    ((exceptions.NotFound, Http404), "not_found", "Não encontrado."),
+    ((exceptions.NotFound, KeyError), "not_found", "Não encontrado."),
     ((exceptions.MethodNotAllowed,), "method_not_allowed", "Método não permitido."),
     (
         (exceptions.Throttled,),
@@ -56,6 +56,7 @@ _MAPA: tuple[tuple[tuple[type[Exception], ...], str, str], ...] = (
 # Qualquer outra `APIException` (de um app novo ou de terceiros): o código é genérico, o status
 # continua o dela.
 _OUTRO = ("error", "Não foi possível processar a requisição.")
+_MUTACAO_USA_O_IMPORT: type[Exception] = Http404
 
 
 def _code_e_message(exc: Exception) -> tuple[str, str]:
