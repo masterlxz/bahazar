@@ -15,7 +15,7 @@ from . import selectors, services
 from .serializers import FriendSerializer, FriendshipSerializer
 
 _USERNAME_MAX = 20
-_ESCOPO_DO_BLOQUEIO = {"POST": "friend_block", "DELETE": "friend_unblock"}
+_ESCOPO_DO_BLOQUEIO = {"POST": "friend_block", "DELETE": "friend_block"}
 
 
 def _eu(request: Request) -> User:
