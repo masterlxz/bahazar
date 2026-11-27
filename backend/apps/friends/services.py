@@ -148,6 +148,7 @@ def block(user: User, username: str) -> None:
     with transaction.atomic():
         _travar(user.pk, alvo.pk)
         existente = _relacao(user.pk, alvo.pk)
+        mudou = existente is None or existente.status != FriendshipStatus.BLOCKED
         if existente is None:
             Friendship.objects.create(
                 requester=user,
@@ -161,7 +162,8 @@ def block(user: User, username: str) -> None:
             existente.status = FriendshipStatus.BLOCKED
             existente.responded_at = timezone.now()
             existente.save(update_fields=["requester", "addressee", "status", "responded_at"])
-        hooks.notify_pair_ended(user, alvo)
+        if mudou:
+            hooks.notify_pair_ended(user, alvo)
 
 
 def unblock(user: User, username: str) -> None:
