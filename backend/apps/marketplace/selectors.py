@@ -53,7 +53,7 @@ def active_listing(
     revelar o que a lista esconde.
     """
     return (
-        _vendaveis()
+        MarketListing.objects.filter(status=ListingStatus.ACTIVE)
         .exclude(seller_id__in=list(hide_sellers))
         .filter(pk=listing_id)
         .select_related("seller", "instance__skin")
