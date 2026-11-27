@@ -51,6 +51,17 @@ def test_desbloquear_nao_gasta_nem_sofre_o_limite(ana: Any) -> None:
     assert resposta.status_code == 404  # chegou na view (usuário inexistente), não foi barrado
 
 
+def test_o_balde_de_bloquear_e_proprio_e_nao_gasta_a_cota_de_criar_troca(ana: Any) -> None:
+    """Prende a view ao escopo `friend_block`: com outro escopo de 30/min o balde seria dividido."""
+    cliente = logado(ana)
+    for _ in range(LIMITE + 1):
+        _bloquear_fantasma(cliente)
+
+    resposta = cliente.post("/api/v1/trades/", {}, format="json")
+
+    assert resposta.status_code == 400  # corpo vazio chegou na view; 429 seria o balde dividido
+
+
 def test_o_limite_e_por_usuario(ana: Any, bruno: Any) -> None:
     cliente_ana = logado(ana)
     for _ in range(LIMITE + 1):
