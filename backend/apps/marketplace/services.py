@@ -237,6 +237,14 @@ class ListingUnavailable(MarketError):
     message = "O item deste anúncio não está mais disponível."
 
 
+class PlayerUnavailable(MarketError):
+    """Comprador ou vendedor está desativado (`is_active=False`). Genérico de propósito: não diz
+    o motivo nem quem é."""
+
+    code = "player_unavailable"
+    message = "Este jogador não está disponível."
+
+
 @dataclass(frozen=True)
 class PurchaseResult:
     """A venda concluída. `replayed` é verdadeiro quando a mesma chave devolveu o resultado de
@@ -278,6 +286,16 @@ def _travar_jogadores(*ids: uuid.UUID) -> None:
     Sem o `order_by`, o PostgreSQL trava na ordem em que lê, que não é a do id.
     """
     list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+
+
+def _exigir_ativos(*ids: uuid.UUID) -> None:
+    """`PlayerUnavailable` se algum dos jogadores está desativado (`is_active=False`).
+
+    Chamar logo depois de `_travar_jogadores`, dentro da transação: lê o banco (e não o objeto em
+    memória, que pode estar velho) com as linhas já travadas.
+    """
+    if User.objects.filter(pk__in=ids, is_active=True).count() != len(set(ids)):
+        raise PlayerUnavailable
 
 
 def buy_listing(
@@ -333,6 +351,9 @@ def buy_listing(
             raise ListingNotFound
         if anuncio.status != ListingStatus.ACTIVE:
             raise ListingNotActive
+        # Depois do estado do anúncio: um anúncio já vendido ou cancelado dá o mesmo erro de
+        # sempre, ainda que o vendedor esteja desativado. Antes de mexer em instância e ledger.
+        _exigir_ativos(buyer.pk, vendedor.pk)
         instancia = SkinInstance.objects.select_for_update().filter(pk=anuncio.instance_id).first()
         if instancia is None or instancia.owner_id != vendedor.pk or instancia.consumed_at:
             raise ListingUnavailable

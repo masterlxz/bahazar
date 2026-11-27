@@ -82,6 +82,14 @@ class NotFriends(TradeError):
     message = "A troca só é possível entre amigos."
 
 
+class PlayerUnavailable(TradeError):
+    """Um dos dois jogadores está desativado (`is_active=False`). Genérico de propósito: não diz
+    o motivo nem quem é."""
+
+    code = "player_unavailable"
+    message = "Este jogador não está disponível."
+
+
 class ItemNotOwned(TradeError):
     code = "item_not_owned"
     message = "Um dos itens não pertence a quem deveria."
@@ -190,6 +198,7 @@ def create_offer(
             _travar_jogadores(proposer.pk, recipient.pk)
             if not friends_selectors.can_view(proposer, recipient):
                 raise NotFriends
+            _exigir_ativos(proposer.pk, recipient.pk)
             if rules.pending_limit_exceeded(selectors.pending_count(proposer)):
                 raise TooManyPendingOffers
             # Depois do teto por proponente (o mais amplo): quem estourou os dois recebe o erro de
@@ -237,6 +246,17 @@ def _travar_jogadores(*ids: uuid.UUID) -> None:
     list(User.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
 
 
+def _exigir_ativos(*ids: uuid.UUID) -> None:
+    """`PlayerUnavailable` se algum dos jogadores está desativado (`is_active=False`).
+
+    Chamar logo depois de `_travar_jogadores`, dentro da transação: lê o banco (e não o objeto em
+    memória, que pode estar velho) com as linhas já travadas. Vem DEPOIS da checagem de amizade,
+    para quem não é amigo não descobrir quais contas estão desativadas.
+    """
+    if User.objects.filter(pk__in=ids, is_active=True).count() != len(set(ids)):
+        raise PlayerUnavailable
+
+
 def _oferta_para(actor: User, offer_id: uuid.UUID) -> TradeOffer:
     """A oferta (sem trava) se `actor` faz parte dela; senão, `OfferNotFound`."""
     oferta = selectors.offer_for_party(actor, offer_id)
@@ -275,6 +295,7 @@ def accept_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
         oferta = _travar_oferta(actor, offer_id, rules.ACCEPT)
         if not friends_selectors.can_view(previa.proposer, previa.recipient):
             raise NotFriends
+        _exigir_ativos(previa.proposer_id, previa.recipient_id)
         itens = list(oferta.items.all())
         ids = sorted(i.instance_id for i in itens)
         instancias = {

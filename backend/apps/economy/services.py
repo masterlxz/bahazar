@@ -47,6 +47,11 @@ class InvalidTransfer(EconomyError):
     message = "Transferência inválida."
 
 
+class PlayerUnavailable(EconomyError):
+    code = "player_unavailable"
+    message = "Este jogador não está disponível."
+
+
 @dataclass(frozen=True)
 class TransferResult:
     ledger_group_id: uuid.UUID
@@ -182,8 +187,10 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     - `ValueError`: a chave não é um UUID.
     - `InvalidTransfer`: valor inválido, ou remetente igual ao destinatário.
     - `InsufficientFunds`: o remetente não tem o valor; nada é gravado.
-
-    Não checa `is_active` do destinatário nem do remetente (pendência de produto, risco J4).
+    - `PlayerUnavailable`: o remetente ou o destinatário está desativado (`is_active=False`,
+      risco J4). Os dois jogadores são travados por `pk` e a leitura vem depois, na mesma
+      transação: jogadores antes de carteiras, a ordem do ADR 0016 (a mesma de `claim_daily`).
+      As carteiras já foram abertas antes da transação, então nenhuma está travada aqui.
     """
     chave = rules.normalize_idempotency_key(idempotency_key)
     try:
@@ -199,6 +206,11 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     destino = ensure_wallet(recipient)
 
     def operar() -> tuple[int, dict[str, Any]]:
+        usuario_model: Any = get_user_model()
+        ids = [sender.pk, recipient.pk]
+        list(usuario_model.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+        if usuario_model.objects.filter(pk__in=ids, is_active=True).count() != 2:
+            raise PlayerUnavailable
         grupo = post_entries(
             [Entry(origem.id, -amount), Entry(destino.id, amount)],
             kind=TransactionKind.TRANSFER,

@@ -40,6 +40,7 @@ _STATUS_DO_ERRO: dict[type[services.TradeError], int] = {
     services.InvalidItemId: status.HTTP_400_BAD_REQUEST,
     services.TooManyItems: status.HTTP_400_BAD_REQUEST,
     services.NotFriends: status.HTTP_409_CONFLICT,
+    services.PlayerUnavailable: status.HTTP_409_CONFLICT,
     services.ItemNotOwned: status.HTTP_409_CONFLICT,
     services.ItemConsumed: status.HTTP_409_CONFLICT,
     services.ItemAlreadyOffered: status.HTTP_409_CONFLICT,
