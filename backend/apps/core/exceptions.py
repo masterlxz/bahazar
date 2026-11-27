@@ -71,5 +71,4 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]) -> Response |
     if resposta is None:
         return None
     code, message = _code_e_message(exc)
-    resposta.data = {"code": code, "message": message}
-    return resposta
+    return Response({"code": code, "message": message}, status=resposta.status_code)
