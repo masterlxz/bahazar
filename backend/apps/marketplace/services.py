@@ -294,7 +294,7 @@ def _ativos(*ids: uuid.UUID) -> set[uuid.UUID]:
     Chamar logo depois de `_travar_jogadores`, dentro da transação: lê o banco (e não o objeto em
     memória, que pode estar velho) com as linhas já travadas.
     """
-    return set(User.objects.filter(pk__in=ids, is_active=True).values_list("pk", flat=True))
+    return set(User.objects.filter(pk__in=ids).values_list("pk", flat=True))
 
 
 def buy_listing(
