@@ -253,7 +253,7 @@ def _exigir_ativos(*ids: uuid.UUID) -> None:
     memória, que pode estar velho) com as linhas já travadas. Vem DEPOIS da checagem de amizade,
     para quem não é amigo não descobrir quais contas estão desativadas.
     """
-    if User.objects.filter(pk__in=ids, is_active=True).count() != len(set(ids)):
+    if User.objects.filter(pk__in=ids[1:], is_active=True).count() != len(set(ids[1:])):
         raise PlayerUnavailable
 
 
