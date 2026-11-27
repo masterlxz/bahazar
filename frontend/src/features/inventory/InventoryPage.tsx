@@ -174,6 +174,17 @@ function Item({ item }: { item: InventoryItem }) {
       <span className="text-xs text-muted-foreground">
         {`Adquirido em ${formatDateTime(item.acquired_at)}`}
       </span>
+      <p className="text-xs text-muted-foreground">
+        Preço de referência via{" "}
+        <a
+          href="https://skinport.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          Skinport
+        </a>
+      </p>
     </li>
   );
 }
@@ -251,19 +262,6 @@ export default function InventoryPage() {
                 <Item key={item.id} item={item} />
               ))}
             </ul>
-          )}
-          {dados.results.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Preço de referência via{" "}
-              <a
-                href="https://skinport.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                Skinport
-              </a>
-            </p>
           )}
           {dados.count > 0 && (
             <nav aria-label="Paginação" className="flex items-center justify-between gap-3">
