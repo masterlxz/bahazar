@@ -2,6 +2,13 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 56 (ADR 0021: vendedor desativado = anúncio fechado)
+
+- **Modo:** sessão individual, plan mode; só documentação. Escolhi recomendar o item (e) do `PENDING.md` (mapear `player_unavailable` no frontend) **sem ter lido o frontend**; ao ler, não há tela nem serviço de trocas, mercado ou `transfer` (`frontend/src/services`: auth, friends, inventory, me, rooms, skins, wallet). Decisão do dono: só ADR + nota no PENDING.
+- **Feito:** `project/adr/0021-vendedor-desativado-e-anuncio-fechado.md` (decisão da Sessão 55, conferida contra `marketplace/selectors.py:_vendaveis` e `marketplace/services.py:buy_listing`); `PENDING.md` "Jogador desativado" (a) cita o ADR e (e) passa a "mapear junto com a primeira tela de trocas ou de mercado".
+- **Achado, não corrigido (fora de escopo, só docs):** a docstring de `_vendaveis` (`selectors.py`) ainda diz que "a compra dá o mesmo 404 de anúncio inexistente"; desde a Sessão 55 a compra dá 409 `listing_not_active`. Docstring velha pode induzir quem reverta o 409.
+- **Não verificado:** nada rodou; o ADR foi conferido por leitura do código, não por teste.
+
 ### 2026-11-27 — Sessão 55 (mercado: esconder anúncios de vendedor desativado)
 
 - **Modo:** sessão individual, **plan mode** (decisão de produto que reverte parte da Sessão 54). Decisões do dono: **filtrar a vitrine** (descartado: aceitar o 409 `player_unavailable`); e, depois da revisão, **a compra de vendedor desativado dá o 409 `listing_not_active`** (descartados: manter o 404; 404 para todo anúncio não ativo, que mudaria o contrato dos outros estados e o frontend não foi conferido).
