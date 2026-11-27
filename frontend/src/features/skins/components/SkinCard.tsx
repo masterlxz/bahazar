@@ -40,7 +40,7 @@ export function SkinCard({ skin }: SkinCardProps) {
       <span className="font-semibold text-sm truncate">{skin.name}</span>
       <span className="text-xs text-muted-foreground">{skin.weapon}</span>
       <span className="text-xs font-medium capitalize">{skin.rarity.toLowerCase()}</span>
-      <span className="text-sm font-semibold">{formatUsd(skin.reference_price)}</span>
+      <span className="text-sm font-semibold">{formatUsd(skin.reference_price * 100)}</span>
       {skin.collection && (
         <span className="text-xs text-muted-foreground truncate">{skin.collection}</span>
       )}
