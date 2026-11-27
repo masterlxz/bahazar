@@ -254,7 +254,7 @@ export default function InventoryPage() {
           )}
           {dados.results.length > 0 && (
             <p className="text-xs text-muted-foreground">
-              Preço de referência via{" "}
+              Preço via{" "}
               <a
                 href="https://skinport.com"
                 target="_blank"
