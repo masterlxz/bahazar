@@ -272,7 +272,7 @@ def test_login_bloqueado_do_allauth_segue_no_formato_dele(ana: Any) -> None:
     """O allauth não é DRF: o handler não o alcança, e o frontend lê `errors[].code` dele."""
     client = APIClient(enforce_csrf_checks=True)
     client.get(CONFIG_URL)
-    cabecalho = {"HTTP_X_CSRFTOKEN": client.cookies["csrftoken"].value}
+    cabecalho: dict[str, Any] = {"HTTP_X_CSRFTOKEN": client.cookies["csrftoken"].value}
     login_url = "/_allauth/browser/v1/auth/login"
     senha_errada = {"username": "ana_01", "password": "senha-errada-123"}
 
