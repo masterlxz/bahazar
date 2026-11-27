@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 50 (throttle nos DELETE de desbloquear e remover amizade)
+
+- **Modo:** sessão individual, sem plan mode (mesma receita do PR #287). Pedido do dono: o item "throttle do DELETE do bloqueio e do `remove_friend`". Valores (hipóteses sem fonte, minhas): 30/min por jogador em cada um, escopos `friend_unblock` e `friend_remove`.
+- **Feito** (PR #305): `BlockView.throttle_scope` e `FriendDetailView.throttle_scope` viram `property` por método (`BlockView`: POST `friend_block`, DELETE `friend_unblock`; `FriendDetailView`: só DELETE `friend_remove`, o GET do perfil fica sem limite); o `get_throttles` da Sessão 46 sai (a property o substitui). Testes: `tests/friends/test_friends_limites.py`.
+- **Provas (CI lido por mim, com `headSha`):** controle `8b0ffa1` (só testes): **3 falhas e 1436 passaram** (config e os dois 429; "GET não gasta", "baldes independentes" e "por usuário" já passavam sem throttle, só a mutação os prova). Final e mutações: ver o corpo do PR.
+- **Não verificado:** nada rodou fora do CI; cache do throttle por processo; o frontend não foi exercitado (nenhuma tela mostra o 429 destes DELETE).
+- **Aberto:** agendar `expire_trade_offers` no deploy; ADR curto da exceção do bloqueio; validação no PC do dono.
+
 ### 2026-11-27 — Sessão 49 (expiração de ofertas de troca pendentes)
 
 - **Modo:** sessão individual, plan mode. Decisões do dono (2 perguntas): estado novo **`expired`** (não reusar `cancelled`); **comando manual**, **7 dias** (hipótese sem fonte), **sem regra de tempo no `accept_offer`**. Descartados: reusar `cancelled` (perde a diferença, mas evitaria a migração) e "vencida só na leitura" (o índice único dos itens continuaria travando a instância).
