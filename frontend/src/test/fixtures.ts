@@ -290,7 +290,7 @@ export const pagina = (
 });
 
 /** 404 do nosso DRF para quem não pode ver (amigo não aceito, pendente, bloqueado, inexistente). */
-export const ERRO_NAO_ENCONTRADO = { detail: "Not found." };
+export const ERRO_NAO_ENCONTRADO = { code: "not_found", message: "Não encontrado." };
 
 /** Facets do catálogo para filtros do inventário (mesmo endpoint do catálogo). */
 export const FACETS = {
