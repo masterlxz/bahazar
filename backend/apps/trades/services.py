@@ -293,9 +293,9 @@ def accept_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
     with transaction.atomic():
         _travar_jogadores(previa.proposer_id, previa.recipient_id)
         oferta = _travar_oferta(actor, offer_id, rules.ACCEPT)
+        _exigir_ativos(previa.proposer_id, previa.recipient_id)
         if not friends_selectors.can_view(previa.proposer, previa.recipient):
             raise NotFriends
-        _exigir_ativos(previa.proposer_id, previa.recipient_id)
         itens = list(oferta.items.all())
         ids = sorted(i.instance_id for i in itens)
         instancias = {
