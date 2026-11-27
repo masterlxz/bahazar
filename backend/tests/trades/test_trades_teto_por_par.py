@@ -4,9 +4,6 @@ Decisão do dono (2026-11-27): um amigo podia reservar itens de outro com até 2
 (o teto era só por proponente). O novo teto é `rules.PENDING_PER_PAIR_LIMIT` (3, HIPÓTESE sem
 fonte) do MESMO proponente para o MESMO destinatário: bruno->ana tem a cota própria. Só `pending`
 conta, e o teto de 20 por proponente (já existente) é conferido ANTES.
-
-`rules`, `services` e `selectors` são lidos como `Any` só neste arquivo: ele nasce antes do código
-que cria `PENDING_PER_PAIR_LIMIT`, `TooManyPendingForRecipient` e `pending_count_between`.
 """
 
 import uuid
@@ -16,16 +13,10 @@ from typing import Any
 import pytest
 from rest_framework.test import APIClient
 
-from apps.trades import rules as rules_tipado
-from apps.trades import selectors as selectors_tipado
-from apps.trades import services as services_tipado
+from apps.trades import rules, selectors, services
 from apps.trades.models import TradeOffer, TradeOfferItem
 
 from .conftest import criar_instancia, criar_ofertas, tornar_amigos
-
-rules: Any = rules_tipado
-selectors: Any = selectors_tipado
-services: Any = services_tipado
 
 TRADES_URL = "/api/v1/trades/"
 
@@ -72,7 +63,7 @@ def test_pending_count_between_conta_so_pendentes_do_mesmo_sentido(
     tornar_amigos(cena.ana, cena.carla)
     criar_ofertas(cena.ana, cena.bruno, 2, skin)
     resolvida = criar_ofertas(cena.ana, cena.bruno, 1, skin)[0]
-    services_tipado.cancel_offer(cena.ana, resolvida.id)
+    services.cancel_offer(cena.ana, resolvida.id)
     criar_ofertas(cena.bruno, cena.ana, 1, skin)
     criar_ofertas(cena.ana, cena.carla, 1, skin)
 
@@ -101,9 +92,9 @@ def test_a_ultima_vaga_do_par_passa_e_a_seguinte_e_recusada_sem_gravar_nada(
 
 
 def test_o_erro_novo_e_um_erro_de_troca_com_codigo_proprio() -> None:
-    assert issubclass(services.TooManyPendingForRecipient, services_tipado.TradeError)
+    assert issubclass(services.TooManyPendingForRecipient, services.TradeError)
     assert services.TooManyPendingForRecipient.code == "too_many_pending_for_recipient"
-    assert services.TooManyPendingForRecipient.code != services_tipado.TooManyPendingOffers.code
+    assert services.TooManyPendingForRecipient.code != services.TooManyPendingOffers.code
 
 
 def test_outro_destinatario_nao_gasta_a_cota_do_par(cena: SimpleNamespace, skin: Any) -> None:
@@ -135,11 +126,11 @@ def test_encerrar_uma_oferta_do_par_libera_a_vaga(
     with pytest.raises(services.TooManyPendingForRecipient):
         criar_ofertas(cena.ana, cena.bruno, 1, skin)
     if encerrar == "recusar":
-        services_tipado.decline_offer(cena.bruno, ofertas[0].id)
+        services.decline_offer(cena.bruno, ofertas[0].id)
     elif encerrar == "cancelar":
-        services_tipado.cancel_offer(cena.ana, ofertas[0].id)
+        services.cancel_offer(cena.ana, ofertas[0].id)
     else:
-        services_tipado.accept_offer(cena.bruno, ofertas[0].id)
+        services.accept_offer(cena.bruno, ofertas[0].id)
 
     nova = criar_ofertas(cena.ana, cena.bruno, 1, skin)[0]
 
@@ -151,10 +142,10 @@ def test_com_os_dois_tetos_estourados_vale_o_erro_do_teto_por_proponente(
     cena: SimpleNamespace, skin: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """O teto por proponente é conferido primeiro: quem já tem o máximo recebe o erro de sempre."""
-    monkeypatch.setattr(rules_tipado, "MAX_PENDING_PER_PROPOSER", rules.PENDING_PER_PAIR_LIMIT)
+    monkeypatch.setattr(rules, "MAX_PENDING_PER_PROPOSER", rules.PENDING_PER_PAIR_LIMIT)
     criar_ofertas(cena.ana, cena.bruno, rules.PENDING_PER_PAIR_LIMIT, skin)
 
-    with pytest.raises(services_tipado.TooManyPendingOffers):
+    with pytest.raises(services.TooManyPendingOffers):
         criar_ofertas(cena.ana, cena.bruno, 1, skin)
 
 

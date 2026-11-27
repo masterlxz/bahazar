@@ -4,32 +4,26 @@
 fim de um par registra uma função, no padrão de `inventory.services.register_move_guard`. Só
 bloquear e desfazer a amizade avisam; o efeito sobre as ofertas está em
 `tests/trades/test_trades_par_encerrado.py`.
-
-O módulo é lido por `importlib` só porque este arquivo nasce antes dele: sem isso o import
-quebraria a coleta de TODOS os testes.
 """
 
-import importlib
 from typing import Any
 
 import pytest
 
-from apps.friends import services
+from apps.friends import hooks, services
 from apps.friends.models import Friendship
 
 pytestmark = pytest.mark.django_db
 
 
-@pytest.fixture
-def hooks(monkeypatch: pytest.MonkeyPatch) -> Any:
-    """O módulo, com a lista de ganchos esvaziada: só os espiões do teste ficam registrados."""
-    modulo = importlib.import_module("apps.friends.hooks")
-    monkeypatch.setattr(modulo, "_PAIR_ENDED_HOOKS", [])
-    return modulo
+@pytest.fixture(autouse=True)
+def so_os_espioes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Esvazia a lista de ganchos (`trades` registra o dele no `ready()`): só os espiões ficam."""
+    monkeypatch.setattr(hooks, "_PAIR_ENDED_HOOKS", [])
 
 
 @pytest.fixture
-def chamadas(hooks: Any) -> list[tuple[Any, Any, int, str | None]]:
+def chamadas() -> list[tuple[Any, Any, int, str | None]]:
     """Registra um espião que anota `(a, b, linhas de amizade, estado da relação)` ao ser chamado.
 
     O estado é lido DENTRO da chamada: prova que o aviso vem depois de gravar a mudança.
@@ -47,7 +41,7 @@ def chamadas(hooks: Any) -> list[tuple[Any, Any, int, str | None]]:
 
 
 def test_notifica_na_ordem_do_registro_e_registrar_de_novo_nao_duplica(
-    hooks: Any, ana: Any, bruno: Any
+    ana: Any, bruno: Any
 ) -> None:
     vistas: list[str] = []
 
@@ -120,7 +114,7 @@ def test_operacao_que_falha_nao_avisa(
 
 
 def test_gancho_que_levanta_desfaz_o_bloqueio_porque_roda_dentro_da_transacao(
-    hooks: Any, ana: Any, bruno: Any
+    ana: Any, bruno: Any
 ) -> None:
     def falha(a: Any, b: Any) -> None:
         raise RuntimeError("gancho quebrado")
