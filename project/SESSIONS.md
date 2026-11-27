@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 48 (registro da exceção do bloqueio nas trocas)
+
+- **Modo:** sessão individual, sem plan mode (só texto: documenta uma decisão do dono já tomada na Sessão 45). Uma intenção.
+- **Feito:** linha "Amizade" do `SEGURANCA.md` ganha a exceção (trocas escondem nos dois sentidos, cancelam as pendentes e o bloqueado percebe; ex-amigo sem bloqueio segue lendo o histórico); docstring de `blocked_by` aponta a exceção. Nenhuma linha de lógica mudou.
+- **Provas:** `ruff check` e `ruff format --check` com código de saída 0 na VM; CI: ver o corpo do PR. Sem teste novo (sem comportamento novo).
+- **Não verificado:** a frase do `SEGURANCA.md` descreve o código lido em `trades/selectors.py` (`_visiveis`) e `friends/selectors.py` (`pair_is_blocked`); não reabri o ADR 0017 (a exceção não é emenda dele, é do #269).
+- **Aberto:** `DELETE` do bloqueio e `remove_friend` sem throttle; expiração de ofertas; validação no PC do dono. Sugestão: um ADR curto para a exceção (pergunto antes de criar).
+
 ### 2026-11-27 — Sessão 47 (400 do pedido de amizade com `code` estável)
 
 - **Modo:** sessão individual, sem plan mode (mudança mecânica de contrato, molde já usado em `trades`/`catalog`; o frontend já mapeia por `code` e cai em mensagem genérica se faltar). Uma intenção.
