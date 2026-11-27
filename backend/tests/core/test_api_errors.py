@@ -76,21 +76,24 @@ def test_json_quebrado_tambem_vale_para_a_rota_de_entrar_na_sala(bruno: Any) -> 
 # --- 404: página inválida e objeto que o usuário não enxerga ----------------------------------
 
 
-def test_pagina_valida_do_catalogo_continua_200() -> None:
-    """Premissa dos testes de página: com UMA skin a página 1 existe e a rota responde 200."""
+def test_pagina_valida_do_catalogo_continua_200(ana: Any) -> None:
+    """Premissa dos testes de página: com UMA skin a página 1 existe e a rota responde 200.
+
+    O catálogo exige login (vale o padrão negar do DRF; o comentário "público" da view não vale).
+    """
     criar_skin()
 
-    resposta = APIClient().get(CATALOG_URL, {"page": 1})
+    resposta = logado(ana).get(CATALOG_URL, {"page": 1})
 
     assert resposta.status_code == 200
     assert len(resposta.json()["results"]) == 1
 
 
 @pytest.mark.parametrize("pagina", ["2", "999", "0", "abc"])
-def test_pagina_invalida_do_catalogo_da_404_not_found(pagina: str) -> None:
+def test_pagina_invalida_do_catalogo_da_404_not_found(ana: Any, pagina: str) -> None:
     criar_skin()  # uma skin: só a página 1 existe; "2" falha mesmo sendo um número pequeno
 
-    resposta = APIClient().get(CATALOG_URL, {"page": pagina})
+    resposta = logado(ana).get(CATALOG_URL, {"page": pagina})
 
     _confere(resposta, 404, "not_found", NOT_FOUND)
 
@@ -256,14 +259,14 @@ def test_erro_de_dominio_da_diaria_segue_identico_com_available_at(ana: Any) -> 
     assert corpo["available_at"]
 
 
-def test_erro_de_dominio_do_catalogo_segue_com_a_mensagem_propria() -> None:
-    resposta = APIClient().get(CATALOG_URL, {"ordering": "inventado"})
+def test_erro_de_dominio_do_catalogo_segue_com_a_mensagem_propria(ana: Any) -> None:
+    resposta = logado(ana).get(CATALOG_URL, {"ordering": "inventado"})
 
     _confere(resposta, 400, "invalid_ordering", "Ordenação inválida: inventado")
 
 
-def test_detalhe_inexistente_do_catalogo_segue_com_o_proprio_404() -> None:
-    resposta = APIClient().get(f"{CATALOG_URL}{uuid.UUID(int=7)}/")
+def test_detalhe_inexistente_do_catalogo_segue_com_o_proprio_404(ana: Any) -> None:
+    resposta = logado(ana).get(f"{CATALOG_URL}{uuid.UUID(int=7)}/")
 
     _confere(resposta, 404, "not_found", NOT_FOUND)
 
