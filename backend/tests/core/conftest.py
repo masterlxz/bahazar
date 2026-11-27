@@ -2,13 +2,14 @@
 
 from collections.abc import Callable, Iterator
 from decimal import Decimal
-from importlib import import_module
 from typing import Any
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from rest_framework.test import APIClient
+
+from apps.core.exceptions import api_exception_handler
 
 ROOMS_URL = "/api/v1/rooms/"
 JOIN_URL = "/api/v1/rooms/join/"
@@ -33,9 +34,8 @@ def _cache_limpo() -> Iterator[None]:
 
 @pytest.fixture
 def handler() -> ApiExceptionHandler:
-    """O `EXCEPTION_HANDLER` da API, carregado por nome (o módulo é o assunto dos testes)."""
-    funcao: ApiExceptionHandler = import_module("apps.core.exceptions").api_exception_handler
-    return funcao
+    """O `EXCEPTION_HANDLER` da API."""
+    return api_exception_handler
 
 
 def criar_usuario(username: str) -> Any:
