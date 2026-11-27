@@ -205,10 +205,6 @@ def transfer(sender: Any, recipient: Any, amount: int, *, idempotency_key: str) 
     destino = ensure_wallet(recipient)
 
     def operar() -> tuple[int, dict[str, Any]]:
-        usuario_model: Any = get_user_model()
-        ativos = usuario_model.objects.filter(pk__in=[sender.pk, recipient.pk], is_active=True)
-        if ativos.count() != 2:
-            raise PlayerUnavailable
         grupo = post_entries(
             [Entry(origem.id, -amount), Entry(destino.id, amount)],
             kind=TransactionKind.TRANSFER,
