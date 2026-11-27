@@ -114,6 +114,7 @@ def test_acao_desconhecida_nao_e_permitida_a_ninguem() -> None:
         (rules.ACCEPT, rules.ACCEPTED),
         (rules.DECLINE, rules.DECLINED),
         (rules.CANCEL, rules.CANCELLED),
+        (rules.EXPIRE, rules.EXPIRED),
     ],
 )
 def test_estado_depois_de_cada_acao(acao: str, estado: str) -> None:

@@ -12,10 +12,12 @@ PENDING = "pending"
 ACCEPTED = "accepted"
 DECLINED = "declined"
 CANCELLED = "cancelled"
+EXPIRED = "expired"
 
 ACCEPT = "accept"
 DECLINE = "decline"
 CANCEL = "cancel"
+EXPIRE = "expire"
 
 # Problemas de forma da oferta e de estado de cada item (o serviço traduz em erros com `code`).
 SELF_TRADE = "self_trade"

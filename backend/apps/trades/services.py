@@ -318,6 +318,10 @@ def cancel_pending_between(a: User, b: User) -> None:
         _encerrar(oferta, rules.CANCEL)
 
 
+def expire_offer(offer_id: uuid.UUID) -> bool:
+    raise NotImplementedError  # esqueleto do controle (Sessão 49)
+
+
 def decline_offer(actor: User, offer_id: uuid.UUID) -> TradeOffer:
     """O destinatário recusa: nada muda de dono e as instâncias ficam livres."""
     return _resolver_sem_troca(actor, offer_id, rules.DECLINE)

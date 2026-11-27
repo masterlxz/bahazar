@@ -197,7 +197,7 @@ def test_os_estados_de_rules_sao_os_mesmos_do_modelo() -> None:
     from apps.trades import rules
     from apps.trades.models import TradeStatus
 
-    de_rules = (rules.PENDING, rules.ACCEPTED, rules.DECLINED, rules.CANCELLED)
+    de_rules = (rules.PENDING, rules.ACCEPTED, rules.DECLINED, rules.CANCELLED, rules.EXPIRED)
 
     assert de_rules == tuple(TradeStatus)
     assert set(de_rules) == set(TradeStatus.values)
