@@ -162,6 +162,7 @@ class BuyListingView(APIView):
 
     Exige o cabeçalho `Idempotency-Key` (um UUID). Anúncio inexistente e anúncio de quem o
     comprador bloqueou dão o mesmo 404; o bloqueado, ao contrário, compra normalmente (ADR 0017).
+    Anúncio de vendedor desativado dá o mesmo 409 `listing_not_active` de um anúncio fechado.
     Repetir a chave devolve a venda original, também com 201.
     """
 

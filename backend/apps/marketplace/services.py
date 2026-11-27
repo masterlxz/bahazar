@@ -238,8 +238,8 @@ class ListingUnavailable(MarketError):
 
 
 class PlayerUnavailable(MarketError):
-    """Comprador ou vendedor está desativado (`is_active=False`). Genérico de propósito: não diz
-    o motivo nem quem é."""
+    """O COMPRADOR está desativado (`is_active=False`). Genérico de propósito: não diz o motivo.
+    O vendedor desativado não usa este erro: o anúncio dele conta como fechado."""
 
     code = "player_unavailable"
     message = "Este jogador não está disponível."
@@ -323,9 +323,9 @@ def buy_listing(
     confere o estado (ativo, dono, consumo), porque a leitura anterior pode estar velha. O dono
     muda antes do lançamento no ledger para que a instância fique travada antes das carteiras.
 
-    Vendedor desativado (`is_active=False`, J4): `ListingNotFound`, em qualquer estado do anúncio
-    e antes do erro de estado (a vitrine também o esconde). Comprador desativado:
-    `PlayerUnavailable`. A leitura é do banco, depois de travar os jogadores.
+    Vendedor desativado (`is_active=False`, J4): `ListingNotActive`, a mesma resposta de um
+    anúncio fechado (a vitrine e o detalhe o escondem). Comprador desativado: `PlayerUnavailable`.
+    A leitura é do banco, depois de travar os jogadores.
 
     Erros: `InvalidIdempotencyKey`, `ListingNotFound`, `CannotBuyOwnListing`, `ListingNotActive`,
     `PlayerUnavailable`, `ListingUnavailable`, `InsufficientFunds` e `IdempotencyKeyReused`.
@@ -353,11 +353,10 @@ def buy_listing(
         anuncio = MarketListing.objects.select_for_update().filter(pk=listing_id).first()
         if anuncio is None:
             raise ListingNotFound
-        # Vendedor desativado: o anúncio some, como o de quem o comprador bloqueou, em QUALQUER
-        # estado e ANTES do erro de estado (`ListingNotActive` revelaria que o anúncio existe).
-        if vendedor.pk not in ativos:
-            raise ListingNotFound
-        if anuncio.status != ListingStatus.ACTIVE:
+        # Vendedor desativado conta como anúncio FECHADO: o mesmo `ListingNotActive` de um
+        # vendido ou cancelado, em qualquer estado. Quem raspou a vitrine só pode pedir a compra
+        # de um `id` visto, e a resposta não pode distinguir "fechado" de "conta desativada".
+        if anuncio.status != ListingStatus.ACTIVE or vendedor.pk not in ativos:
             raise ListingNotActive
         # O comprador é o ator: a resposta só fala dele.
         if buyer.pk not in ativos:
