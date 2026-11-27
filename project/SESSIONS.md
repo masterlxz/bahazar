@@ -2,6 +2,14 @@
 
 Mais recente no topo.
 
+### 2026-11-27 — Sessão 47 (400 do pedido de amizade com `code` estável)
+
+- **Modo:** sessão individual, sem plan mode (mudança mecânica de contrato, molde já usado em `trades`/`catalog`; o frontend já mapeia por `code` e cai em mensagem genérica se faltar). Uma intenção.
+- **Feito** (PR #294): `POST /friends/requests/` com `username` ausente, não texto, só espaços ou com mais de 20 caracteres passa de `{"username": ["..."]}` para `{"code": "invalid_username", "message": "Informe o nome de usuário."}` (`friends/views.py`). Teste: `test_pedido_com_username_invalido_e_400_com_code` (4 formas), no lugar de `test_pedido_sem_username_e_400`, que só olhava o status.
+- **Provas (CI lido por mim, com `headSha`):** controle `43ad1e8` (só testes): **4 falhas e 1405 passaram**. Final `9f22ec0`: **1409 passaram**. **Mutação do coordenador** (PR rascunho #295, fechado, branch apagada; passou ruff e format): `code` trocado por `invalid_body` derrubou os **4** casos de `test_pedido_com_username_invalido_e_400_com_code` (`sem_campo`, `nao_texto`, `so_espacos`, `longo_demais`), como previsto; 1 de 1.
+- **Não verificado:** nada rodou fora do CI; o frontend não foi exercitado (nenhuma mensagem nova para `invalid_username`; cai em `GENERICA` do `AddFriendForm`).
+- **Aberto:** `DELETE` do bloqueio e `remove_friend` sem throttle; registrar a exceção do bloqueio nos dois sentidos (`SEGURANCA.md`, docstring de `blocked_by`); expiração de ofertas; validação no PC do dono.
+
 ### 2026-11-27 — Sessão 46 (throttle de 30/min no POST de bloquear)
 
 - **Modo:** sessão individual, plan mode (o valor do teto é decisão do dono). Uma intenção: limitar a escrita com trava que o `block` virou no PR #269. Plano aprovado pelo dono: 30/min por jogador, só no POST.

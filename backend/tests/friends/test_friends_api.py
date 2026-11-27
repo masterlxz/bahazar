@@ -97,8 +97,16 @@ def test_pedir_a_quem_ja_e_amigo_e_recusado(ana: Any, bruno: Any) -> None:
     assert resposta.json()["code"] == "already_friends"
 
 
-def test_pedido_sem_username_e_400(ana: Any) -> None:
-    assert logado(ana).post(REQUESTS_URL, {}, format="json").status_code == 400
+@pytest.mark.parametrize(
+    "corpo",
+    [{}, {"username": 5}, {"username": "   "}, {"username": "a" * 21}],
+    ids=["sem_campo", "nao_texto", "so_espacos", "longo_demais"],
+)
+def test_pedido_com_username_invalido_e_400_com_code(ana: Any, corpo: dict[str, Any]) -> None:
+    resposta = logado(ana).post(REQUESTS_URL, corpo, format="json")
+
+    assert resposta.status_code == 400
+    assert resposta.json() == {"code": "invalid_username", "message": "Informe o nome de usuário."}
 
 
 # --- aceitar e recusar ----------------------------------------------------------------------
