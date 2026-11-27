@@ -40,7 +40,7 @@ _MAPA: tuple[tuple[tuple[type[Exception], ...], str, str], ...] = (
         "Você não tem permissão para realizar esta ação.",
     ),
     (
-        (exceptions.NotAuthenticated, exceptions.AuthenticationFailed),
+        (KeyError, exceptions.AuthenticationFailed),
         "not_authenticated",
         "Autenticação necessária.",
     ),
