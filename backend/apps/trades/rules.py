@@ -89,7 +89,7 @@ def pending_limit_exceeded(pending: int) -> bool:
 
 def pending_pair_limit_exceeded(pending: int) -> bool:
     """Quem já tem `PENDING_PER_PAIR_LIMIT` pendentes para o mesmo destinatário não abre outra."""
-    return pending >= PENDING_PER_PAIR_LIMIT
+    return pending > PENDING_PER_PAIR_LIMIT
 
 
 def can_resolve(status: str) -> bool:
