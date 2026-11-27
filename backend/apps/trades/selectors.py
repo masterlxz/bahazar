@@ -19,7 +19,7 @@ def _visiveis(user: User) -> QuerySet[TradeOffer]:
     continua lendo o histórico. A regra do bloqueio é de `friends.selectors`.
     """
     do_usuario = TradeOffer.objects.filter(Q(proposer=user) | Q(recipient=user))
-    return do_usuario.filter(~friends_selectors.pair_is_blocked("proposer", "recipient"))
+    return do_usuario
 
 
 def offer_for_party(user: User, offer_id: uuid.UUID) -> TradeOffer | None:
