@@ -205,7 +205,7 @@ export default function TradesPage() {
           <Button
             variant="outline"
             size="sm"
-            disabled={!dados.previous}
+            disabled={dados.count < 0}
             onClick={() => setPagina((p) => p - 1)}
           >
             Anterior
