@@ -137,6 +137,34 @@ export interface Paginated<T> {
   results: T[];
 }
 
+/** Estado de uma oferta: `TradeStatus` (apps/trades/models.py, lido em 2026-11-28). */
+export type TradeStatus = "pending" | "accepted" | "declined" | "cancelled" | "expired";
+
+/**
+ * Um item de uma oferta: `TradeItemSerializer` (apps/trades/serializers.py, lido em 2026-11-28).
+ * `side` "offered" = quem propôs dá; "requested" = quem propôs pede. `id` é o da instância.
+ * `float_value` é TEXTO; `reference_price` é inteiro em centavos de USD (GUIDELINES 1 e 11).
+ */
+export interface TradeItem {
+  side: "offered" | "requested";
+  id: string;
+  skin: InventorySkin;
+  float_value: string;
+  wear: string;
+  reference_price: number;
+}
+
+/** Uma oferta: `TradeOfferSerializer` (lido em 2026-11-28); os dois jogadores como `Friend`. */
+export interface TradeOffer {
+  id: string;
+  status: TradeStatus;
+  created_at: string;
+  resolved_at: string | null;
+  proposer: Friend;
+  recipient: Friend;
+  items: TradeItem[];
+}
+
 /** O que o frontend guarda do usuário da sessão (o allauth devolve mais campos). */
 export interface SessionUser {
   id: string;

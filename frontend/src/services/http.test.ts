@@ -124,3 +124,31 @@ describe("request", () => {
     });
   });
 });
+
+describe("cabeçalhos extras de request()", () => {
+  it("envia o cabeçalho do chamador junto com o CSRF e o Accept", async () => {
+    document.cookie = "csrftoken=abc";
+    const m = mockFetch({ "POST /x": { status: 200, body: {} } });
+
+    await request("/x", { method: "POST", headers: { "Idempotency-Key": "chave-1" } });
+
+    const headers = m.callsTo("POST /x")[0]!.headers;
+    expect(headers["Idempotency-Key"]).toBe("chave-1");
+    expect(headers["X-CSRFToken"]).toBe("abc");
+    expect(headers["Accept"]).toBe("application/json");
+  });
+
+  it("o chamador não consegue trocar o X-CSRFToken nem o Accept", async () => {
+    document.cookie = "csrftoken=abc";
+    const m = mockFetch({ "POST /x": { status: 200, body: {} } });
+
+    await request("/x", {
+      method: "POST",
+      headers: { "X-CSRFToken": "falso", Accept: "text/html" },
+    });
+
+    const headers = m.callsTo("POST /x")[0]!.headers;
+    expect(headers["X-CSRFToken"]).toBe("abc");
+    expect(headers["Accept"]).toBe("application/json");
+  });
+});

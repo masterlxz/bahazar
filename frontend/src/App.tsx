@@ -11,6 +11,7 @@ import ProfilePage from "./features/profile/ProfilePage";
 import RoomDetailPage from "./features/rooms/RoomDetailPage";
 import RoomsPage from "./features/rooms/RoomsPage";
 import SkinsPage from "./features/skins/SkinsPage";
+import TradesPage from "./features/trades/TradesPage";
 import WalletPage from "./features/wallet/WalletPage";
 
 export default function App() {
@@ -74,6 +75,14 @@ export default function App() {
           element={
             <RequireAuth>
               <InventoryPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/trocas"
+          element={
+            <RequireAuth>
+              <TradesPage />
             </RequireAuth>
           }
         />

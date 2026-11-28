@@ -40,6 +40,8 @@ export class ApiError extends Error {
 export interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
+  /** Cabeçalhos extras (ex.: `Idempotency-Key`). Não trocam `Accept`, `Content-Type` nem o CSRF. */
+  headers?: Record<string, string>;
 }
 
 function lerTokenCsrf(): string | null {
