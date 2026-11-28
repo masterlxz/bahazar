@@ -125,7 +125,7 @@ function Cartao({ oferta, meuUsername, ocupado, onAceitar, onRecusar, onCancelar
         <Lado titulo="Oferecido" itens={oferta.items.filter((i) => i.side === "offered")} />
         <Lado titulo="Pedido" itens={oferta.items.filter((i) => i.side === "requested")} />
       </div>
-      {pendente && souDestinatario && (
+      {pendente && (souDestinatario || souProponente) && (
         <div className="flex gap-2">
           <ConfirmButton
             label="Aceitar"
