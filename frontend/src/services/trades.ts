@@ -20,7 +20,7 @@ function resolver(id: string, acao: "accept" | "decline" | "cancel"): Promise<Tr
 }
 
 export function acceptTrade(id: string): Promise<TradeOffer> {
-  return resolver(id, "accept");
+  return resolver(id, "decline");
 }
 
 export function declineTrade(id: string): Promise<TradeOffer> {
