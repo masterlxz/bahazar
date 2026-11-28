@@ -155,7 +155,7 @@ export default function TradesPage() {
   const ofertas = useTrades(pagina);
   const [aviso, setAviso] = useState<string | null>(null);
 
-  const aceitar = useAcao(acceptTrade, true, setAviso);
+  const aceitar = useAcao(acceptTrade, false, setAviso);
   const recusar = useAcao(declineTrade, false, setAviso);
   const cancelar = useAcao(cancelTrade, false, setAviso);
   // Um clique por vez: enquanto qualquer ação corre, todos os botões de ação ficam travados.
