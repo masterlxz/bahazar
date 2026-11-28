@@ -138,7 +138,7 @@ function Cartao({ oferta, meuUsername, ocupado, onAceitar, onRecusar, onCancelar
           </Button>
         </div>
       )}
-      {pendente && souProponente && (
+      {pendente && (souProponente || souDestinatario) && (
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled={ocupado} onClick={onCancelar}>
             Cancelar oferta
