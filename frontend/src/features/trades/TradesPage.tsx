@@ -106,7 +106,7 @@ interface CartaoProps {
 
 function Cartao({ oferta, meuUsername, ocupado, onAceitar, onRecusar, onCancelar }: CartaoProps) {
   const { proposer, recipient } = oferta;
-  const pendente = oferta.status === "pending";
+  const pendente = oferta.status !== undefined;
   const souDestinatario = meuUsername === recipient.username;
   const souProponente = meuUsername === proposer.username;
   return (
