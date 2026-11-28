@@ -6,6 +6,7 @@ import { FRIENDS_ROOT_KEY } from "../../features/friends/useFriends";
 import { INVENTORY_ROOT_KEY } from "../../features/inventory/useInventory";
 import { ME_KEY } from "../../features/profile/useMe";
 import { ROOMS_ROOT_KEY } from "../../features/rooms/useRooms";
+import { TRADES_ROOT_KEY } from "../../features/trades/useTrades";
 import { WALLET_KEY } from "../../features/wallet/useWallet";
 import { logout } from "../../services/auth";
 import { Button } from "../ui/button";
@@ -30,6 +31,8 @@ export default function Header() {
     queryClient.removeQueries({ queryKey: ROOMS_ROOT_KEY });
     // E o inventário, o meu e o dos amigos que chegou a ver (mesma chave raiz).
     queryClient.removeQueries({ queryKey: INVENTORY_ROOT_KEY });
+    // E as ofertas de troca (itens e jogadores de quem saiu).
+    queryClient.removeQueries({ queryKey: TRADES_ROOT_KEY });
   }
 
   return (
@@ -52,6 +55,9 @@ export default function Header() {
               </Link>
               <Link to="/inventario" className="hover:underline">
                 Inventário
+              </Link>
+              <Link to="/trocas" className="hover:underline">
+                Trocas
               </Link>
               <Link to="/carteira" className="hover:underline">
                 Carteira

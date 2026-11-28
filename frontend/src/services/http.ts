@@ -40,6 +40,8 @@ export class ApiError extends Error {
 export interface RequestOptions {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
+  /** Cabeçalhos extras (ex.: `Idempotency-Key`). Não trocam `Accept`, `Content-Type` nem o CSRF. */
+  headers?: Record<string, string>;
 }
 
 function lerTokenCsrf(): string | null {
@@ -78,9 +80,10 @@ async function lerJson(resposta: Response): Promise<unknown> {
  */
 export async function request<T = unknown>(
   caminho: string,
-  { method = "GET", body }: RequestOptions = {},
+  { method = "GET", body, headers: extras }: RequestOptions = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  // Os extras entram primeiro: os cabeçalhos abaixo vêm depois e vencem qualquer colisão.
+  const headers: Record<string, string> = { ...extras, Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (method !== "GET") headers["X-CSRFToken"] = await obterTokenCsrf();
 
