@@ -151,4 +151,17 @@ describe("cabeçalhos extras de request()", () => {
     expect(headers["X-CSRFToken"]).toBe("abc");
     expect(headers["Accept"]).toBe("application/json");
   });
+
+  it("o chamador não consegue trocar o Content-Type de um corpo JSON", async () => {
+    document.cookie = "csrftoken=abc";
+    const m = mockFetch({ "POST /x": { status: 200, body: {} } });
+
+    await request("/x", {
+      method: "POST",
+      body: { a: 1 },
+      headers: { "Content-Type": "text/plain" },
+    });
+
+    expect(m.callsTo("POST /x")[0]!.headers["Content-Type"]).toBe("application/json");
+  });
 });
