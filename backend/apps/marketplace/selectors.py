@@ -15,9 +15,10 @@ def _vendaveis() -> QuerySet[MarketListing]:
     movimento: o anúncio seguiria `active` no banco com um item que já não pode ser vendido. A
     vitrine esconde esse caso em vez de mostrá-lo; a compra (4.4) revalida sob trava mesmo assim.
 
-    O vendedor desativado (`is_active=False`, J4) também some: o anúncio dele nunca poderia ser
-    comprado, e a compra dá o mesmo 404 de anúncio inexistente, para ninguém distinguir uma conta
-    desativada de um anúncio que não existe. É o ponto único da vitrine e do detalhe.
+    O vendedor desativado (`is_active=False`, J4) também some (404 na vitrine e no detalhe): o
+    anúncio dele nunca poderia ser comprado. A compra dá `ListingNotActive` (409), a mesma resposta
+    de um anúncio fechado, para o `id` já visto não distinguir conta desativada de anúncio vendido
+    (ADR 0021). É o ponto único da vitrine e do detalhe.
     """
     return MarketListing.objects.filter(
         status=ListingStatus.ACTIVE,
