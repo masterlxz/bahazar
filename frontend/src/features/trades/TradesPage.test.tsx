@@ -40,7 +40,7 @@ const OFERTA_DO_BRUNO = {
   id: "o1",
   status: "pending",
   created_at: "2026-11-27T12:00:00Z",
-  resolved_at: null,
+  resolved_at: null as string | null,
   proposer: BRUNO,
   recipient: ANA,
   items: [doItem(ITEM_AK, "offered"), doItem(ITEM_AWP, "requested")],
