@@ -145,6 +145,7 @@ function Cartao({ oferta, meuUsername, ocupado, onAceitar, onRecusar, onCancelar
           </Button>
         </div>
       )}
+      <AtribuicaoSkinport />
     </article>
   );
 }
@@ -196,7 +197,6 @@ export default function TradesPage() {
               />
             ))}
           </div>
-          <AtribuicaoSkinport />
         </>
       )}
 
