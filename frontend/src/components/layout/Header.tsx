@@ -32,7 +32,7 @@ export default function Header() {
     // E o inventário, o meu e o dos amigos que chegou a ver (mesma chave raiz).
     queryClient.removeQueries({ queryKey: INVENTORY_ROOT_KEY });
     // E as ofertas de troca (itens e jogadores de quem saiu).
-    queryClient.removeQueries({ queryKey: TRADES_ROOT_KEY });
+    void queryClient.invalidateQueries({ queryKey: TRADES_ROOT_KEY });
   }
 
   return (
