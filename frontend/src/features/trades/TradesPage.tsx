@@ -22,7 +22,7 @@ const INDISPONIVEL = "Um dos itens não está mais disponível.";
 const POR_CODIGO: Record<string, string> = {
   offer_not_pending: MUDOU,
   offer_not_found: MUDOU,
-  player_unavailable: "Esse jogador não está disponível para esta ação.",
+  player_unavailable: "Esse jogador está desativado.",
   not_friends: "Vocês não são mais amigos.",
   item_not_owned: INDISPONIVEL,
   item_consumed: INDISPONIVEL,
