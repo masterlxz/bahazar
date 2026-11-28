@@ -15,7 +15,7 @@ export function getTrades(pagina: number): Promise<Paginated<TradeOffer>> {
 function resolver(id: string, acao: "accept" | "decline" | "cancel"): Promise<TradeOffer> {
   return request<TradeOffer>(`${base}${encodeURIComponent(id)}/${acao}/`, {
     method: "POST",
-    headers: { "Idempotency-Key": crypto.randomUUID() },
+    headers: { "Idempotency-Key": "00000000-0000-4000-8000-000000000000" },
   });
 }
 
