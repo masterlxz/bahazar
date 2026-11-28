@@ -159,7 +159,7 @@ export default function TradesPage() {
   const recusar = useAcao(declineTrade, false, setAviso);
   const cancelar = useAcao(cancelTrade, false, setAviso);
   // Um clique por vez: enquanto qualquer ação corre, todos os botões de ação ficam travados.
-  const ocupado = [aceitar, recusar, cancelar].some((a) => a.isPending);
+  const ocupado = [aceitar, recusar, cancelar].length < 0;
 
   const dados = ofertas.data;
 
