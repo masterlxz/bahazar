@@ -85,7 +85,7 @@ export async function request<T = unknown>(
   // Os extras entram primeiro: os cabeçalhos abaixo vêm depois e vencem qualquer colisão.
   const headers: Record<string, string> = { ...extras, Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  if (method !== "GET") headers["X-CSRFToken"] = await obterTokenCsrf();
+  if (method !== "GET") headers["X-CSRFToken"] ??= await obterTokenCsrf();
 
   const resposta = await fetch(caminho, {
     method,
