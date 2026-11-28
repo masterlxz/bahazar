@@ -35,7 +35,7 @@ function mensagemDoErro(erro: unknown): string {
   if (doCodigo) return doCodigo;
   if (erro.status === 404) return MUDOU;
   if (erro.status === 429) return "Muitas ações seguidas. Espere um pouco.";
-  return FALHOU;
+  return String((erro.body as { message?: unknown } | null)?.message ?? FALHOU);
 }
 
 const ROTULO: Record<TradeStatus, string> = {
