@@ -83,7 +83,7 @@ export async function request<T = unknown>(
   { method = "GET", body, headers: extras }: RequestOptions = {},
 ): Promise<T> {
   // Os extras entram primeiro: os cabeçalhos abaixo vêm depois e vencem qualquer colisão.
-  const headers: Record<string, string> = { ...extras, Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json", ...extras };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (method !== "GET") headers["X-CSRFToken"] = await obterTokenCsrf();
 
